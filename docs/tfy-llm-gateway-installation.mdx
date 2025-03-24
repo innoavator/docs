@@ -1,0 +1,65 @@
+---
+title: "LLM Gateway"
+description: "Follow the steps to enable LLM Gateway in your control plane:"
+---
+
+1. For enabling request logging and metrics in the LLM gateway, few infra components are required like nats and clickhouse. Follow these steps to install: (**Note**: password should not contain `@` or `:`)
+
+   1. Create k8s secret
+      ```
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: tfy-llm-gateway-infra-auth
+        namespace: truefoundry
+      stringData:
+        CLICKHOUSE_USER_PASSWORD: xxx
+        NATS_ADMIN_PASSWORD: xxx
+        NATS_CLICKHOUSE_REQUEST_LOGS_READER_PASSWORD: xxx
+        NATS_LLM_GATEWAY_REQUEST_LOGGER_PASSWORD: xxx
+      type: Opaque
+      ```
+   2. Install tfy-llm-gateway-infra helm chart via truefoundry
+      ```
+      name: tfy-llm-gateway-infra
+      type: helm
+      source:
+       type: helm-repo
+       chart: tfy-llm-gateway-infra
+       version: 0.2.2
+       repo_url: https://truefoundry.github.io/infra-charts/
+      ```
+
+2. Install tfy-llm-gateway helm chart
+   ```
+   name: tfy-llm-gateway
+   type: helm
+   source:
+     type: helm-repo
+     chart: tfy-llm-gateway
+     version: 0.18.2
+     repo_url: https://truefoundry.github.io/infra-charts/
+   values:
+     global:
+       existingTruefoundryImagePullSecretName: truefoundry-image-pull-secret
+       controlPlaneURL: <>
+       llmGatewayInfra:
+         enabled: true
+         natsAdminPassword: "${k8s-secret/tfy-llm-gateway-infra-auth/NATS_ADMIN_PASSWORD}" # to refer k8s secret in step 1
+   ```
+
+3. Update the control plane (truefoundry helm chart) configuration - please add the following section under `global` in values
+   ```
+   values:
+     ...
+     global:
+       ...
+       llmGatewayInfra:
+         enabled: true
+         natsAdminPassword: "${k8s-secret/tfy-llm-gateway-infra-auth/NATS_ADMIN_PASSWORD}" # to refer k8s secret in step 1
+         clickhousePassword: "${k8s-secret/tfy-llm-gateway-infra-auth/CLICKHOUSE_USER_PASSWORD}" # to refer k8s secret in step 1
+   ```
+
+***
+
+[Adding pre and post build scripts](/docs/adding-pre-and-post-build-scripts)

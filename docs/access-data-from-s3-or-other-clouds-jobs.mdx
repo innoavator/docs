@@ -1,0 +1,32 @@
+---
+title: "Access data from S3 or other clouds"
+description: "In some instances, your Service may need to access data stored in S3 or other cloud storage platforms. To facilitate this access, you can employ one of two approaches:"
+---
+
+#### Credential-Based Access through environment variables
+
+This approach involves defining specific environment variables that contain the necessary credentials for accessing the cloud storage platform. For instance, to access S3, you would set environment variables for the AWS access key ID and secret access key, the environment variables being: `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`
+
+#### IAM Role-Based Access through Service Account
+
+The second approach is to provide your Job with a Role with the necessary permission through Service Accounts.
+
+Service Accounts provide a streamlined approach to managing access without the need for tokens or complex authentication methods. This approach involves creating a Principal IAM Role within your cloud platform, granting it the necessary permissions for your project's requirements. Here are detailed guides for creating Principal IAM Roles in your respective cloud platforms and integrating them as Service Accounts within the workspace:
+
+* AWS: [Authenticate to AWS services using IAM service account](doc:use-aws-services-using-iam-serviceaccount)
+* GCP: [Authenticate to GCP using IAM serviceaccount](doc:authenticate-to-gcp-using-iam-serviceaccount)
+
+Once you've configured the Service Account within the workspace, you can simply toggle the **`Show Advanced Fields`** option at the bottom of the form. This will reveal an expanded set of options, from which you can select the desired Service Account using the provided dropdown menu.
+
+![](/images/docs/b561def-Screenshot_2023-11-28_at_12.36.50_AM.png)
+
+***
+
+[Set Concurrency Limit](/docs/concurrency-limits)
+
+[Add Alerts to your Job](/docs/add-alerts-to-your-job)
+
+* [Table of Contents](#)
+
+* * [Credential-Based Access through environment variables](#credential-based-access-through-environment-variables)
+  * [IAM Role-Based Access through Service Account](#iam-role-based-access-through-service-account)

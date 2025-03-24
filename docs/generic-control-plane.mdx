@@ -1,0 +1,254 @@
+---
+title: "Generic"
+description: "Provisioning control plane in Generic cluster"
+---
+
+<Warning />
+
+Setting up Truefoundry control plane on a generic cluster involves creating the infrastructure to support the platform and then installing the platform itself.
+
+Generic cluster refers to those cluster which are not managed by any cloud provider.
+
+# Setting up Infrastructure
+
+## Infrastructure requirements
+
+| Requirements                      | Description                                                                                                                                                                                                                                                                                                                                                   | Reason for Requirement                                                                                                               |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Kubernetes Cluster                | Any Kubernetes cluster will work here - we can also choose the compute-plane cluster itself to install Truefoundry helm chart. Min 4vCPU and 8GB RAM                                                                                                                                                                                                          | The Truefoundry helm chart will be installed here.                                                                                   |
+| Postgres database                 | Postgres >= 13                                                                                                                                                                                                                                                                                                                                                | The database is used by Truefoundry control plane to store all its metadata and can be installed through the truefoundry helm chart. |
+| Volume                            | Default storage class to support dynamic volumes                                                                                                                                                                                                                                                                                                              | Volumes are required for databases and statefulsets                                                                                  |
+| Egress Access for TruefoundryAuth | Egress access to [https://auth.truefoundry.com](https://auth.truefoundry.com)                                                                                                                                                                                                                                                                                 | This is needed to verify the users logging into the Truefoundry platform for licensing purposes                                      |
+| Egress access For Docker Registry | 1. public.ecr.aws 2. quay.io 3. ghcr.io 4. docker.io/truefoundrycloud 5. docker.io/natsio 6. nvcr.io 7. registry.k8s.io                                                                                                                                                                                                                                       | This is to download docker images for Truefoundry, ArgoCD, NATS, ArgoRollouts, ArgoWorkflows, Istio.                                 |
+| DNS with TLS/SSL                  | One endpoint to point to the control plane service (something like platform.example.com where example.com is your domain. There should also be a certificate with the domain so that the domains can be accessed over TLS.**The control-plane url should be reachable from the compute-plane so that compute-plane cluster can connect to the control-plane** | The developers will need to access the Truefoundry UI at domain that is provided here.                                               |
+
+## Installing TrueFoundry
+
+### Pre-requisites
+
+1. Installing [helm](https://helm.sh/docs/intro/install/)
+2. Add the following chart repository
+   <CodeGroup>
+     ```bash bash
+     helm repo add argocd https://argoproj.github.io/argo-helm
+     helm repo add truefoundry https://truefoundry.github.io/infra-charts/
+     ```
+   </CodeGroup>
+3. Updating helm repo to download the latest local repository index
+   <CodeGroup>
+     ```bash bash
+     helm repo update argocd truefoundry
+     ```
+   </CodeGroup>
+
+### Installing truefoundry helm chart
+
+1. Installing `argocd` helm chart
+
+   <CodeGroup>
+     ```bash bash
+     helm upgrade --install argocd argocd/argo-cd -n argocd \
+     --create-namespace \
+     --version 7.4.4 \
+     --set applicationSet.enabled=false \
+     --set notifications.enabled=false \
+     --set dex.enabled=false
+     ```
+   </CodeGroup>
+
+2. Create `values.yaml` for the truefoundry helm chart.
+
+   <CodeGroup>
+     ```bash bash
+     ## @param tenantName Parameters for tenantName
+     ## Tenant Name - This is same as the name of the organization used to sign up 
+     ## on Truefoundry
+     ##
+     tenantName: ""
+
+     ## @param controlPlaneURL Parameters for controlPlaneURL
+     ## URL of the control plane - This is the URL that can be used by workload to access the truefoundry components
+     ##
+     controlPlaneURL: ""
+
+     ## @param clusterName Name of the cluster
+     ## Name of the cluster that you have created on AWS/GCP/Azure
+     ##
+     clusterName: ""
+
+     ## @section notebookController parameters
+     ## Notebook Controller is required to power notebooks in Truefoundry
+     ##
+     notebookController:
+       enabled: false
+       defaultStorageClass: ""
+
+     ## @section tfyAgent parameters
+     tfyAgent:
+       enabled: false
+
+     ## @param truefoundry.enabled Flag to enable TrueFoundry
+     ## This installs the Truefoundry control plane helm chart. You can make it true
+     ## if you want to install Truefoundry control plane.
+     ##
+     truefoundry:
+       enabled: true
+       ## @param truefoundry.devMode.enabled Flag to enable TrueFoundry Dev mode. Postgres will run
+       ##
+       devMode:
+         enabled: true
+       truefoundryBootstrap:
+         enabled: true
+       tfyK8sController:
+         enabled: false
+       truefoundryFrontendApp:
+         replicaCount: 2
+         istio:
+           virtualservice:
+             enabled: true
+             gateways: ["istio-system/tfy-wildcard"]
+             hosts:
+             - ""
+       tfyWorkflowAdmin:
+         enabled: false
+       database:
+         host: ""
+         name: ""
+         username: ""
+         password: ""
+       ## @param global.tfyApiKey API key for truefoundry
+       ##
+       tfyApiKey: ""
+       ## @param global.truefoundryImagePullConfigJSON JSON config for image pull secret
+       ##
+       truefoundryImagePullConfigJSON: ""
+     ```
+   </CodeGroup>
+
+3. Fill the following values
+
+   1. `tenantName` - name of the tenant. If you haven't created one. please do it [here](https://www.truefoundry.com/register)
+   2. `controlPlaneURL` - URL at which to host the platform (for e.g. `https://truefoundry.example.com`)
+   3. `clusterName` - name of the cluster
+
+4. For the remaining values
+
+   1. `truefoundry.tfyApiKey` - api key to given by TrueFoundry team
+   2. `truefoundry.truefoundryImagePullConfigJSON` - Image pull config JSON to be given by TrueFoundry team
+   3. `truefoundry.truefoundryFrontendApp.istio.hosts[0]` - control plane URL without protocol
+
+5. Run the following command to install the chart
+
+   <CodeGroup>
+     ```bash bash
+     helm upgrade --install tfy-k8s-generic-inframold \
+     truefoundry/tfy-k8s-generic-inframold \
+     -f values.yaml -n argocd
+     ```
+   </CodeGroup>
+
+6. Once the helm chart is installed, point the control plane URL to the load balancer's IP address. To get the IP address of the load balancer
+
+<CodeGroup>
+  ```bash bash
+  kubectl get svc tfy-istio-ingress -n istio-system
+  ```
+</CodeGroup>
+
+7. We will also need the [TLS certificates](https://docs.truefoundry.com/docs/loadbalancers#generic) to be passed to the load balancer (in our case istio) to terminate the TLS traffic.
+8. Login in the control plane URL with the same credentials used to register the tenant.
+
+### Add the compute plane
+
+1. Add the same cluster as the compute-plane from the UI and get the cluster token
+
+2. Add the token in the values.yaml and run the helm install command
+   <CodeGroup>
+     ```bash bash
+     ## @section tfyAgent parameters
+     tfyAgent:
+       enabled: false
+       clusterToken: ""
+     ```
+   </CodeGroup>
+3. The control plane URL should be reachable to from inside of the k8s cluster as the `tfy-agent` will use the control plane URL to initiate the connection to the control plane.
+4. Helm
+   <CodeGroup>
+     ```bash bash
+     helm upgrade --install tfy-k8s-generic-inframold \
+     truefoundry/tfy-k8s-generic-inframold \
+     -f values.yaml -n argocd
+     ```
+   </CodeGroup>
+
+### Configuring Node Pools for TrueFoundry
+
+To enable node pools in your cluster with TrueFoundry, follow these steps:
+
+#### Node Pool Label Configuration
+
+Ensure all nodes in your cluster have a node pool label. This label should follow the format `<nodepool-label-key>: <nodepool-name>`.
+
+Example: If your node pool label key is `truefoundry.com/nodepool`, each node should have a label like `truefoundry.com/nodepool: <nodepool-name>`. You can use any label key already in use.
+
+To configure the label key in TrueFoundry:
+
+1. Click on edit in the Cluster and then toggle on the Advanced Fields section.
+
+2. Under Node Label Keys, fill in the Nodepool Selector Label with your chosen label key.
+
+   ![](/images/docs/e9552bf57b2d48a31d6de75af7807a8818bd7f24da978013a52d204fc5e83d79-Screenshot_2024-12-18_at_1.34.44_PM.png)
+
+#### GPU Node Pool Configuration
+
+To deploy workloads on GPU nodes, assign labels to GPU node pools indicating the GPU type.
+
+Label Key: `truefoundry.com/gpu_type` Possible Values:
+
+* A10G
+* A10\_12GB
+* A10\_24GB
+* A10\_4GB
+* A10\_8GB
+* A100\_40GB
+* A100\_80GB
+* H100\_80GB
+* H100\_94GB
+* H200
+* L4
+* L40S
+* P100
+* P4
+* T4
+* V100
+
+Example: If you have a nodepool with A10G (24GB) nodes, label nodes of this nodepool with `truefoundry.com/gpu_type: A10_24GB`.
+
+This configuration helps TrueFoundry orchestrate deployments on the appropriate nodes.
+
+### Adding domain to Load balancer
+
+1. We need to add one more domain to the load balancer so that a separate domain can be used to host the workloads only. This domain can be a wildcard (recommended) as well.
+
+2. To add the domain
+
+   1. Point the domain to the load balancer IP address.
+   2. Pass the [TLS certificate](https://docs.truefoundry.com/docs/loadbalancers#generic) to istio so that it can terminate the TLS traffic.
+   3. Add the domain in the platform.
+
+### Adding docker registry
+
+Check the [integrations](https://docs.truefoundry.com/docs/integrations) section to know more on this
+
+***
+
+[Dev Mode installation](/docs/dev-mode-installation)
+
+[Advanced Configuration](/docs/advanced-configuration)
+
+* [Table of Contents](#)
+
+* * [Setting up Infrastructure](#setting-up-infrastructure)
+
+  * * [Infrastructure requirements](#infrastructure-requirements)
+    * [Installing TrueFoundry](#installing-truefoundry)

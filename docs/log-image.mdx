@@ -1,0 +1,135 @@
+---
+title: "Log Images"
+---
+
+### Logging images in different format
+
+Log images under the current[ `run`](https://docs.truefoundry.com/docs/runs) at the given `step`.
+
+Use the function log\_images for a [`run`](https://docs.truefoundry.com/docs/runs). `PIL` package is needed to log images. To install the PIL package, run
+
+```
+pip install pillow
+```
+
+Here is the sample code to log images from different sources:
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.ml import get_client, Image
+  import numpy as np
+  import PIL.Image
+
+  client = get_client()
+  run = client.create_run(
+      ml_repo="my-classification-project",
+  )
+
+  imarray = np.random.randint(low=0, high=256, size=(100, 100, 3))
+  im = PIL.Image.fromarray(imarray.astype("uint8")).convert("RGB")
+  im.save("result_image.jpeg")
+
+  images_to_log = {
+      "logged-image-array": Image(data_or_path=imarray),
+      "logged-pil-image": Image(data_or_path=im),
+      "logged-image-from-path": Image(data_or_path="result_image.jpeg"),
+  }
+
+  run.log_images(images_to_log, step=1)
+  run.end()
+  ```
+</CodeGroup>
+
+### Visualizing the logged images
+
+You can visualize the logged images in the TrueFoundry dashboard.
+
+<Frame caption="Logged Images">
+  <img src="/images/docs/953d94d-Logged_Images.png" />
+</Frame>
+
+You can also view the images logged step-wise by clicking in an image.
+
+<Frame caption="Visualizing image at different steps">
+  <img src="/images/docs/7eba1bd-Visualizing_image_at_different_steps.png" />
+</Frame>
+
+### Class `mlfoundry.Image`
+
+Images are represented and logged using this class in Truefoundry.
+
+You can initialize `truefoundry.ml.Image` by either by using a local path or you can use a numpy array / PIL.Image object.
+
+You can also log caption and the actual and prodicted values for an image as shown in the examples below.
+
+#### Logging images with caption and a class label
+
+<CodeGroup>
+  ```bash bash
+  from keras.datasets import mnist
+  from truefoundry.ml import get_client, Image
+  import time
+  import numpy as np
+
+  data = mnist.load_data()
+  (X_train, y_train), (X_test, y_test) = data
+
+  client = get_client()
+  run = client.create_run("mnist-sample")
+
+  actuals = list(y_test)
+  predictions = list(np.random.randint(9, size=10))
+
+  img_dict = {}
+  for i in range(10):
+      img_dict[str(i)] = Image(
+          data_or_path=X_train[i],
+          caption="mnist sample",
+          class_groups={
+              "actuals": str(actuals[i]), 
+              "predictions": str(predictions[i])
+              },
+      )
+
+  run.log_images(img_dict)
+  ```
+</CodeGroup>
+
+The logged images can be visualized in the Truefoundry dashboard.
+
+<Frame caption="MNIST sample images">
+  <img src="/images/docs/a562885-MNIST_sample_images.png" />
+</Frame>
+
+#### Logging image with multi-label classification problems
+
+<CodeGroup>
+  ```bash bash
+  images_to_log = {
+      "logged-image-array": truefoundry.ml.Image(
+          data_or_path=imarray,
+          caption="testing image logging",
+          class_groups={"actuals": ["dog", "human"], "predictions": ["cat", "human"]},
+      ),
+  }
+
+  run.log_images(images_to_log, step=1)
+  ```
+</CodeGroup>
+
+***
+
+[Add Tags](/docs/add-tags)
+
+[Log Plots](/docs/log-plots)
+
+* [Table of Contents](#)
+
+* * [Logging images in different format](#logging-images-in-different-format)
+
+  * [Visualizing the logged images](#visualizing-the-logged-images)
+
+  * [Class mlfoundry.Image](#class-mlfoundryimage)
+
+  * * [Logging images with caption and a class label](#logging-images-with-caption-and-a-class-label)
+    * [Logging image with multi-label classification problems](#logging-image-with-multi-label-classification-problems)

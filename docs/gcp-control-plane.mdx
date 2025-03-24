@@ -1,0 +1,293 @@
+---
+title: "GCP"
+description: "Provisioning Control Plane Infrastructure on GCP"
+---
+
+<Warning />
+
+Setting up Truefoundry control plane on your own cloud involves creating the infrastructure to support the platform and then installing the platform itself.
+
+# Setting up Infrastructure
+
+## Requirements
+
+These are the infrastructure components required to set up a production grade Truefoundry control plane.
+
+<Info />
+
+| Requirements                                        | Description                                                                                                                                                                                                                                                                                                                                                   | Reason for Requirement                                                                                   |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Kubernetes Cluster                                  | Any Kubernetes cluster will work here - we can also choose the compute-plane cluster itself to install Truefoundry helm chart.                                                                                                                                                                                                                                | The Truefoundry helm chart will be installed here.                                                       |
+| CloudSQL Postgres                                   | Postgres >= 13                                                                                                                                                                                                                                                                                                                                                | The database is used by Truefoundry control plane to store all its metadata.                             |
+| GCS bucket                                          | Any GCS bucket reachable from control-plane.                                                                                                                                                                                                                                                                                                                  | This is used by control-plane to store the intermediate code while building the docker image.            |
+| Egress Access for TruefoundryAuth                   | Egress access to [https://auth.truefoundry.com](https://auth.truefoundry.com)                                                                                                                                                                                                                                                                                 | This is needed to validate the users logging into Truefoundry so that licensing can be maintained.       |
+| Egress access For Docker Registry                   | 1. public.ecr.aws 2. quay.io 3. ghcr.io 4. docker.io/truefoundrycloud 5. docker.io/natsio 6. nvcr.io 7. registry.k8s.io                                                                                                                                                                                                                                       | This is to download docker images for Truefoundry, ArgoCD, NATS, ArgoRollouts, ArgoWorkflows, Istio.     |
+| DNS with TLS/SSL                                    | One endpoint to point to the control plane service (something like platform.example.com where example.com is your domain. There should also be a certificate with the domain so that the domains can be accessed over TLS.**The control-plane url should be reachable from the compute-plane so that compute-plane cluster can connect to the control-plane** | The developers will need to access the Truefoundry UI at domain that is provided here.                   |
+| User/ServiceAccount to provision the infrastructure | - Cloud SQL Admin- Security Admin
+- Service Account Admin
+- Service Account Token Creator
+- Service Account User
+- Storage Admin                                                                                                                                                                                                                              | These are the permissions required by the IAM user in GCP to create the entire control plane components. |
+
+## Permissions Required
+
+We will be using OCLI (Onboarding CLI) to create the infrastructure. We will be using a locally setup gcloud CLI. Please make sure the user or service account authenticated with GCP has the following permissions -
+
+* Cloud SQL Admin - `roles/cloudsql.admin`
+* Security Admin - `roles/iam.securityAdmin`
+* Service Account Admin - `roles/iam.serviceAccountAdmin`
+* Service Account Token Creator - `roles/iam.serviceAccountTokenCreator`
+* Service Account User - `roles/iam.serviceAccountUser`
+* Storage Admin - `roles/storage.admin`
+
+## GCP Infra Architecture
+
+![](/images/docs/b7b2b23-GCP_control_plane_1.png)
+
+## Run Infra Provisioning using OCLI
+
+### Prerequisites
+
+1. Install [git](https://git-scm.com/downloads) if not already present.
+
+2. Setup gcloud CLI
+
+   1. Install [gcloud cli](https://cloud.google.com/sdk/docs/install) == 474.x.x
+   2. Install [gke-gcloud-auth-plugin](https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl#gcloud_1)
+   3. Authenticate with a user that has the above mentioned roles - `gcloud auth application-default login`
+   4. Set the project to be used for infra creation - `gcloud config set project truefoundry-devtest`
+
+### Installing OCLI
+
+1. Download the binary using the below command.
+   <CodeGroup>
+     ```bash bash
+     curl -H 'Cache-Control: max-age=0' -s "https://releases.ocli.truefoundry.tech/binaries/ocli_$(curl -H 'Cache-Control: max-age=0' -s https://releases.ocli.truefoundry.tech/stable.txt)_darwin_arm64" -o ocli
+     ```
+
+     ```bash bash
+     curl -H 'Cache-Control: max-age=0' -s "https://releases.ocli.truefoundry.tech/binaries/ocli_$(curl -H 'Cache-Control: max-age=0' -s https://releases.ocli.truefoundry.tech/stable.txt)_darwin_amd64" -o ocli
+     ```
+
+     ```bash bash
+     curl -H 'Cache-Control: max-age=0' -s "https://releases.ocli.truefoundry.tech/binaries/ocli_$(curl -H 'Cache-Control: max-age=0' -s https://releases.ocli.truefoundry.tech/stable.txt)_linux_arm64" -o ocli
+     ```
+
+     ```bash bash
+     curl -H 'Cache-Control: max-age=0' -s "https://releases.ocli.truefoundry.tech/binaries/ocli_$(curl -H 'Cache-Control: max-age=0' -s https://releases.ocli.truefoundry.tech/stable.txt)_linux_amd64" -o ocli
+     ```
+   </CodeGroup>
+2. Make the binary executable and move it to `$PATH`
+   <CodeGroup>
+     ```bash bash
+     sudo chmod +x ./ocli
+     sudo mv ocli /usr/local/bin
+     ```
+   </CodeGroup>
+3. Confirm by running the command
+   <CodeGroup>
+     ```bash bash
+     ocli --version
+     ```
+   </CodeGroup>
+
+### Configuring Input Config file
+
+1. To create a new cluster, you would require your GCP `Project ID` and `Region`
+
+2. Run the following command to fill in the inputs interactively
+   <CodeGroup>
+     ```bash bash
+     ocli infra-init
+     ```
+   </CodeGroup>
+
+3. For networking, there are two possible configurations:
+
+   1. New VPC (Recommended) - This creates a new VPC for your new cluster.
+   2. Existing VPC - You can enter your existing VPC and subnet IDs.
+
+4. Once all the inputs are filled, a config file with the name `tfy-config.yaml` would be generated in your current directory
+
+5. Modify the file to enable control plane installation by setting `gcp.tfy_control_plane.enabled: true`. Below is the sample for the same:
+
+<CodeGroup>
+  ```bash bash
+  aws: null
+  azure: null
+  binaries:
+    terraform:
+      binary_path: null
+    terragrunt:
+      binary_path: null
+  gcp:
+    cluster:
+      master_cidr_block: 172.16.0.32/28
+      name: <cluster_name>
+      pod_range_name: pods
+      service_range_name: services
+      version: "1.28"
+    network:
+      additional_ranges: []
+      existing: false
+      network_name: ""
+      pod_cidr: 10.244.0.0/16
+      service_cidr: 10.255.0.0/16
+      shared_vpc:
+        enabled: false
+        network_name: ""
+        project_id: ""
+        subnet_name: ""
+      subnet_cidr: 10.10.0.0/16
+      subnet_id: ""
+    network_tags: []
+    project:
+      id: <project-name>
+    region:
+      availability_zones:
+        - asia-south1-b
+        - asia-south1-a
+        - asia-south1-c
+      name: asia-south1
+    tags: {}
+    tfy_control_plane:
+      enabled: true
+  provider: gcp
+  ```
+
+  ```bash bash
+  aws:
+    account:
+      id: "xxxxxxxxxxxxxxxxx"
+    cluster:
+      name: coolml
+      public_access:
+        cidrs:
+        - 0.0.0.0/0
+        enabled: true
+      version: "1.28"
+    iam_role:
+      assume_role_arns:
+      - arn:aws:iam::416964291864:role/tfy-ctl-euwe1-production-truefoundry-deps
+      ecr:
+        enabled: true
+      enabled: true
+      role_enable_override: false
+      role_override_name: ""
+      s3:
+        bucket_enable_override: false
+        bucket_override_name: ""
+        enabled: true
+      ssm:
+        enabled: true
+    network:
+      existing: false
+      private_subnets_cidrs:
+      - 10.222.0.0/20
+      - 10.222.16.0/20
+      - 10.222.32.0/20
+      private_subnets_ids: []
+      public_subnets_cidrs:
+      - 10.222.176.0/20
+      - 10.222.192.0/20
+      - 10.222.208.0/20
+      public_subnets_ids: []
+      vpc_cidr: 10.222.0.0/16
+      vpc_id: ""
+    profile:
+      name: administrator-xxxxxxxxxxxxxxxxx
+    region:
+      availability_zones:
+      - us-east-2a
+      - us-east-2b
+      - us-east-2c
+      name: us-east-2
+    tags: {}
+    tfy_control_plane:
+    	enabled: true
+  azure: null
+  binaries:
+    terraform:
+      binary_path: null
+    terragrunt:
+      binary_path: null
+  gcp: null
+  provider: aws
+  ```
+</CodeGroup>
+
+## Create the cluster
+
+Run the following command to create the GKE cluster and IAM roles needed to provide access to various infrastructure components as per the inputs configured above.
+
+<CodeGroup>
+  ```bash bash
+  ocli infra-create --file tfy-config.yaml
+  ```
+</CodeGroup>
+
+This command may take around 30-45 minutes to complete.
+
+In the last step the database credentials will be printed. Make sure to note them down.
+
+# Installation
+
+## Installation steps
+
+1. Make sure that `kubectl` context is set to the newly created cluster.
+
+2. Install argoCD -
+   ```
+   kubectl create namespace argocd
+   kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/core-install.yaml
+   ```
+
+3. Add the truefoundry helm repo
+   ```
+   helm repo add truefoundry https://truefoundry.github.io/infra-charts/
+   helm repo update
+   ```
+
+4. We will create a `values.yaml` for the helm chart installation -
+
+   1. Download the values.yaml from helm chart repo -
+      ```
+      curl https://raw.githubusercontent.com/truefoundry/infra-charts/main/charts/tfy-k8s-gcp-gke-standard-inframold/values-cp.yaml > values.yaml
+      ```
+   2. Fill in the `tenant_name`, `cluster_name`, `truefoundry_image_pull_config_json` and `tfy_api_key` in the downloaded file. You can get these from the Truefoundry team
+   3. Also fill in the `database` section with database creds. If you created the infrastructure using OCLI, you can get the credentials by running `ocli output`
+
+5. Apply the helm chart with the values.yaml
+   ```
+   helm install -n argocd inframold truefoundry/tfy-k8s-gcp-gke-standard-inframold --version 0.0.16 -f values.yaml
+   ```
+
+## Test the installation
+
+1. Port forward the frontend application to access the Truefoundry dashboard -
+   ```
+   kubectl port-forward svc/truefoundry-truefoundry-frontend-app -n truefoundry 5000
+   ```
+2. Access the truefoundry dashboard from a browser by opening `http://localhost:5000`. You can login with the username and password provided by the Truefoundry team.
+3. Now you are ready to connect a cluster to the Truefoundry platform and get deploying. Go [here](https://docs.truefoundry.com/docs/connect-existing-kubernetes-cluster) for the directions. You can also onboard the same cluster as the control plane
+
+***
+
+[AWS](/docs/aws-control-plane)
+
+[Azure](/docs/azure-control-plane)
+
+* [Table of Contents](#)
+
+* * [Setting up Infrastructure](#setting-up-infrastructure)
+
+  * * [Requirements](#requirements)
+    * [Permissions Required](#permissions-required)
+    * [GCP Infra Architecture](#gcp-infra-architecture)
+    * [Run Infra Provisioning using OCLI](#run-infra-provisioning-using-ocli)
+    * [Create the cluster](#create-the-cluster)
+
+  * [Installation](#installation)
+
+  * * [Installation steps](#installation-steps)
+    * [Test the installation](#test-the-installation)

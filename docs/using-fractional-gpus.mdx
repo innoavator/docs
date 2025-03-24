@@ -1,0 +1,308 @@
+---
+title: "Using Fractional GPUs"
+description: "Nvidia MIG and Nvidia TimeSlicing"
+---
+
+Fractional GPUs enable us to allocate multiple workloads to a single GPU which can be useful in the following scenarios:
+
+1. The workloads take around 2-3 GB of VRAM - so you can allocate multiple replicas of this workload on a single GPU which has around 16GB of VRAM or more.
+2. Each workload has sparse traffic and its not able to max out the GPU usage.
+
+There are two ways to use fractional GPUs:
+
+1. **TimeSlicing**: In this approach, you can slice a GPU into a few fixed number of fractional parts and then choose a fraction of GPU for this workload. For e.g, we can decide to divide a GPU into 10 slices and then request 3 slices for one workload, 5 slices for workload2 and 2 slices for the workload3. This means that worload1 will use 0.3 GPU (compute + 30% of VRAM), workload2 will use 0.5 GPU and workload3 will use 0.2 GPU. However, timeslicing is only used for scheduling the workloads on the same machine - it doesn't mean any actual isolation on the machine. For example, if the GPU machine has 16GB VRAM, its on the user to actually make sure that workload1 takes less than 4.8GB VRAM, workload2 takes less than 8 GB of VRAM and workload3 takes less than 3.2 GB of VRAM. If one workload starts taking more memory suddenly, it can lead to crashing of the other processes. The compute is also shared but one workload can go upto using the complete GPU if the other workloads are idle - its basically context-switching among the three workloads. You can read about this more [here.](https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest/gpu-sharing.html#understanding-time-slicing-gpus)
+2. **MIG (Multi-Instance GPUs)**: This is a feature provided by Nvidia only on the A100 and H100 GPUs - it doesn't work on other GPUs. We can divide the GPUs into a fixed number of configurable parts as mentioned in the table below. The workloads can choose one of the slices and they will get compute and memory isolation. The instances are not exactly the complete fractions of the GPU, but more discrete units as mentioned in the table below. For e.g. let's say we divide one A100 GPU of 40GB into 7 parts - then we can place 7 workloads each using around 1/7 GPU and 5GB VRAM. Please note that we cannot simply provide 2 slices to one workload in this case and expect it to get 2/7 GPU and 10 GB VRAM. Each workload can only get one slice in this case.
+
+| GPU         | GPU Compute Fraction / Instance | Number of instances per GPU | GPU Memory / Instance | Configuration Name | GPU Instance Profile (for Azure) |
+| ----------- | ------------------------------- | --------------------------- | --------------------- | ------------------ | -------------------------------- |
+| A100 (40GB) | 1/7                             | 7                           | 5GB                   | 1g.5gb             | MIG1g                            |
+| A100 (40GB) | 2/7                             | 3                           | 10GB                  | 2g.10gb            | MIG2g                            |
+| A100 (40GB) | 3/7                             | 2                           | 20GB                  | 3g.20gb            | MIG3g                            |
+| A100 (80GB) | 1/7                             | 7                           | 10GB                  | 1g.10gb            | MIG1g                            |
+| A100 (80GB) | 2/7                             | 3                           | 20GB                  | 2g.20gb            | MIG2g                            |
+| A100 (80GB) | 3/7                             | 2                           | 40GB                  | 3g.40gb            | MIG3g                            |
+
+## Prerequisites for Fractional GPU
+
+### Add Cloud Integration
+
+To enable fractional GPUs, we will need to create a separate nodepool of the GPUs and it will not work via standard dynamic node provisioning in AWS / GCP. For Truefoundry to be able to read those nodepools, we have to make sure that we have the cloud integration already done with Truefoundry. To verify if you have the cloud APIs already integrated, you can check on this screen.
+
+![]()
+
+If its not enabled yet, please [follow this guide](doc:cloud-integration) to enable Cloud Integration.
+
+Once cloud integration is added, you need to "create nodepools" for MIG or TimeSlicing enabled GPUs. This configuration is different for different cloud providers. Please follow the guide below to enable fractional GPUs on your cluster.
+
+### Install Latest Version of `tfy-gpu-operator`
+
+* Go to `Deployments -> Helm -> tfy-gpu-operator`.
+* Click on edit (three dots on the right)
+* Choose the latest version of chart (top most) from the dropdown and click on Submit.
+
+## Enable MIG
+
+### Azure
+
+1. Create a Nodepool with MIG enabled using the argument `--gpu-instance-profile` of Azure CLI. Here is a sample command to do the same:
+
+<CodeGroup>
+  ```bash bash
+  az aks nodepool add \
+  --cluster-name <your cluster name> \
+  --resource-group <your resource group> \
+  --no-wait \
+  --enable-cluster-autoscaler \
+  --eviction-policy Delete \
+  --node-count 0 \
+  --max-count 20  \
+  --min-count 1 \
+  --node-osdisk-size 200 \
+  --scale-down-mode Delete \
+  --os-type Linux \
+  --node-taints "nvidia.com/gpu=Present:NoSchedule" \
+  --name a100mig7 \
+  --node-vm-size Standard_NC24ads_A100_v4 \
+  --priority Spot \
+  --os-sku Ubuntu \
+  --gpu-instance-profile MIG1g
+  ```
+</CodeGroup>
+
+2. Refresh the nodepools in the Truefoundry cluster.
+3. Deploy your workload by selecting GPU (with count 1) and selecting the correct nodepool.
+
+### GCP
+
+Create a nodepool and pass the mig\_profile in `accelerator` by passing `gpu_partition_size=1g.5gb`\[OR one of the allowed values for MIG profile you can find on top of this page]
+
+<CodeGroup>
+  ```bash bash
+  gcloud container node-pools create a100-40-mig-1g5gb \                                                                             INT ✘  
+    --project=<enter your project name> \
+    --region=<enter your region> \
+    --cluster=<enter your cluster name here> \
+    --machine-type=a2-highgpu-1g \
+    --accelerator type=nvidia-tesla-a100,count=1,gpu-partition-size=1g.5gb \
+    --enable-autoscaling \
+    --total-min-nodes 0 \
+    --total-max-nodes 4 \
+    --min-provision-nodes 0 \
+    --num-nodes 0
+  ```
+</CodeGroup>
+
+#### AWS
+
+It is not trivial to currently support MIG GPUs on AWS in a managed way, although if you want to try the feature out -> Please refer to these [docs](https://aws.amazon.com/blogs/containers/maximizing-gpu-utilization-with-nvidias-multi-instance-gpu-mig-on-amazon-eks-running-more-pods-per-gpu-for-enhanced-performance/)
+
+## Enable Timeslicing
+
+### Azure
+
+1. Ensure that `nvidia-device-plugin` config is correctly set in `tfy-gpu-operator`chart. Go to `Helm -> tfy-gpu-operator`, click on edit and ensure following lines are present in the `values`
+
+```
+azure-aks-gpu-operator:
+  devicePlugin:
+    config:
+      data:
+        all: ""
+        time-sliced-10: |-
+          version: v1
+          sharing:
+            timeSlicing:
+              renameByDefault: true
+              resources:
+              - name: nvidia.com/gpu
+                replicas: 10
+      name: time-slicing-config
+      create: true
+      default: all
+```
+
+2. Create a Nodepool with `device-plugin.config` pointing to the correct time-slicing config with Azure CLI. Here is a sample command to do the same.
+
+<CodeGroup>
+  ```bash bash
+  az aks nodepool add \
+  --cluster-name <your cluster name> \
+  --resource-group <your resource group> \
+  --no-wait \
+  --enable-cluster-autoscaler \
+  --eviction-policy Delete \
+  --node-count 0 \
+  --max-count 20  \
+  --min-count 0 \
+  --node-osdisk-size 200 \
+  --scale-down-mode Delete \
+  --os-type Linux \
+  --node-taints "nvidia.com/gpu=Present:NoSchedule" \
+  --name a100mig7 \
+  --node-vm-size Standard_NC24ads_A100_v4 \
+  --priority Spot \
+  --os-sku Ubuntu \
+  --labels nvidia.com/device-plugin.config=time-sliced-10
+  ```
+</CodeGroup>
+
+2. Refresh the nodepools on truefoundry cluster.
+3. Deploy your workload by selecting GPU (with count 1) and selecting the correct nodepool.
+
+### GCP
+
+```
+gcloud container node-pools create a100-40-frac-10 \                                                                                   ✔  
+        --project=tfy-devtest \
+        --region=us-central1 \
+        --cluster=tfy-gtl-b-us-central-1 \
+        --machine-type=a2-highgpu-1g \
+        --accelerator type=nvidia-tesla-a100,count=1,gpu-sharing-strategy=time-sharing,max-shared-clients-per-gpu=10 \
+        --enable-autoscaling \
+        --total-min-nodes 0 \
+        --total-max-nodes 4 \
+        --min-provision-nodes 0 \
+        --num-nodes 0
+```
+
+### AWS
+
+1. Ensure that `nvidia-device-plugin` config is correctly set in `tfy-gpu-operator`chart. Go to `Helm -> tfy-gpu-operator`, click on edit and ensure following lines are present in the `values`
+
+```
+aws-eks-gpu-operator:
+  devicePlugin:
+    config:
+      data:
+        all: ""
+        time-sliced-10: |-
+          version: v1
+          sharing:
+            timeSlicing:
+              renameByDefault: true
+              resources:
+              - name: nvidia.com/gpu
+                replicas: 10
+      name: time-slicing-config
+      create: true
+      default: all
+```
+
+2. Create nodegroup on AWS EKS with the following label:
+
+```
+labels:
+  "nvidia.com/device-plugin.config": "time-sliced-10"
+```
+
+## Using fractional GPUs in your Service
+
+To use fractional GPUs in your service:
+
+1. Ensure that you have added the desired nodepools.
+
+2. Please sync the cluster nodepools from your cloud account by going to Integrations -> Clusters -> Sync as shown below:
+
+   ![](/images/docs/b3f5c6a-Screenshot_2024-03-26_at_3.39.42_PM.png)
+
+3. You can deploy using either Truefoundry's UI or using Python SDK. **Note:** Autoscaling of Nodepools will work only in `GCP` clusters. You will need to manually scale up / scale down nodepools in Azure/AWS.
+
+### Deploying with UI
+
+1. To deploy a workload that utilizes fractional GPU, start deploying your service/job on truefoundry and in the "Resources" section, select nodepool selector
+
+2. Once you select the Nodepool Selector on top right of Resources section, you can now see the Fractional GPUs on the UI which you can select (as shown below)
+
+   <Frame caption="Using MIG GPU">
+     <img src="/images/docs/97d76f5-Screenshot_2024-03-26_at_3.53.42_PM.png" />
+   </Frame>
+
+   <Frame caption="Using Timeslicing GPU">
+     <img src="/images/docs/ea9657c-Screenshot_2024-03-26_at_3.53.51_PM.png" />
+   </Frame>
+
+### Deploying with Python SDK
+
+You can use fractional GPUs using python SDK with the following changes in the resources change:
+
+1. Using MIG GPUs
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.deploy import (
+      ...
+    	Service,
+      NvidiaMIGGPU,
+      NodepoolSelector,
+  )
+
+  service = Service(
+    ...
+    
+    resources=Resources(
+      ...
+      node=NodepoolSelector(
+        nodepools=["<add your nodepool name>"],
+      ),
+      devices=[
+        NvidiaMIGGPU(profile="1g.5gb")
+      ],
+    ),
+  )
+  ```
+</CodeGroup>
+
+2. Using Timeslicing GPU
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.deploy import (
+    	Service,
+      NvidiaTimeslicingGPU,
+      NodepoolSelector,
+  )
+
+  service = Service(
+    ...
+    
+    resources=Resources(
+      ...
+      node=NodepoolSelector(
+        nodepools=["<add your nodepool name>"],
+      ),
+      devices=[
+        NvidiaTimeslicingGPU(gpu_memory=4000),
+      ],
+    ),
+  )
+  ```
+</CodeGroup>
+
+***
+
+[Download Models and Artifacts](/docs/download-and-cache-models)
+
+[Using TPUs](/docs/using-tpus)
+
+* [Table of Contents](#)
+
+* * [Prerequisites for Fractional GPU](#prerequisites-for-fractional-gpu)
+
+  * * [Add Cloud Integration](#add-cloud-integration)
+    * [Install Latest Version of tfy-gpu-operator](#install-latest-version-of-tfy-gpu-operator)
+
+  * [Enable MIG](#enable-mig)
+
+  * * [Azure](#azure)
+    * [GCP](#gcp)
+
+  * [Enable Timeslicing](#enable-timeslicing)
+
+  * * [Azure](#azure-1)
+    * [GCP](#gcp-1)
+    * [AWS](#aws-1)
+
+  * [Using fractional GPUs in your Service](#using-fractional-gpus-in-your-service)
+
+  * * [Deploying with UI](#deploying-with-ui)
+    * [Deploying with Python SDK](#deploying-with-python-sdk)

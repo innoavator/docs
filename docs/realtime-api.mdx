@@ -1,0 +1,227 @@
+---
+title: "Realtime API"
+description: "Here’s how to get started:"
+---
+
+### Using Rest API
+
+<CodeGroup>
+  ```bash bash
+  import asyncio
+  import json
+  import websockets
+
+  BASE_URL = "wss://llm-gateway.truefoundry.com/api/llm/api/inference/openai/v1/realtime?model=openai-main/realtime-preview"
+
+  headers = {
+      "Authorization": f"Bearer Enter your API Key here",
+  }
+
+  async def connect():
+      async with websockets.connect(BASE_URL, additional_headers=headers) as ws:
+          print("WebSocket connection established!")
+
+          # Can follow the openai realtime api docs
+          # https://platform.openai.com/docs/api-reference/realtime
+
+          # Update session
+          session_update = {
+              "type": "session.update",
+              "session": {
+                  "modalities": ["text"],
+                  "model": "openai-main/realtime-preview",
+              },
+          }
+          await ws.send(json.dumps(session_update))
+          print("Session updated!")
+
+          # Send user message
+          message = {
+              "type": "conversation.item.create",
+              "item": {
+                  "type": "message",
+                  "role": "user",
+                  "content": [{"type": "input_text", "text": "Say hello!"}],
+              },
+          }
+          await ws.send(json.dumps(message))
+          print("Conversation item created!")
+
+          # Request response
+          response_request = {"type": "response.create"}
+          await ws.send(json.dumps(response_request))
+          print("Response requested!")
+
+          # Read responses
+          async for msg in ws:
+              event = json.loads(msg)
+
+              if event.get("type") == "response.text.delta":
+                  print(event["delta"], end="", flush=True)
+
+              elif event.get("type") == "response.text.done":
+                  print("
+  Response completed.")
+
+              elif event.get("type") == "response.done":
+                  print("Session complete, closing connection.")
+                  break
+
+  asyncio.run(connect())
+  ```
+</CodeGroup>
+
+### Using NodeJS
+
+<CodeGroup>
+  ```bash bash
+
+  // Requires: yarn add ws @types/ws
+  const { OpenAIRealtimeWS } = require('openai/beta/realtime/ws');
+  const OpenAI = require('openai');
+
+  const openai = new OpenAI({
+    apiKey: 'Enter your API Key here',
+    baseURL: 'wss://llm-gateway.truefoundry.com/api/llm/api/inference/openai/v1',
+  });
+
+  const rt = new OpenAIRealtimeWS(
+    { model: 'openai-main/realtime-preview', options: {} },
+    openai
+  );
+
+  // Access the underlying WebSocket instance
+  rt.socket.on('open', () => {
+    console.log('Connection opened!');
+
+    // Can follow the openai realtime api docs
+    // https://platform.openai.com/docs/api-reference/realtime
+    rt.send({
+      type: 'session.update',
+      session: {
+        modalities: ['text'],
+        model: 'openai-main/realtime-preview',
+      },
+    });
+
+    console.log('Session updated!');
+
+    rt.send({
+      type: 'conversation.item.create',
+      item: {
+        type: 'message',
+        role: 'user',
+        content: [{ type: 'input_text', text: 'Say a couple paragraphs!' }],
+      },
+    });
+
+    console.log('Conversation item created!');
+
+    rt.send({ type: 'response.create' });
+
+    console.log('Response created!');
+  });
+
+  rt.on('error', (err) => {
+    console.error('WebSocket Error:', err);
+  });
+
+  rt.on('session.created', (event) => {
+    console.log('session created!', event.session);
+    console.log();
+    });
+
+    
+
+  rt.on('response.text.delta', (event) => process.stdout.write(event.delta));
+  rt.on('response.text.done', () => console.log());
+  rt.on('response.done', () => rt.close());
+
+  rt.socket.on('close', () => console.log('
+  Connection closed!'));
+  ```
+</CodeGroup>
+
+### Using OpenAI Library
+
+<CodeGroup>
+  ```bash bash
+
+  import asyncio
+  from openai import AsyncOpenAI
+
+  async def main():
+      client = AsyncOpenAI(
+          api_key="Enter your API Key here",
+          base_url="wss://llm-gateway.truefoundry.com/api/llm/api/inference/openai/v1"
+      )
+
+      try:
+          async with client.beta.realtime.connect(model="openai-main/realtime-preview") as connection:
+              # Can follow the openai realtime api docs
+              # https://platform.openai.com/docs/api-reference/realtime
+
+              print("WebSocket connection established!")
+
+              # Update session
+              await connection.session.update(session={'modalities': ['text']})
+              print("Session updated!")
+
+              # Send user message
+              await connection.conversation.item.create(
+                  item={
+                      "type": "message",
+                      "role": "user",
+                      "content": [{"type": "input_text", "text": "Say hello!"}],
+                  }
+              )
+              print("Conversation item created!")
+
+              # Request response
+              await connection.response.create()
+              print("Response requested!")
+
+              # Read responses
+              async for event in connection:
+                  if event.type == 'response.text.delta':
+                      print(event.delta, flush=True, end="")
+
+                  elif event.type == 'response.text.done':
+                      print("
+  Response completed.")
+
+                  elif event.type == "response.done":
+                      print("Session complete, closing connection.")
+                      break
+
+      except Exception as e:
+          print(f"Error: {e}")
+
+  asyncio.run(main())
+  ```
+</CodeGroup>
+
+### Using Curl
+
+<CodeGroup>
+  ```bash bash
+
+  # we're using websocat for this example, but you can use any websocket client
+  websocat "wss://llm-gateway.truefoundry.com/api/llm/api/inference/openai/v1/realtime?model=openai-main/realtime-preview" \
+    -H 'Authorization: Bearer Enter your API Key here'
+  # once connected, you can send your messages as you would with OpenAI's Realtime API
+  ```
+</CodeGroup>
+
+***
+
+What’s Next
+
+Request logging is coming soon
+
+* [Table of Contents](#)
+
+* * [Using Rest API](#using-rest-api)
+  * [Using NodeJS](#using-nodejs)
+  * [Using OpenAI Library](#using-openai-library)
+  * [Using Curl](#using-curl)

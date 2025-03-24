@@ -1,0 +1,246 @@
+---
+title: "Define Resources"
+description: "When we deploy a service or job or any other application, we will need to define the resources that the application will. This will ensure that Kubernetes can allot the correct set of resources and the application continues to run smoothly."
+---
+
+There are a few key resources you will need to configure:
+
+| Resource              | Unit               | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| --------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **CPU**               | CPU cores          | Processing power required by the application. Defined in terms of CPU cores. 1 CPU unit is equivalent to 1 virtual core. It's possible to ask for fractional CPU resources like 0.1 or even 0.01. You will need to specify CPU requests and limits. The number you define in the CPU request will always be reserved for the application. Your application can occasionaly take more CPU than what is requestes till the CPU limit, but not beyond that. For e.g, if CPU request is 0.5 and limit is 1, it means that the application has 0.5 CPU reserved for itself. CPU usage can go upto 1 if there is CPU available on the machine - else it will be throttled.                                                                                                                                                                                                                                                                                                                                                                                                              |
+| **Memory**            | Megabytes (MB)     | Defined as an integer and the unit is Megabytes. So a value of 1 means 1 MB of memory and 1000 means 1GB of memory. You need to specify memory requests and limits. The number you define in the memory request will always be reserved for the application. Your application can occasionaly take more memory than what is requested till the memory limit. If the application takes up more memory than the limit, then the application will be killed and restarted. For e.g, if memory request is 500 MB and limit is 1000 MB, it means that you application will always have 500MB of RAM. You can have spikes of memory usage till 1 GB, beyond which the application will be killed and restarted.                                                                                                                                                                                                                                                                                                                                                                         |
+| **Ephemeral Storage** | Megabytes (MB)     | Temporary disk space to keep code, artifacts, etc which is lost when the pod is terminated. Defined as an integer and the unit is Megabytes. A value of 1 means 1 MB of disk space and 1000 means 1GB of disk space. You need to specify ephemeral Storage requests and limits. If you specify 1 GB as request and 5 GB as limit, you will have guaranteed access to 1GB of disk space. You can go upto 5GB in case there is disk left on the machine, but we shouldn't rely on this. If the application tries to take up more than 5GB, the application will be killed.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| **GPU**               | GPU-Type and Count | Graphics processing power required by the application. You need firstly specify which GPU you want to provision for your Application (GPUs can be of the following types: K80, P4, P100, V100, T4, A10G, A100\_40GB, A100\_80GB, etc.). You can find more details about these GPUs [here](https://cloud.google.com/compute/docs/gpus). In the case of **AWS or GCP**, you can do this by selecting the **GPU-Type** (read more [here](doc:resources#aws-and-gcp-node-selectors). In case you are using **Azure or some other cloud** you will just have to specify the **Nodepool** that contains the GPU (read more [here](doc:resources#azure-on-prem-clusters-and-other-cloud-providers-nodepool-selector). Secondly, you need to specify the **GPU-Count**. Please note that if you ask for GPU count as 2 and type as A100, you will get a machine with atleast 2 A100 GPU cards. Its possible in some cloud providers that one machine has 4 A100 GPU cards. In this case, your application will use 2 of the 4 GPU cards and another application can use the rest 2 cards. |
+| **Shared Memory**     | Megabytes (MB)     | Shared memory size is needed for data sharing between processes. This is useful in certain scenarios, for example, Torch Dataloaders rely on shared memory to efficiently share data between multiple workers during training. Defined as an integer and the unit is Megabytes. A value of 1 means 1 MB of shared memory and 1000 means 1GB of shared memory. In case your use-case requires Shared memory, and the usage exceeds the Shared memory size, your applications replica will get killed                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+
+## Setting Resources and Node Constraints
+
+Setting resources for your application's pods ensures they have the necessary capabilities to run smoothly and efficiently. However, you can further enhance performance and control by defining constraints on the nodes that are brought up to run your pods.
+
+### AWS and GCP: Node Selectors
+
+If you are using AWS and GCP, we further enable you to define which nodes or instance families can be provisioned to run your pod. This is done through `Node-Selector`
+
+`Node-Selector` enables you to specify which nodes your application's pods should run on. This can be useful in scenarios such as when you know that your application demands a substantial amount of CPU resources. Here you can utilize a Node-Selector to guarantee that your pods only run on nodes with the required number of CPU cores.
+
+#### Setting resources on AWS and GCP through User Interface
+
+#### Setting resources on AWS and GCP via Python SDK
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.deploy import Build, Service, DockerFileBuild, Port, Resources, NodeSelector, NvidiaGPU
+
+  service = Service(
+      name="my-service",
+      image=Build(build_spec=DockerFileBuild()),
+      ports=[
+        Port(
+          host="your_host",
+          port=8501
+        )
+      ],
+  +    resources=Resources( # You can use this in `Job` and `Notebooks` too.
+  +        cpu_request=0.2,
+  +        cpu_limit=0.5,
+  +        memory_request=128,
+  +        memory_limit=512,
+  +.       # Supported GPUs are -> "T4", "A100_40GB", "A100_80GB", "V100"
+  +        devices=[NvidiaGPU(name="T4", count=1)]], 
+  +    ),
+  )
+  service.deploy(workspace_fqn="YOUR_WORKSPACE_FQN")
+  ```
+
+  ```bash bash
+  from truefoundry.deploy import Build, Service, DockerFileBuild, Port, Resources, NodeSelector
+
+  service = Service(
+      name="my-service",
+      image=Build(build_spec=DockerFileBuild()),
+      ports=[
+        Port(
+          host="your_host",
+          port=8501
+        )
+      ],
+  +    resources=Resources( # You can use this argument in `Job` too.
+  +        cpu_request=0.2,
+  +        cpu_limit=0.5,
+  +        memory_request=128,
+  +        memory_limit=512,
+  +        node=NodeSelector(
+  +          instance_families=["e2","n1"],
+  +        )
+  +    ),
+  )
+  service.deploy(workspace_fqn="YOUR_WORKSPACE_FQN")
+  ```
+</CodeGroup>
+
+### Azure, on-prem-clusters, and other cloud providers: Nodepool Selector
+
+Azure and other Generic Clusters, don't support `Node-Selector`. To set constraints on the nodes, you can instead set up Nodepool. A node pool is a collection of nodes that are all configured identically. You will first have to set up these Nodepools following this [guide](doc:understanding-azure-node-pools).
+
+Once you have set the Nodepool, you can specify from which node pools can the nodes be brought to bring up the applications pods.
+
+#### Setting resources on Azure, on-prem-clusters, and other cloud providers through User Interface
+
+#### Setting resources on Azure, on-prem-clusters, and other cloud providers via Python SDK
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.deploy import Build, Service, DockerFileBuild, Port, Resources, NodepoolSelector, NvidiaGPU
+
+  service = Service(
+      name="my-service",
+      image=Build(build_spec=DockerFileBuild()),
+      ports=[
+        Port(
+          host="your_host",
+          port=8501
+        )
+      ],
+  +    resources=Resources( # You can use this argument in `Job` too.
+  +        cpu_request=0.2,
+  +        cpu_limit=0.5,
+  +        memory_request=128,
+  +        memory_limit=512,
+  +        ephemeral_storage_request=512,
+  +        ephemeral_storage_limit=1024,
+  +.       devices=[NvidiaGPU(count=1),]
+  +        node=NodepoolSelector(
+  +          nodepools=["a100","g2"],
+  +        )
+  +    ),
+  )
+  service.deploy(workspace_fqn="YOUR_WORKSPACE_FQN")
+  ```
+</CodeGroup>
+
+## Choosing between Spot and On-demand Instances
+
+Spot and on-demand instances are two types of instances offered by cloud providers like AWS, GCP, and Azure. On-demand instances guarantee availability and once obtained will not be moved away unless the machine has a failure and the cloud provider decides to recycle it. Spot instance will be around 50-70% cheaper than on-demand instances but they do not guarantee availability. This means that a spot machine can be taken away at any point the cloud provider faces a demand for that machine type.
+
+Truefoundry automatically brings in another machine in case a spot machine is taken away, but this does mean a unavailability of a few seconds to minutes in case a spot instance is taken away. This time is needed to bring up the new machine, download the docker image and then start the service. In case of AWS, this process is a bit faster since we start bringing another machine the moment AWS tells us a spot instance is going to be preempted - which is usually 2 minutes before the actual preemption.
+
+### When to use Spot Instances?
+
+Spot instances are a good option for nodes when:
+
+* You are running multiple replicas of a service - hence the chances of all the spot machines going down at the same time is extremely low.
+* You are running a long running training job and saving checkpoints which allows you to resume the training from the last checkpoint in case the machine is taken away.
+* Your service can handle going down and restarting on a different node.
+
+Using spot instances is not a good idea in the following scenarios:
+
+1. You are running a training job and you cannot afford to restart the job from scratch in case it gets preempted in the middle.
+2. You are running only one replica of a service and cannot tolerate 1-2 minutes of downtime.
+3. You are hosting services on GPU and using less than 3 replicas and cannot tolerate downtime. This is because GPU machines take longer to get replaced.
+
+### Capacity-Type modes offered in TrueFoundry
+
+TrueFoundry offers three different capacity-type modes for instance:
+
+* **On-demand**: Provides consistent performance and guaranteed availability.
+* **Spot**: Cost-effective option with the risk of interruptions. In this case, if one spot goes away, we will try to replace it with another spot instance. If spot instances are not available, then service will not get an instance to run on. This mode is recommended only for dev workloads.
+* **Spot (with fallback on On-demand)**: In this case, the application is preferably put on a spot instance. However, if a spot machine is preempted, we try to find another spot machine to replace it. If we cannot find a spot machine, we bring up an on-demand machine to serve the application then.
+
+### How do you use Spot on AWS and GCP?
+
+In AWS and GCP you can specify that you only want Spot Instances to be used for a particular Service by utilizing Node Selectors.
+
+#### Using Spot on AWS and GCP through User Interface
+
+![](/images/docs/b13fca9-Screenshot_2024-01-24_at_6.06.48_PM.png)
+
+#### Using Spot on AWS and GCP via Python SDK
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.deploy import Build, Service, DockerFileBuild, Port, Resources, CapacityType
+
+  service = Service(
+      name="my-service",
+      image=Build(build_spec=DockerFileBuild()),
+      ports=[
+        Port(
+          host="your_host",
+          port=8501
+        )
+      ],
+  +    resources=Resources( # You can use this argument in `Job` too.
+  +        cpu_request=0.2,
+  +        cpu_limit=0.5,
+  +        memory_request=128,
+  +        memory_limit=512,
+  +        ephemeral_storage_request=512,
+  +        ephemeral_storage_limit=1024,
+  +        node=NodeSelector(
+  +          instance_families=["e2","n1"],
+  +          capacity_type=CapacityType.spot_fallback_on_demand
+  +        )
+  +    ),
+  )
+  service.deploy(workspace_fqn="YOUR_WORKSPACE_FQN")
+  ```
+</CodeGroup>
+
+### How do you use Spot on Azure, on-prem clusters, and other cloud providers?
+
+In Azure, on-prem clusters, and other cloud providers, before utilizing Spot Instances, you must first create a Nodepool specifically for them. You can refer to the [following documentation](https://docs.truefoundry.com/docs/understanding-azure-node-pools#spot-node-pool) for creating those node pools. Once your Spot Nodepool is created, you can select it during service deployment.
+
+#### Using Spot on Azure, on-prem-clusters, and other cloud providers through User Interface
+
+![](/images/docs/111966f-Screenshot_2024-01-24_at_6.07.44_PM.png)
+
+#### Using Spot on Azure, on-prem-clusters, and other cloud providers via Python SDK
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.deploy import Build, Service, DockerFileBuild, Port, Resources, NodePoolSelector
+
+  service = Service(
+      name="my-service",
+      image=Build(build_spec=DockerFileBuild()),
+      ports=[
+        Port(
+          host="your_host",
+          port=8501
+        )
+      ],
+  +    resources=Resources( # You can use this argument in `Job` too.
+  +        cpu_request=0.2,
+  +        cpu_limit=0.5,
+  +        memory_request=128,
+  +        memory_limit=512,
+  +        ephemeral_storage_request=512,
+  +        ephemeral_storage_limit=1024,
+  +        node=NodepoolSelector(
+  +          nodepools=["a100-spot","g2-spot"],
+  +        )
+  +    ),
+  )
+  service.deploy(workspace_fqn="YOUR_WORKSPACE_FQN")
+  ```
+</CodeGroup>
+
+***
+
+[Define Ports and Domains](/docs/define-ports-and-domains)
+
+[Environment Variables and Secrets](/docs/environment-variables-and-secrets-services)
+
+* [Table of Contents](#)
+
+* * [Setting Resources and Node Constraints](#setting-resources-and-node-constraints)
+
+  * * [AWS and GCP: Node Selectors](#aws-and-gcp-node-selectors)
+    * [Azure, on-prem-clusters, and other cloud providers: Nodepool Selector](#azure-on-prem-clusters-and-other-cloud-providers-nodepool-selector)
+
+  * [Choosing between Spot and On-demand Instances](#choosing-between-spot-and-on-demand-instances)
+
+  * * [When to use Spot Instances?](#when-to-use-spot-instances)
+    * [Capacity-Type modes offered in TrueFoundry](#capacity-type-modes-offered-in-truefoundry)
+    * [How do you use Spot on AWS and GCP?](#how-do-you-use-spot-on-aws-and-gcp)
+    * [How do you use Spot on Azure, on-prem clusters, and other cloud providers?](#how-do-you-use-spot-on-azure-on-prem-clusters-and-other-cloud-providers)

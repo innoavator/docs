@@ -1,0 +1,89 @@
+---
+title: "Interacting with your Service"
+---
+
+## Service-Specific Dashboard
+
+To access the dedicated dashboard for your service, click its name.
+
+## Pause / Resume your Service
+
+Pausing a service means that all replicas of your Service will be shut down, and your service will no longer consume any resources or serve requests - hence saving costs. This can be useful for dev environments when you don't want to run the service but also don't want to delete the configuration since it might be used later.
+
+### Pause a Service
+
+<Info>
+  If you have Autoscaling enabled for your service the option to pause a service will not be available to you.
+</Info>
+
+### Resuming a Service
+
+## Copy Endpoint URL
+
+To make a request to the Service, you will need the Endpoint URL.
+
+The endpoint URL is the same one you provided while deploying the service in the [Ports](https://docs.truefoundry.com/docs/define-ports-and-domains) Section. You can also copy it from the Service UI.
+
+![](/images/docs/0a5754d-image.png)
+
+The endpoint will be an internal cluster URL or an external URL based on whether you chose **Expose** in the Ports configuration. The two cases are as follows:
+
+### **The service port is exposed and mapped to a domain**
+
+In this case, this becomes a public endpoint and you can call this service from anywhere - your own laptop or code running anywhere.
+
+You can add username-password-based authentication to the API in case you don't want everyone to be able to call this API. For this, you can refer to the following section [Add Authentication to Endpoint](doc:add-authentication-to-endpoint).
+
+### **The service port is not exposed**
+
+If you have not exposed the port, the endpoint is internal to the cluster and can only be called by other services running in the same cluster (including Jupyter Notebooks running in the same cluster). No one externally can access this service and this is the recommended mode for APIs that don't need to be exposed for external usage. These APIs will be of the format `servicename-workspacename.svc.cluster.local:port`
+
+## Sending Requests to your Service
+
+Once you deploy the service, you will want to interact with the API in your code or manually using [curl](https://www.freecodecamp.org/news/how-to-start-using-curl-and-why-a-hands-on-introduction-ea1c913caaaa/Curl) or [Postman](https://learning.postman.com/docs/getting-started/first-steps/sending-the-first-request/#:~:text=Postman%20enables%20you%20to%20create,response%20appears%20right%20inside%20Postman.) or Python code as shown below:
+
+```
+import json  
+from urllib.parse import urljoin
+
+import requests
+
+# Replace this with the value of your endpoint URL
+
+ENDPOINT_URL = "\<YOUR_ENDPOINT_URL>"  # e.g., https://your-service-endpoint.com
+
+response = requests.post(  
+    urljoin(ENDPOINT_URL, 'predict'),  
+    params={  
+        "sepal_length": 7.0,  
+        "sepal_width": 3.2,  
+        "petal_length": 4.7,  
+        "petal_width": 1.4,  
+    }  
+)
+
+result = response.json()  
+print("Predicted Classes:", result["prediction"])
+```
+
+***
+
+[Deploy Service using Python SDK](/docs/deploy-service-using-python-sdk)
+
+[Configuring your service](/docs/configuring-your-service)
+
+* [Table of Contents](#)
+
+* * [Service-Specific Dashboard](#service-specific-dashboard)
+
+  * [Pause / Resume your Service](#pause--resume-your-service)
+
+  * * [Pause a Service](#pause-a-service)
+    * [Resuming a Service](#resuming-a-service)
+
+  * [Copy Endpoint URL](#copy-endpoint-url)
+
+  * * [The service port is exposed and mapped to a domain](#the-service-port-is-exposed-and-mapped-to-a-domain)
+    * [The service port is not exposed](#the-service-port-is-not-exposed)
+
+  * [Sending Requests to your Service](#sending-requests-to-your-service)

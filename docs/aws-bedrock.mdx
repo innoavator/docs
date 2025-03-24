@@ -1,0 +1,187 @@
+---
+title: "AWS Bedrock"
+---
+
+# Overview
+
+## Adding Models
+
+To add Bedrock model to Gateway:
+
+* From TrueFoundry dashboard, go to `Integrations` > `Add Provider Integration` and choose `AWS`
+* Fill out the form with AWS account details, authentication data (Access key + Secret) or Assume Role ID.
+
+![](/images/docs/56c15c9badb8df0db36ba75fc9ef83274e44f65f22918f519068f3b0907e6f15-Screenshot_2025-01-30_at_10.20.26_AM.png)
+
+* Click on Bedrock Model and fill out model ID and other details to add one or more model integrations.
+
+![](/images/docs/3c060e61d8553d841e74957a4653ec168377a41c89925419dc32c6464edd423f-Screenshot_2025-01-30_at_10.20.36_AM.png)
+
+## Inference
+
+Once models are added, you can run inference on these models using an OpenAI-compatible API through the TrueFoundry LLM Gateway. For example, you can directly use the OpenAI library too:
+
+<CodeGroup>
+  ```bash bash
+
+  from openai import OpenAI
+
+  client = OpenAI(api_key="Enter your API Key here", base_url="https://llm-gateway.truefoundry.com/api/inference/openai")
+  stream = client.chat.completions.create(
+      messages = [
+              {"role": "system", "content": "You are an AI bot."},
+              {"role": "user", "content": "Enter your prompt here"},
+      ],
+      model= "bedrock-provider/llama-70b",
+  )
+  ```
+</CodeGroup>
+
+# Supported Models
+
+List of models supported by Bedrock and their corresponding model IDs can be found here: [https://docs.aws.amazon.com/bedrock/latest/userguide/models-supported.html#model-ids-arns](https://docs.aws.amazon.com/bedrock/latest/userguide/models-supported.html#model-ids-arns)
+
+TrueFoundry LLM Gateway supports all text and image models in Bedrock. We are adding support for other modalities including speech shortly.
+
+## Extra Parameters
+
+Internally, TrueFoundry LLM Gateway uses Bedrock Converse API for chat completion.
+
+If you need to pass additional input fields or parameters like top\_k frequency\_penalty etc. that are specific to a model, you can pass it with this key:
+
+<CodeGroup>
+  ```bash bash
+  "additionalModelRequestFields": {
+      "frequency_penalty": 0.5
+  }
+  ```
+</CodeGroup>
+
+## Cross-Region Inference
+
+To manage traffic during on-demand inferencing by utilising compute across regions, you can use AWS Bedrock Cross-Region Inference. While setting model ID in TrueFoundry, use the Inference Profile ID instead of the model ID.
+
+You can more information about cross-region inferencing [here](https://docs.aws.amazon.com/bedrock/latest/userguide/cross-region-inference.html).
+
+<Frame caption="Use Inference Profile ID as model ID while adding model to TFY LLM Gateway">
+  <img src="/images/docs/e69540c828e23c10cd5fa3e8abf9b4c466ec2e8c61c4b942cc85422eb52565bf-Screenshot_2025-01-30_at_10.27.52_AM.png" />
+</Frame>
+
+# Authentication Methods
+
+## Using AWS Access Key and Secret
+
+1. Create an IAM user (or choose an existing IAM user) following [these steps](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html).
+2. Add required permission for this user. The following policy grants permission to invoke all model
+   1. <CodeGroup>
+        ```bash bash
+        {
+        	"Version": "2012-10-17",
+        	"Statement": [
+        		{
+        			"Effect": "Allow",
+        			"Sid": "InvokeAllModels",
+        			"Action": [
+        				"bedrock:InvokeModel",
+        				"bedrock:InvokeModelWithResponseStream"
+        			],
+        			"Resource": [
+        				"arn:aws:bedrock:us-east-1::foundation-model/*"
+        			]
+        		}
+        	]
+        }
+        ```
+      </CodeGroup>
+3. Create an access key for this user [as per this doc](https://docs.aws.amazon.com/IAM/latest/UserGuide/access-keys-admin-managed.html#admin-create-access-key).
+4. Use this access key and secret while adding the provider account to authenticate requests to the Bedrock model.
+
+## Using Assumed Role
+
+1. You can also directly specify a role that can be assumed by the service account attached to the pods running LLM Gateway.
+2. Read more about how assumed roles work [here](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html).
+
+# Using Bedrock Guardrails
+
+1. Create a Guardrail in AWS. More information at this link - [https://aws.amazon.com/bedrock/guardrails](https://aws.amazon.com/bedrock/guardrails)
+2. Copy the Guardrails ID and the version number
+3. While calling a AWS bedrock model through TFY LLM Gateway, pass the following object along with it:
+   <CodeGroup>
+     ```bash bash
+      "guardrailConfig": {  
+         "guardrailIdentifier": "your-guardrail-id",
+         "guardrailVersion": "1"
+       }
+     ```
+   </CodeGroup>
+4. This should ensure the response will have guardrails enforced. Consider this input where the guardrail is configured to censor PII like name, email etc.:
+   <CodeGroup>
+     ```bash bash
+     {  
+       "model": "internal-bedrock/claude-3",
+       "messages": [
+         {
+           "role": "user",
+           "content": "What are some ideas for email for Elon Musk?"
+         }
+       ],
+       "guardrailConfig": {
+         "guardrailIdentifier": "xyz-123-768",
+         "guardrailVersion": "1"
+       }
+     }
+     ```
+   </CodeGroup>
+5. Sample output:
+   <CodeGroup>
+     ```bash bash
+     {
+         "id": "1741339101780",
+         "object": "chat.completion",
+         "created": 1741339101,
+         "model": "",
+         "provider": "aws",
+         "choices": [
+             {
+                 "index": 0,
+                 "message": {
+                     "role": "assistant",
+                     "content": "Here are some ideas for email addresses for {NAME}:\n\n1. {EMAIL}\n2. {EMAIL}\n3. {EMAIL}\n4. {EMAIL}\n5. {EMAIL}\n6. {EMAIL} (or any relevant year)\n7. {EMAIL}\n8. {EMAIL}\n9. {EMAIL}\n10. {EMAIL}\n11. {EMAIL}\n12. {EMAIL}\n13. {EMAIL}\n14. {EMAIL}\n15. {EMAIL}\n\nWhen creating an email address, consider the following tips:\n\n1. Keep it professional if it's for work purposes.\n2. Make it easy to spell and remember.\n3. Avoid using numbers or special characters unless necessary.\n4. Consider using a combination of first name, last name, or initials.\n5. You can use different email addresses for personal and professional purposes.\n\nRemember to replace \"example.com\" with the actual domain you'll be using for your email address."
+                 },
+                 "finish_reason": "guardrail_intervened"
+             }
+         ],
+         "usage": {
+             "prompt_tokens": 25,
+             "completion_tokens": 320,
+             "total_tokens": 345
+         }
+     }
+     ```
+   </CodeGroup>
+6. If you're using a library like Langchain, you might have to pass the extra param in a parameter like `extra_body` as required by the library. For example, refer this [Langchain OpenAI class doc](https://python.langchain.com/api_reference/openai/chat_models/langchain_openai.chat_models.base.ChatOpenAI.html#langchain_openai.chat_models.base.ChatOpenAI.extra_body).
+
+***
+
+[Adding Models to LLM Gateway](/docs/adding-models-to-llm-gateway)
+
+[Google Vertex](/docs/google-vertex)
+
+* [Table of Contents](#)
+
+* * [Overview](#overview)
+
+  * * [Adding Models](#adding-models)
+    * [Inference](#inference)
+
+  * [Supported Models](#supported-models)
+
+  * * [Extra Parameters](#extra-parameters)
+    * [Cross-Region Inference](#cross-region-inference)
+
+  * [Authentication Methods](#authentication-methods)
+
+  * * [Using AWS Access Key and Secret](#using-aws-access-key-and-secret)
+    * [Using Assumed Role](#using-assumed-role)
+
+  * [Using Bedrock Guardrails](#using-bedrock-guardrails)

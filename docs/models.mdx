@@ -1,0 +1,227 @@
+---
+title: "Models"
+---
+
+# `module` `model.py`
+
+***
+
+## `function` `calculate_model_size`
+
+Tells about the size of the model
+
+**Args:**
+
+* **`model_dir`** (str): directory in which model is present.
+
+**Returns:** total size of the model
+
+***
+
+## `class` `ModelVersion`
+
+### `property` created\_at
+
+Get the time at which model version was created
+
+***
+
+#### `property` created\_by
+
+Get the information about who created the model version
+
+***
+
+#### `property` description
+
+Get description of the model
+
+***
+
+#### `property` fqn
+
+Get fqn of the current model version
+
+***
+
+#### `property` metadata
+
+Get metadata for the current model
+
+***
+
+#### `property` metrics
+
+get the metrics for the current version of the model
+
+***
+
+#### `property` model\_fqn
+
+Get fqn of the model
+
+***
+
+#### `property` model\_schema
+
+get the model schema for current model
+
+***
+
+#### `property` name
+
+Get the name of the model
+
+***
+
+#### `property` step
+
+Get the step in which model was created
+
+***
+
+#### `property` updated\_at
+
+Get the information about when the model version was updated
+
+***
+
+#### `property` version
+
+Get version information of the model
+
+***
+
+### `function` `delete`
+
+Deletes the current instance of the ModelVersion hence deleting the current version.
+
+**Returns:** True if model was deleted successfully
+
+**Examples:**
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+  model_version = client.get_model_version_by_fqn(fqn="<your-model-fqn>")
+  model_version.delete()
+      
+  ```
+</CodeGroup>
+
+***
+
+### `function` `download`
+
+Download a model file or directory to a local directory if applicable, and return a local path for it.
+
+**Args:**
+
+* **`path`** (str): Absolute path of the local filesystem destination directory to download the specified models. This directory must already exist. If unspecified, the models will either be downloaded to a new uniquely-named directory on the local filesystem or returned directly in the case of the Local ModelRepository.
+* **`overwrite`** (bool): If True it will overwrite the file if it is already present in the download directory else it will throw an error
+
+**Returns:**
+
+* **`ModelVersionDownloadInfo`**: Download Info instance containing `model_dir` (path to downloaded model folder) and other metadata
+
+**Examples:**
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+  model_version = client.get_model_version_by_fqn(fqn="<your-model-fqn>")
+  download_info = model_version.download(path="<your-desired-download-path>")
+  print(download_info.model_dir)
+      
+  ```
+</CodeGroup>
+
+***
+
+### `classmethod` `from_fqn`
+
+Get the version of a model to download contents or load them in memory
+
+**Args:**
+
+* **`fqn`** (str): Fully qualified name of the model version.
+
+**Returns:**
+
+* **`ModelVersion`**: An ModelVersion instance of the Model
+
+**Examples:**
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+  model_version = tfm.ModelVersion.from_fqn(fqn="<your-model-fqn>")
+  ```
+</CodeGroup>
+
+***
+
+### `function` `raw_download`
+
+Download a model file or directory to a local directory if applicable, and return a local path for it.
+
+**Args:**
+
+* **`path`** (str): Absolute path of the local filesystem destination directory to download the specified models. This directory must already exist. If unspecified, the models will either be downloaded to a new uniquely-named directory on the local filesystem or returned directly in the case of the Local ModelRepository.
+* **`overwrite`** (bool): If True it will overwrite the file if it is already present in the download directory else it will throw an error
+
+**Returns:**
+
+* **`path`**: Absolute path of the local filesystem location containing the desired models.
+
+**Examples:**
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+  model_version = client.get_model_version_by_fqn(fqn="<your-model-fqn>")
+  model_version.raw_download(path="<your-desired-download-path>")
+      
+  ```
+</CodeGroup>
+
+***
+
+### `function` `update`
+
+Updates the current instance of the ModelVersion hence updating the current version.
+
+**Examples:**
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+  model_version = client.get_model_version_by_fqn(fqn="<your-model-fqn>")
+  model_version.description = 'This is the new description'
+  model_version.update()
+      
+  ```
+</CodeGroup>
+
+***
+
+[Artifact](/docs/artifact)
+
+[Data Directory](/docs/dataset)
+
+* [Table of Contents](#)
+
+* * [module model.py](#module-modelpy)
+
+  * * [function calculate\_model\_size](#function-calculate_model_size)
+    * [class ModelVersion](#class-modelversion)

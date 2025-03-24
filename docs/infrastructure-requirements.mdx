@@ -1,0 +1,57 @@
+---
+title: "Architecture"
+description: "This guide describes the architecture diagram and created access policies in a compute plane in your AWS account"
+---
+
+![](/images/docs/de29b95-AWS_5.png)
+
+Please refer to the "Access Policies" section for details of each access policy that is present in a truefoundry compute.
+
+# Access Policies Overview
+
+| **Access Policy**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | **Role**                                   | **Reason**                                                                                                                                                                                                                                                       |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ELBControllerPolicy - [link](https://github.com/terraform-aws-modules/terraform-aws-iam/blob/f37809108f86d8fbdf17f735df734bf4abe69315/modules/iam-role-for-service-accounts-eks/policies.tf#L752)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | \<cluster\_name>-elb-controller            | Role assumed by load balancer controller to provision ELB when a service of type LoadBalancer is created                                                                                                                                                         |
+| KarpenterPolicy - [link](https://github.com/terraform-aws-modules/terraform-aws-iam/blob/f37809108f86d8fbdf17f735df734bf4abe69315/modules/iam-role-for-service-accounts-eks/policies.tf#L619) SQSPolicy - [link](https://github.com/truefoundry/terraform-aws-truefoundry-karpenter/blob/76f04a4c4abf1dc22e97b80994015c8e2e77d06f/sqs.tf#L8)                                                                                                                                                                                                                                                                                                                                                                                                                                                                | \<cluster\_name>-karpenter                 | Role assumed by Karpenter to dynamically provision nodes. Karpenter has an additional role to listen to interruption events coming from SQS to safely handle spot node termination                                                                               |
+| EFSPolicy - [link](https://github.com/truefoundry/terraform-aws-truefoundry-efs/blob/574d6680e1fc0ff4cff8c0f4df507c6f13659f10/efs.tf#L8)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | \<cluster\_name>-efs                       | Role assumed by EFS CSI to provision and attach EFS volumes                                                                                                                                                                                                      |
+| EBSPolicy - [link](https://docs.aws.amazon.com/aws-managed-policy/latest/reference/AmazonEBSCSIDriverPolicy.html)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | \<cluster\_name>-csi-ebs                   | Role assumed by EBS CSI to provision and attach EBS volumes                                                                                                                                                                                                      |
+| RolePolicy -- ECR - [link](https://github.com/truefoundry/terraform-aws-truefoundry-platform-features/blob/cc7880550c4bbc4968dfc7e7ddf9a7f6fd2dba5a/iam.tf#L34)
+- S3 - [link](https://github.com/truefoundry/terraform-aws-truefoundry-platform-features/blob/cc7880550c4bbc4968dfc7e7ddf9a7f6fd2dba5a/iam.tf#L1C33-L1C85)
+- SSM - [link](https://github.com/truefoundry/terraform-aws-truefoundry-platform-features/blob/cc7880550c4bbc4968dfc7e7ddf9a7f6fd2dba5a/iam.tf#L16)                                                                                                                                                                                                                                                                                                                              | \<cluster\_name>-platform-iam-role         | Role assumed by TrueFoundry to allow for- ECR
+- S3
+- SSM                                                                                                                                                                                                         |
+| The role attaches these policies -- AmazonEKSClusterPolicy - [link](https://docs.aws.amazon.com/aws-managed-policy/latest/reference/AmazonEKSClusterPolicy.html)
+- AmazonEKSVPCResourceControllerPolicy - [link](https://docs.aws.amazon.com/aws-managed-policy/latest/reference/AmazonEKSVPCResourceController.html)
+- EncryptionPolicy to create and manage key for encryption:\\
+  `{  
+      "Statement": \[           {  
+              "Action": [  
+                  "kms:Encrypt",  
+                  "kms:Decrypt",  
+                  "kms:ListGrants",  
+                  "kms:DescribeKey"  
+              ],  
+              "Effect": "Allow",  
+              "Resource": "arn:aws:kms:<region>:\<acc_id>:key/\<key_id>"  
+          }  
+      ],  
+      "Version": "2012-10-17"  
+  }` | \<cluster\_name>-cluster-\<random\_string> | This role provides Kubernetes the permissions needed to manage the cluster. This includes permissions needed to- Manage the end to end lifecycle of EC2 instances used as EKS nodes
+- Assign networking components to EC2 instances
+- Perform encryption at rest |
+| The role attaches these policies -- AmazonEC2ContainerRegistryReadOnlyPolicy - [link](https://docs.aws.amazon.com/aws-managed-policy/latest/reference/AmazonEC2ContainerRegistryReadOnly.html)
+- AmazonEKS\_CNI\_Policy - [link](https://docs.aws.amazon.com/aws-managed-policy/latest/reference/AmazonEKS_CNI_Policy.html)
+- AmazonEKSWorkerNodePolicy - [link](https://docs.aws.amazon.com/aws-managed-policy/latest/reference/AmazonEKSWorkerNodePolicy.html)
+- AmazonSSMManagedInstanceCorePolicy - [link](https://docs.aws.amazon.com/aws-managed-policy/latest/reference/AmazonSSMManagedInstanceCore.html)                                                                                                                                                                                           | initial-eks-node-group-\<random\_string>   | Role assumed by EKS nodes to work with the AWS resources for these purposes -- Pull images from ECR
+- Assign IPs to the EC2 instance
+- Register itself with the cluster
+- Perform disk encryption                                                                |
+
+***
+
+[Overview](/docs/overview)
+
+[Requirements](/docs/requirements)
+
+* [Table of Contents](#)
+* * [Access Policies Overview](#access-policies-overview)

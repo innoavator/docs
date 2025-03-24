@@ -1,0 +1,47 @@
+---
+title: "Overview"
+description: "This page provides an overview of the architecture overview, requirements and steps to setup a Truefoundry compute plane cluster on AWS"
+---
+
+TrueFoundry installation can be performed from the UI using a script that can be downloaded directly from your control plane cluster page after [tenant registration](https://www.truefoundry.com/register) or from your own control plane. This script leverages terraform internally to setup your cloud for Truefoundry.
+
+You can find an architectural overview for a Truefoundry enabled EKS cluster [here](https://docs.truefoundry.com/docs/infrastructure-requirements)
+
+# Scenarios
+
+Following scenarios are supported in the provided terraform code. You can find the requirements for each scenario [here](https://docs.truefoundry.com/docs/requirements):
+
+* New VPC + New EKS cluster - This is the simplest setup. The Truefoundry terraform code takes care of spinning up and setting up everything. Make sure your cloud account is ready with the requirements mentioned [here](https://docs.truefoundry.com/docs/requirements)
+* Existing VPC + New EKS cluster - In this setup, you come with your own VPC and truefoundry terraform code takes care of creating the cluster in the same VPC. Do make sure to adhere to the existing VPC related requirements mentioned [here](https://docs.truefoundry.com/docs/requirements)
+* Existing EKS cluster - In this setup, the Truefoundry terraform code reuses the cluster created by you to setup all the integrations needed for the platform to work. Do make sure to adhere to the existing VPC and existing cluster related requirements mentioned [here](https://docs.truefoundry.com/docs/requirements)
+
+# Steps
+
+1. Go to the clusters page on the control plane and click on `Create New Cluster` or `Attach Existing Cluster` for AWS EKS depending on your use case
+
+   ![](/images/docs/d936da7262f1fa77b9b7e13399ae51ed359d371a2d4cef12bba7344370f760b5-image.png)
+
+2. You will see the requirements needed to be setup in order to execute the following steps. Click on `Continue` after making sure you have all the requirements satisfied.
+
+3. A form will be presented with the details for the new cluster to be created. Fill in with your cluster details. Click `Submit` when done
+
+   1. (For existing cluster) Disable the addons that are already installed on your cluster so that truefoundry installation does not interfere with your existing workloads
+
+      ![](/images/docs/3a6f17205c493ecc1efeb3ac8f2834c73d2ba59b57cc122b39db4115de1860a2-image.png)
+
+4. You will be presented with a `curl` command to download and execute the script. The script will take care of installing the pre-requisites, downloading terraform code and running it on your local machine to set things up for Truefoundry.
+
+5. Once you are done with the installation, you can setup DNS and TLS for deploying workloads to your cluster by following [here](https://docs.truefoundry.com/docs/setting-up-dns-and-tls-in-aws)
+
+6. Now you are ready to start deploying workloads on your cluster. You can start by going [here](https://docs.truefoundry.com/docs/deploy-service-from-a-public-github-repository)
+
+***
+
+[Deploy Compute Plane](/docs/deploy-compute-plane)
+
+[Architecture](/docs/infrastructure-requirements)
+
+* [Table of Contents](#)
+
+* * [Scenarios](#scenarios)
+  * [Steps](#steps)

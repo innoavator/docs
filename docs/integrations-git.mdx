@@ -1,0 +1,97 @@
+---
+title: "Integration Provider - Git"
+description: "For integrating git services, navigate to the  section of your truefoundry dashboard, and go to the  section."
+---
+
+In the git integrations, we currently have three types of integrations:
+
+## Github
+
+GitHub is linked by installing the TrueFoundry GitHub app on your repositories. These can then be used with TrueFoundry. We can easily link our Github account in few steps as mentioned below:
+
+* Click on the `Link Github` button present in the top right corner of the Github tab for linking your Github account as shown below:
+
+![](/images/docs/41ce92a-image.png)
+
+* Now a pop-up window will appear asking where to install Github app as shown below:
+
+![](/images/docs/0b05920-image.png)
+
+* Now click on `configure` where you want to install the app. Then it will ask for permissions from your github account as shown below:
+
+![](/images/docs/3b8859c-image.png)
+
+* Now, by clicking on `install` button, the app will get installed on your account. You will now be able to see your account on the dashboard as shown below:
+
+![](/images/docs/a007d78-small-git-3.png)
+
+* You can also see the **connected repositories** of your account by clicking on `⚙️` button on the right side of that particular account.
+
+<Frame caption="List of connected repositories">
+  <img src="/images/docs/5ddd0be-image.png" />
+</Frame>
+
+* You can also **unlink your account** by `unlink` button. It can be seen in the above figure.
+
+## Bitbucket
+
+Bitbucket is linked via OAuth. This will allow use of any repository you have access to. We can easily link our Bitbucket account in few steps as mentioned below:
+
+* Click on the `Link Bitbucket` button present in the top right corner of the Bitbucket tab for linking your Bitbucket account as shown below:
+
+![](/images/docs/2c8634c-image.png)
+
+* Your bitbucket account which is signed in to your system will get linked. You will now be able to see your account on the dashboard as shown below:
+
+![](/images/docs/df6704b-image.png)
+
+* You can also see the **connected repositories** of your account by clicking on `⚙️` button on the right side of that particular account.
+* **Note** : In this connected repositories section you will only see the repositories that you have admin access. Only these repositories can be used to make deployment on the platform.
+
+![](/images/docs/65774ac-image.png)
+
+* You can also **unlink your account** by `unlink` button. It can be seen in the above figure.
+
+## Gitlab
+
+To enable Gitlab integration in your app, you need to create a gitlab app using your gitlab account. This gitlab app can then be authenticated to access repositories of users' account.
+
+Follow these steps to create the gitlab app and integrate it with truefoundry:
+
+* Sign in to GitLab.com. On the left sidebar, select your avatar and select Edit profile.
+
+![](/images/docs/5ce0fa2-first.png)
+
+* On the left sidebar, select **Applications**. Click on the **Add new application** button right side.
+
+![](/images/docs/71048c1-second.png)
+
+* Provide the required details for **Add new application**.
+
+  * Name: This can be anything. Consider something like \<Organization>'s GitLab or \<Your Name>'s GitLab or something else descriptive.
+  * Redirect URI: [https://app.example-org.truefoundry.com/api/svc/v1/vcs/gitlab/callback](https://app.example-org.truefoundry.com/api/svc/v1/vcs/gitlab/callback)
+  * Enable the **Confidential** check box.
+  * Select the following scopes: read\_api, read\_user, read\_repository, write\_repository.
+
+![](/images/docs/4b2eef2-third.png)
+
+* Select **Save application**.
+* You should now see an **Application ID** and **Secret**.
+
+<Frame caption="List of connected repositories">
+  <img src="/images/docs/bbb451d-fourth.png" />
+</Frame>
+
+* Set environment variables in servicefoundry server : GITLAB\_APP\_ID=$`{Application ID}` GITLAB\_SECRET=$`{Secret}` GITLAB\_SCOPE=read\_api read\_user read\_repository write\_repository
+
+***
+
+[Integration Provider - Azure](/docs/integration-provider-azure)
+
+[Other Integrations](/docs/integration-provider-others)
+
+* [Table of Contents](#)
+
+* * [Github](#github)
+  * [Bitbucket](#bitbucket)
+  * [Gitlab](#gitlab)

@@ -1,0 +1,339 @@
+---
+title: "Deploy LLMs using Nvidia TensorRT-LLM (TRT-LLM)"
+description: "In this guide, we will deploy a Llama based LLM using Nvidia's  runtime. Specfically for this example we will deploy  with bf16 precision on 2 x L40S GPUs but you can choose whatever GPU configuration available to you"
+---
+
+<Warning />
+
+# 1. Add your Huggingface Token as a Secret
+
+Since we are going to deploy the official Llama 3.1 8B Instruct model, we'd need a Huggingface Token that has access to the model.
+
+Visit the model page and fill the access form. You'd get access to the model in 10-15 mins.
+
+![](/images/docs/89ef9446a2b8438e6ed7b10ceb2de62dfd3672a6674d70a9d013934965fdf988-image.png)
+
+Now, [Create a token following the HuggingFace Docs](https://huggingface.co/docs/hub/security-tokens) and [Add it as a secret](doc:manage-secrets) which we can use later
+
+![](/images/docs/415d8c9ef17c8fd568fcad7c427d509c7bdd2f860fef90411abb0dae16696c57-image.png)
+
+# 2. Create a ML Repo and a Workspace with access to ML Repo
+
+Follow the docs at [Creating a ML Repo](doc:creating-a-ml-repo) to create a ML Repo backed by your Storage Integration. We will use this to store and version TRT-LLM engines.
+
+![](/images/docs/5b675d9f90b178bdb44b3687dc6ac25bd0bec9807ff8372d526680b7199bf430-image.png)
+
+[Create a Workspace](doc:key-concepts#key-concepts#creating-a-workspace) or use and existing Workspace and [Grant it Editor access to the ML Repo](key-concepts#grant-access-of-ml-repo-to-workspace)
+
+![](/images/docs/80d078032eb589befa204dac1f7c20b7ea3238d9cfb4b61926e716bf2837eed5-image.png)
+
+# 3. Deploy the Engine Builder Job
+
+1. Save the following YAML in a file called `builder.truefoundry.yaml`
+
+<CodeGroup>
+  ```bash bash
+  name: trtllm-engine-builder-l40sx2
+  type: job
+  image:
+    type: image
+    image_uri: truefoundrycloud/trtllm-engine-builder:0.13.0
+    command: >-
+      python build.py
+      --model-id {{model_id}}
+      --truefoundry-ml-repo {{ml_repo}}
+      --truefoundry-run-name {{run_name}}
+      --model-type {{model_type}}
+      --dtype {{dtype}}
+      --max-batch-size {{max_batch_size}}
+      --max-input-len {{max_input_len}}
+      --max-num-tokens {{max_num_tokens}}
+      --kv-cache-type {{kv_cache_type}}
+      --workers {{workers}}
+      --gpt-attention-plugin {{gpt_attention_plugin}}
+      --gemm-plugin {{gemm_plugin}}
+      --nccl-plugin {{nccl_plugin}}
+      --context-fmha {{context_fmha}}
+      --remove-input-padding {{remove_input_padding}}
+      --reduce-fusion {{reduce_fusion}}
+      --enable-xqa {{enable_xqa}}
+      --use-paged-context-fmha {{use_paged_context_fmha}}
+      --multiple-profiles {{multiple_profiles}}
+      --paged-state {{paged_state}}
+      --use-fused-mlp {{use_fused_mlp}}
+      --tokens-per-block {{tokens_per_block}}
+      --delete-hf-model-post-conversion
+  trigger:
+    type: manual
+  env:
+    PYTHONUNBUFFERED: '1'
+    HF_TOKEN: "YOUR-HF-TOKEN-SECRET-FQN"
+  params:
+    - name: model_id
+      default: meta-llama/Meta-Llama-3.1-8B-Instruct
+      param_type: string
+    - name: ml_repo
+      default: trtllm-models
+      param_type: ml_repo
+    - name: run_name
+      param_type: string
+    - name: model_type
+      default: llama
+      param_type: string
+    - name: dtype
+      default: bfloat16
+      param_type: string
+    - name: max_batch_size
+      default: "256"
+      param_type: string
+    - name: max_input_len
+      default: "4096"
+      param_type: string
+    - name: max_num_tokens
+      default: "8192"
+      param_type: string
+    - name: kv_cache_type
+      default: paged
+      param_type: string
+    - name: workers
+      default: "2"
+      param_type: string
+    - name: gpt_attention_plugin
+      default: auto
+      param_type: string
+    - name: gemm_plugin
+      default: auto
+      param_type: string
+    - name: nccl_plugin
+      default: auto
+      param_type: string
+    - name: context_fmha
+      default: enable
+      param_type: string
+    - name: remove_input_padding
+      default: enable
+      param_type: string
+    - name: reduce_fusion
+      default: enable
+      param_type: string
+    - name: enable_xqa
+      default: enable
+      param_type: string
+    - name: use_paged_context_fmha
+      default: enable
+      param_type: string
+    - name: multiple_profiles
+      default: enable
+      param_type: string
+    - name: paged_state
+      default: enable
+      param_type: string
+    - name: use_fused_mlp
+      default: disable
+      param_type: string
+    - name: tokens_per_block
+      default: "64"
+      param_type: string
+  retries: 0
+  resources:
+    node:
+      type: node_selector
+      capacity_type: on_demand
+    devices:
+      - type: nvidia_gpu
+        count: 2
+        name: L40S
+    cpu_request: 6
+    cpu_limit: 8
+    memory_request: 54400
+    memory_limit: 64000
+    ephemeral_storage_request: 70000
+    ephemeral_storage_limit: 100000
+  ```
+</CodeGroup>
+
+<Warning>
+  Based on your cloud provider, the available gpu type and nodepools will be different, you'd need to adjust it before deploying.
+</Warning>
+
+2. Replace `YOUR-HF-TOKEN-SECRET-FQN` with the [Secret FQN](doc:environment-variables-and-secrets-jobs#how-to-inject-environment-variables-and-secrets-in-truefoundry) we created at the beginning. E.g.
+
+<CodeGroup>
+  ```bash bash
+  env:
+  -  HF_TOKEN: YOUR-HF-TOKEN-SECRET-FQN
+  +  HF_TOKEN: tfy-secret://truefoundry:chirag-personal:HF_TOKEN
+  ```
+</CodeGroup>
+
+2. Generating correct `resources` section your configuration.
+
+Start a New Deployment, scroll to `Resources` section and select the GPU type and Count and click on the `Spec` button
+
+![](/images/docs/ba86be28c56686a369fcd2633028dd22df808aaa1570ef372f19de0609b01d2c-image.png) ![](/images/docs/1fd4e1b2a5f9bb95f54badf6e7238491d8917d958d0fe4ddd91e44f23cf0be9b-image.png)
+
+You can copy this `resources` section and replace it in `builder.truefoundry.yaml`
+
+3. After [Setting up CLI](doc:setup), deploy the job by mentioning the [Workspace FQN](doc:key-concepts#getting-workspace-fqn)
+
+<CodeGroup>
+  ```bash bash
+  tfy deploy --file builder.truefoundry.yaml --workspace-fqn <your-workspace-fqn> --no-wait
+  ```
+</CodeGroup>
+
+4. Once the Job is deployed, Trigger it
+
+![](/images/docs/363ca482f1ffda228e1c0b24b0d38465e2be7a3df84dac100b477f90ef822857-image.png)
+
+Enter a Run Name. You can modify other arguments if needed. Please refer to [TRT-LLM Docs](https://nvidia.github.io/TensorRT-LLM/performance/perf-best-practices.html) to know more about these parameters. Click Submit
+
+![](/images/docs/03eab0c67a46bca705fd8cf011acab8ae9e52c0d114146bb58e3982fa381e88b-image.png)
+
+5. When the run finishes, you'd have the `tokenizer` and `engine` ready to use under the Run Details section
+
+![](/images/docs/9bbc87036b0e5a797a271d9f0bb8c3165439f9c16e5eb0236324f14c5a40cc69-image.png)
+
+Engine is available under `Models` section. Copy the FQN and keep it handy.
+
+![](/images/docs/38450dce948de45a5f362f74c4d2a8cf099de56d00982dca5c0b7180dfeeb5e5-image.png)
+
+Tokenizer is available under `Artifacts` section. Copy the FQN and keep it handy.
+
+![](/images/docs/fa94400ca05ee6788a980668659a2217c1eab9c97da2ebb7311ddf2bbae91eee-image.png)
+
+# 4. Deploy with Nvidia Triton Server
+
+Finally, let's deploy the engine using Nvidia Triton Server as a TrueFoundry Service. Here is the spec in full:
+
+<Warning>
+  Based on your cloud provider, the available gpu type and nodepools will be different, you'd need to adjust it before deploying.
+</Warning>
+
+<CodeGroup>
+  ```bash bash
+  name: llama-3-1-8b-instruct-trt-llm
+  type: service
+  env:
+    DECOUPLED_MODE: 'True'
+    BATCHING_STRATEGY: inflight_fused_batching
+    ENABLE_KV_CACHE_REUSE: 'True'
+    TRITON_MAX_BATCH_SIZE: '64'
+    BATCH_SCHEDULER_POLICY: max_utilization
+    ENABLE_CHUNKED_CONTEXT: 'True'
+    KV_CACHE_FREE_GPU_MEM_FRACTION: '0.95'
+  image:
+    type: image
+    image_uri: docker.io/truefoundrycloud/tritonserver:24.09-trtllm-python-py3
+  ports:
+    - port: 8000
+      expose: false
+      protocol: TCP
+      app_protocol: http
+  labels:
+    tfy_openapi_path: openapi.json
+  replicas: 1
+  resources:
+    node:
+      type: node_selector
+      capacity_type: on_demand
+    devices:
+      - name: L40S
+        type: nvidia_gpu
+        count: 2
+    cpu_limit: 8
+    cpu_request: 6
+    memory_limit: 64000
+    memory_request: 54400
+    shared_memory_size: 12000
+    ephemeral_storage_limit: 100000
+    ephemeral_storage_request: 20000
+  liveness_probe:
+    config:
+      path: /health/ready
+      port: 8000
+      type: http
+    period_seconds: 10
+    timeout_seconds: 1
+    failure_threshold: 8
+    success_threshold: 1
+    initial_delay_seconds: 15
+  readiness_probe:
+    config:
+      path: /health/ready
+      port: 8000
+      type: http
+    period_seconds: 10
+    timeout_seconds: 1
+    failure_threshold: 5
+    success_threshold: 1
+    initial_delay_seconds: 15
+  artifacts_download:
+    artifacts:
+      - type: truefoundry-artifact
+        artifact_version_fqn: artifact:truefoundry/trtllm-models/tokenizer-meta-llama-3-1-instruct-l40sx2:1
+        download_path_env_variable: TOKENIZER_DIR
+      - type: truefoundry-artifact
+        artifact_version_fqn: model:truefoundry/trtllm-models/trt-llm-engine-meta-llama-3-1-instruct-l40sx2:1
+        download_path_env_variable: ENGINE_DIR
+  ```
+</CodeGroup>
+
+1. Adjust the `resources` section like we did for the builder Job
+
+<Warning>
+  Since TRT-LLM optimizes the model for the target GPU type and counts - it is important that the GPU type and count matches while deploying.
+</Warning>
+
+2. In `artifacts_download`, you'd need to change `artifact_version_fqn` to the tokenizer and engine obtained at the end of the Job Run from previous section
+3. Deploy the Service by mentioning the [Workspace FQN](doc:key-concepts#getting-workspace-fqn)
+
+<CodeGroup>
+  ```bash bash
+  tfy deploy --file server.truefoundry.yaml --workspace-fqn <your-workspace-fqn> --no-wait
+  ```
+</CodeGroup>
+
+4. Once deployed, we'll make some final adjustments by editing the Service
+
+   * From `Ports` section Enable `Expose` and configure Endpoint as needed
+
+   ![](/images/docs/5b6acaa011b16fbd20788f5d23014bf20c9967985e4730afb5c78e3568ef9cb0-image.png)
+
+   * (Optional) Configure [Download Models and Artifacts](doc:download-and-cache-models#download-and-cache-models-through-the-user-interface) to prevent re-downloads
+
+   ![](/images/docs/1bb4a5a64c23dfff3720ae8a50b0565329d7e88feeda6127de70d0118da84b9b-image.png)
+
+# 5. Run Inferences
+
+You can now send a payload like follows to `/v1/chat/completions` Endpoint via the `OpenAPI` tab
+
+<CodeGroup>
+  ```bash bash
+  {
+    "model": "ensemble", 
+    "messages": [
+      {"role": "user", "content": "Describe the moon in 100 words"}
+    ],
+    "max_tokens": 128
+  }
+  ```
+</CodeGroup>
+
+![](/images/docs/9d4356719c8ce8f41dc04108e037fab0f980d78a06cbbb8f5d85f55bac0d5887-image.png)
+
+Since the endpoint is OpenAI compatible, you can [Add it to LLM Gateway](doc:adding-models-to-llm-gateway) or use it directly with OpenAI SDK
+
+***
+
+[Deploying LLMs](/docs/deploying-an-llm-model-from-the-model-catalogue)
+
+[Finetuning LLMs](/docs/finetuning-a-model-from-the-model-catalogue)
+
+* [Table of Contents](#)
+
+* * [1. Add your Huggingface Token as a Secret](#1-add-your-huggingface-token-as-a-secret)
+  * [2. Create a ML Repo and a Workspace with access to ML Repo](#2-create-a-ml-repo-and-a-workspace-with-access-to-ml-repo)
+  * [3. Deploy the Engine Builder Job](#3-deploy-the-engine-builder-job)
+  * [4. Deploy with Nvidia Triton Server](#4-deploy-with-nvidia-triton-server)
+  * [5. Run Inferences](#5-run-inferences)

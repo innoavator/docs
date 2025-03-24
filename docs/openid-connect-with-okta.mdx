@@ -1,0 +1,67 @@
+---
+title: "OpenID Connect with Okta"
+---
+
+# Configure OpenID Connect with Okta
+
+Once you have completed this configuration, you may enable an OpenID Connect "Login with Okta" button for TrueFoundry dashboard.
+
+![](/images/docs/b3e0689d15b7e1537e5bf6bda9767232b61a5681d9305bb8bc116970d18e290c-image.png)
+
+# Prerequisites
+
+* A TrueFoundry instance running on a publicly accessible URL.
+* An [Okta Workforce Identity Cloud Account](https://www.okta.com/) connected to a business email address. The [Okta Verify app](https://help.okta.com/en-us/Content/Topics/Mobile/okta-verify-overview.htm) if your Okta account is not configured to send SMS messages for 2FA.
+
+# Okta Configuration
+
+Log in to Okta and navigate to the **Admin** panel.
+
+![](/images/docs/2f8e74705c33b0bed7f776e27690639fdfcba91d7fe43a45534ae1546a02a7ad-okta-admin.png)
+
+Navigate to Applications -> Applications and click the `Create App Integration` button.
+
+![](/images/docs/ac1dc892837ae782031a832b2f041c560bdd6cc61d2f2d13550048813bf0b563-okta-dash.png)
+
+Select OIDC - OpenID Connect and Web Application then click `Next`.
+
+![](/images/docs/c4fead2210f5d5937551119c91262c12e5fdc0ad3e4617555f0df8ba30c39f86-okta-next.png)
+
+Enter an App integration name and ensure that Authorization Code is checked. Then, supply a Sign-in redirect URI as `https://login.truefoundry.com/oauth2/callback`.
+
+![](/images/docs/227cd70c8718fd1ee7bee6a26edb25acf10974a263c19022aa387267bc9c0895-okta-url.png)
+
+Under the Assignments section, select Skip group assignment for now . Hit `Save`.
+
+![](/images/docs/42e1bb323715e8a8b3daf63c4144ea28aadfdaf8e65318e71753c12b4fe8c005-okta-save.png)
+
+Copy the **Client ID** and **Secret** into a text file for later use.
+
+![](/images/docs/278a942f72cda2588c9b764fe0e2ab7dc051eed4f30f845d056e2c0453275229-okta-use.png)
+
+Under **Sign On**, navigate to the section **OpenID Connect ID Token** and change the Issuer to use the `Okta URL`. Hit `Save` and copy this URL into a text file
+
+![](/images/docs/866f062e54aae359f5e8c102c31a04b83a04e59bb303858ca808b528870f32a0-okta-file.png)
+
+Navigate to **Directory -> People** and click on the username of the user you’d like to authenticate. Then click `Assign Applications` and hit the Assign button next to the one you created. Then click `Save and Go Back` and `Done`.
+
+# Integrate with TrueFoundry
+
+To integrate Azure AD with TrueFoundry, provide the following configuration to the truefoundry team via email:
+
+* **Issuer URL**: Issuer of your Okta application.
+* **Client ID**: Application ID of your Okta application
+* **Client Secret**: The secret value of the client secret created in the above step
+
+***
+
+[OpenID Connect with Azure AD](/docs/openid-connect-with-azure-ad)
+
+[SAML v2 with Azure AD](/docs/saml-v2-with-azure-ad)
+
+* [Table of Contents](#)
+
+* * [Configure OpenID Connect with Okta](#configure-openid-connect-with-okta)
+  * [Prerequisites](#prerequisites)
+  * [Okta Configuration](#okta-configuration)
+  * [Integrate with TrueFoundry](#integrate-with-truefoundry)

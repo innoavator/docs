@@ -1,0 +1,173 @@
+---
+title: "Scikit Learn"
+description: "Logging and Deploying Sklearn Models in Truefoundry"
+---
+
+We will need to know some information about the model you are logging to generate a deployment package.
+
+* To load the model:
+  * The serialization format (`joblib`,`cloudpickle`, etc.) and the model file name.
+
+* To generate the inference script and wrap it around a model server:
+
+  * The inference method name (`predict`, `predict_proba`, etc).
+  * The input and output schema of the inference method.
+
+* To deploy and run:
+  * Python version along with pip package (numpy, scikit-learn) dependencies.
+
+***
+
+### **Log a deployable Sklearn Model**
+
+Below is an example of logging a model trained using Scikit-learn:
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.ml import get_client, SklearnFramework, sklearn_infer_schema
+  import joblib
+  import numpy as np
+  from sklearn.pipeline import make_pipeline
+  from sklearn.preprocessing import StandardScaler
+  from sklearn.svm import SVC
+
+  # Define training data
+  X = np.array([[-1, -1], [-2, -1], [1, 1], [2, 1]])
+  y = np.array([1, 1, 2, 2])
+
+  # Create and train the model
+  clf = make_pipeline(StandardScaler(), SVC(gamma="auto"))
+  model = clf.fit(X, y)
+
+  # Save the model
+  joblib.dump(clf, "sklearn-pipeline.joblib")
+
+  # Initialize the Truefoundry client
+  client = get_client()
+
+  # Infer model schema
+  model_schema = sklearn_infer_schema(
+      model_input=X, model=model, infer_method_name="predict"
+  )
+
+  # Log the model
+  model_version = client.log_model(
+      ml_repo="my-classification-project",
+      name="my-sklearn-model",
+      model_file_or_folder="sklearn-pipeline.joblib",
+      # To make the model deployable and generate the inference script, model file, and schema(with the method name) are required.
+      framework=SklearnFramework(
+          model_filepath="sklearn-pipeline.joblib",
+          model_schema=model_schema,
+      ),
+      # Auto-captures the current environment details (e.g., python_version, pip_packages) if not provided, based on the framework.
+  )
+
+  # Output the model's Fully Qualified Name (FQN)
+  print(f"Model version logged successfully: {model_version.fqn}")
+  ```
+</CodeGroup>
+
+* View and manage recently logged models in the ML Repos.
+
+![](/images/docs/51807ea07b791b36e8b30560abd11ce90333a1ad6bb0dbc4ed20f9988fef998b-Screenshot_2024-12-09_at_10.34.18_PM.png)
+
+* Access framework details like serialization format, model schema, and inference method.
+
+![](/images/docs/39f1979773420c25f6f6eb644fbed988c1c2813cb307ecd0f372f90ec13eb49d-Screenshot_2024-12-10_at_2.26.33_PM.png)
+
+* Access environment details like the Python version and pip packages list required for a specific model version.
+
+![](/images/docs/5294454eafefa9fde6ba9ffa7da94465f9e60082c959870d5b2d7c1fd32453c3-Screenshot_2024-12-10_at_2.27.32_PM.png)
+
+***
+
+### **Deploy the model**
+
+Once the model is deployable, you can start the deployment flow directly using the CLI.
+
+**Navigate to the Model Registry**
+
+* Locate the desired model in the list and click on the **Deploy** button
+
+![](/images/docs/171f90092497ea751a526cc0c4a4c50c4eaaa2a81f018baab4db8ca8288fbd71-Screenshot_2024-12-09_at_10.37.21_PM.png)
+
+* Select the **workspace** for deployment, then click the **copy** icon to use the generated CLI command and initialize the model deployment package.
+
+![](/images/docs/b1ec3441634b9a28c96d66766cd355cd6ad66366ee540944c655058f03d13ace-Screenshot_2024-12-09_at_10.40.22_PM.png)
+
+***
+
+### Common Model Deployment Issues and Troubleshooting Guide
+
+* **Fix for Incomplete Model Manifest and make an existing logged model deployable**
+
+  <Info>
+    -`Model framework is not supported for deployment` -`Model filename not found, please save model filename while logging the model` -`Model schema not found, please save schema while logging the model` -`Serialization format not found, please save serialization format while logging the model`
+  </Info>
+
+  Here’s an example code snippet to resolve the Incomplete Model Manifest by adding the required fields and updating the model version:
+
+  <CodeGroup>
+    ```bash bash
+    from truefoundry.ml import get_client, ModelVersionEnvironment, SklearnFramework, sklearn_infer_schema
+    import joblib
+    import numpy as np
+
+    # Replace with your model version FQN
+    model_version_fqn = "model:truefoundry/my-classification-project/my-sklearn-model:1"
+
+    client = get_client()
+    model_version = client.get_model_version_by_fqn(model_version_fqn)
+    model_version.download(path=".")
+
+    # Replace with your model file path
+    model_file_path = "./sklearn-pipeline.joblib"
+    model = joblib.load(model_file_path)
+
+    # Update the model input example as per your model
+    X = np.array([[-1, -1], [-2, -1], [1, 1], [2, 1]])
+    model_schema = sklearn_infer_schema(model_input=X, model=model, infer_method_name="predict")
+
+    # To make the model deployable and generate the inference script, model file, and schema(with the method name) are required.
+    model_version.framework = SklearnFramework(
+        model_filepath="sklearn-pipeline.joblib",
+        serialization_format="joblib",
+        model_schema=model_schema,
+    )
+    model_version.environment = ModelVersionEnvironment(
+        python_version="3.11",
+        pip_packages=[
+            "joblib==1.4.2",
+            "numpy==1.26.4",
+            "pandas==2.1.4",
+            "scikit-learn==1.5.2",
+        ],
+    )
+    model_version.update()
+    ```
+  </CodeGroup>
+
+***
+
+* `Python version < 3.8 and > 3.12 is not supported for Triton deployment`
+
+  The Triton deployment depends on the nvidia-pytriton library ([https://pypi.org/project/nvidia-pytriton](https://pypi.org/project/nvidia-pytriton)), which supports Python versions >=3.8 and \<=3.12. If you need to use a version outside this range, consider FastAPI as an alternative framework for serving the model.
+
+***
+
+* `Numpy version must be specified for Triton deployment`,`Numpy version must be less than 2.0.0 for Triton deployment`
+
+  The nvidia-pytriton library does not support numpy versions >=2.0. If you need to use a version outside this range, consider FastAPI as an alternative framework for serving the model.
+
+***
+
+[Model Deployment](/docs/model-deployment)
+
+[XGBoost](/docs/xgboost)
+
+* [Table of Contents](#)
+
+* * [Log a deployable Sklearn Model](#log-a-deployable-sklearn-model)
+  * [Deploy the model](#deploy-the-model)
+  * [Common Model Deployment Issues and Troubleshooting Guide](#common-model-deployment-issues-and-troubleshooting-guide)

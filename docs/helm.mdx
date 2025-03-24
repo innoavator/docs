@@ -1,0 +1,141 @@
+---
+title: "Helm"
+---
+
+<Info>
+  While using TrueFoundry python SDK `type` is not a required field in any of the imported classes
+</Info>
+
+# Helm
+
+### Description
+
+Configuration for Helm
+
+### Schema
+
+<CodeGroup>
+  ```bash bash
+  {
+    "type": "string",
+    "name": "string",
+    "source": {},
+    "values": {}
+  }
+  ```
+</CodeGroup>
+
+### Properties
+
+| Name   | Type   | Required | Description                                                                                       |
+| ------ | ------ | -------- | ------------------------------------------------------------------------------------------------- |
+| type   | string | true     | + value=helm                                                                                      |
+| name   | string | true     | Name of the Helm deployment. This will be set as the release name of the chart you are deploying. |
+| source | object | true     | +label=Source helm repository+sort=2                                                              |
+| values | object | false    | Values file as block file                                                                         |
+
+***
+
+# Repo
+
+## HelmRepo
+
+### Description
+
+Configuration for Helm Repository
+
+### Schema
+
+<CodeGroup>
+  ```bash bash
+  {
+    "type": "string",
+    "repo_url": "string",
+    "chart": "string",
+    "version": "string"
+  }
+  ```
+</CodeGroup>
+
+### Properties
+
+| Name      | Type   | Required | Description                                                        |
+| --------- | ------ | -------- | ------------------------------------------------------------------ |
+| type      | string | true     | + value=helm-repo                                                  |
+| repo\_url | string | true     | +label=Helm repository URL+sort=1+message=Needs to be a valid URL. |
+| chart     | string | true     | The helm chart name                                                |
+| version   | string | true     | Helm chart version                                                 |
+
+## OCIRepo
+
+### Description
+
+Configuration for OCI Repository
+
+### Schema
+
+<CodeGroup>
+  ```bash bash
+  {
+    "type": "string",
+    "oci_chart_url": "string",
+    "version": "string"
+  }
+  ```
+</CodeGroup>
+
+### Properties
+
+| Name            | Type   | Required | Description                                          |
+| --------------- | ------ | -------- | ---------------------------------------------------- |
+| type            | string | true     | + value=oci-repo                                     |
+| oci\_chart\_url | string | true     | +label=OCI chart URL+message=Need to be a valid URL. |
+| version         | string | true     | Helm chart version                                   |
+
+## GitHelmRepo
+
+### Description
+
+Configuration for Git Helm Repository
+
+### Schema
+
+<CodeGroup>
+  ```bash bash
+  {
+    "type": "string",
+    "repo_url": "string",
+    "revision": "string",
+    "path": "string",
+    "value_files": [
+      "string"
+    ]
+  }
+  ```
+</CodeGroup>
+
+### Properties
+
+| Name         | Type      | Required | Description                                                                                                        |
+| ------------ | --------- | -------- | ------------------------------------------------------------------------------------------------------------------ |
+| type         | string    | true     | + value=git-helm-repo                                                                                              |
+| repo\_url    | string    | true     | +label=Git repository URL+sort=1+message=Needs to be a valid URL.                                                  |
+| revision     | string    | true     | Branch/Commit SHA/Tag of the git repo.                                                                             |
+| path         | string    | true     | Path to the chart.                                                                                                 |
+| value\_files | \[string] | false    | Helm values files for overriding values in the helm chart.The path is relative to the Path directory defined above |
+
+***
+
+[AsyncService](/docs/asyncservice)
+
+[Image and Build](/docs/api-reference-image-and-build)
+
+* [Table of Contents](#)
+
+* * [Helm](#helm)
+
+  * [Repo](#repo)
+
+  * * [HelmRepo](#helmrepo)
+    * [OCIRepo](#ocirepo)
+    * [GitHelmRepo](#githelmrepo)

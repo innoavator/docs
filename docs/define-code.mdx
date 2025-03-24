@@ -1,0 +1,192 @@
+---
+title: "Overview"
+description: "Its a good practice to always dockerize your code while deploying so that it is guaranteed to run anywhere. Truefoundry helps you deploy your code on Kubernetes for which you will first need to create a docker image for your codebase. Truefoundry can help you deploy in all the three use cases:"
+---
+
+1. You already have a docker image built that you want to deploy - You can integrate the docker registry with Truefoundry and deploy the image.
+2. You don't have an image, but you have written a Dockerfile to build the code - Truefoundry can help build the image and deploy the image.
+3. You just have the code and the requirements.txt and don't have a Dockerfile - Truefoundry can automatically generate a Dockerfile and build and deploy the image.
+
+Regardless of any of the above scenarios, we will finally have a docker image which Truefoundry will then deploy on Kubernetes.
+
+<Info>
+  If you are using a Private Docker Registry, you will need to also integrate it with TrueFoundry. Check the [Integrations](doc:integrations) page to connect your docker registry.
+</Info>
+
+### Deploying your application when you have a Pre-built Image
+
+#### Through User Interface
+
+#### Through Python SDK
+
+In your deployment code **`deploy.py`**, include the following:
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.deploy import Service, Image, Port
+
+  service = Service(
+      name="your-service",
+  +    image = Image(
+  +      image_uri="your_image_uri",
+  # You can get this following this guide: https://docs.truefoundry.com/docs/integrations-docker-registry
+  +      docker_registry="your_docker_registry_fqn", 
+  +      command="command override",
+  +    )
+      ports=[
+        Port(
+          host="your_host",
+          port=8501
+        )
+      ],
+  )
+  service.deploy(workspace_fqn="YOUR_WORKSPACE_FQN")
+  ```
+</CodeGroup>
+
+### Deploying your application when you have written a Dockerfile and haven't built the image
+
+#### Through User Interface
+
+#### Through Python SDK
+
+In your deployment code **`deploy.py`**, include the following:
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.deploy import Service, Build, DockerFileBuild, Port
+
+  service = Service(
+      name="my-service",
+  +    image=Build(
+  +        build_spec=DockerFileBuild(
+  +            dockerfile_path="Dockerfile"
+  +            build_context_path="./",
+  +            build_args={
+  +            	"param": "value",
+  +             "param1": "value1",
+  +            },
+  +        ),
+  +		 )
+      ports=[
+        Port(
+          host="your_host",
+          port=8501
+        )
+      ],
+  )
+  service.deploy(workspace_fqn="YOUR_WORKSPACE_FQN")
+  ```
+</CodeGroup>
+
+<Info>
+  In `DockerFileBuild`, use ***build\_args*** to set arguments for `docker build --build-arg`. It involves key-value pairs of `string` datatype. For instance:
+
+  Python
+
+  ```
+  from truefoundry.deploy import DockerFileBuild
+
+  build = DockerFileBuild(
+      build_args={"FOO": "Hello", "BAR": "World!"}
+  )
+  ```
+
+  The `ARG` instruction in Dockerfiles defines variables set at build-time with `--build-arg` during `docker build`. Here's a concise Dockerfile example:
+
+  Dockerfile
+
+  ```
+  FROM ubuntu
+
+  ARG FOO
+  ARG BAR
+
+  ENV FOO_ENV=$FOO
+  ENV BAR_ENV=$BAR
+
+  RUN echo $FOO_ENV && echo $BAR_ENV
+  ```
+</Info>
+
+### Deploying your application when you haven't written a Dockerfile
+
+#### Through User Interface
+
+#### Through Python SDK
+
+In your deployment code **`deploy.py`**, include the following:
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.deploy import Service, Build, PythonBuild, Port
+
+  service = Service(
+      name="your-service",
+  +    image=Build(
+  +        build_spec=PythonBuild(
+  +            python_version="3.9",
+  +            build_context_path="./",
+  +            requirements_path="my-requirements.txt",
+  +            pip_packages=["fastapi==0.82.0", "uvicorn"],
+  +            command="uvicorn main:app --port 8000 --host 0.0.0.0"
+  +        ),
+  +    ),
+      ports=[
+        Port(
+          host="your_host",
+          port=8501
+        )
+      ],
+  )
+  service.deploy(workspace_fqn="YOUR_WORKSPACE_FQN")
+  ```
+</CodeGroup>
+
+If you run the `deploy.py`, Truefoundry will start building the image on your local machine if docker is installed. Building locally can be quite fast specially if you are iterating rapidly.
+
+Truefoundry can also build the image remotely using a remote build server. It will fallback to the remote build server if you don't have docker installed locally. If you always want the build to fallback to the remote server, you can set `local_build` as False. as described below. This can be the preferred option if its taking a long time to upload the docker image to the registry from your local machine because of slow internet.
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.deploy import LocalSource, Build
+  ...
+
+  service = Service(
+      ...
+      image=Build(
+          build_source=LocalSource(
+            ...
+            local_build=False
+            ...
+          ),
+      )
+    	...
+  )
+
+  ...
+  ```
+</CodeGroup>
+
+***
+
+[Interacting with your Service](/docs/interacting-with-your-service)
+
+[Define Ports and Domains](/docs/define-ports-and-domains)
+
+* [Table of Contents](#)
+
+* * [Deploying your application when you have a Pre-built Image](#deploying-your-application-when-you-have-a-pre-built-image)
+
+  * * [Through User Interface](#through-user-interface)
+    * [Through Python SDK](#through-python-sdk)
+
+  * [Deploying your application when you have written a Dockerfile and haven't built the image](#deploying-your-application-when-you-have-written-a-dockerfile-and-havent-built-the-image)
+
+  * * [Through User Interface](#through-user-interface-1)
+    * [Through Python SDK](#through-python-sdk-1)
+
+  * [Deploying your application when you haven't written a Dockerfile](#deploying-your-application-when-you-havent-written-a-dockerfile)
+
+  * * [Through User Interface](#through-user-interface-2)
+    * [Through Python SDK](#through-python-sdk-2)

@@ -1,35 +1,382 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "TrueFoundry",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#f8fafc",
+    "light": "#f8fafc",
+    "dark": "#f8fafc"
   },
-  "favicon": "/favicon.svg",
+  "favicon": "/5f073fe-tf-favicon.ico",
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Documentation",
         "groups": [
           {
-            "group": "Get Started",
+            "group": "Getting Started",
             "pages": [
-              "introduction",
-              "quickstart",
-              "development"
+              "docs/introduction",
+              "docs/create-and-setup-your-account",
+              "docs/key-concepts",
+              "docs/create-your-first-deployment",
+              "docs/setup",
+              "docs/generating-truefoundry-api-keys"
             ]
           },
           {
-            "group": "Essentials",
+            "group": "Service",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/settings",
-              "essentials/navigation",
-              "essentials/reusable-snippets"
+              "docs/introduction-to-a-service",
+              {
+                "group": "Deploy your first Service",
+                "pages": [
+                  "docs/deploy-service-from-a-public-github-repository",
+                  "docs/deploy-service-using-python-sdk"
+                ]
+              },
+              "docs/interacting-with-your-service",
+              {
+                "group": "Configuring your service",
+                "pages": [
+                  "docs/define-code",
+                  "docs/define-ports-and-domains",
+                  "docs/resources",
+                  "docs/environment-variables-and-secrets-services",
+                  {
+                    "group": "Autoscaling",
+                    "pages": [
+                      "docs/scaling-and-autoscaling",
+                      "docs/benchmarking-your-deployed-service-using-locust"
+                    ]
+                  },
+                  "docs/liveness-readiness-probe",
+                  "docs/rollout-strategy",
+                  "docs/mounting-volumes-service",
+                  "docs/access-data-from-s3-or-other-clouds-services",
+                  "docs/download-and-cache-models",
+                  "docs/using-fractional-gpus",
+                  "docs/using-tpus",
+                  "docs/intercepts",
+                  "docs/kustomize",
+                  "docs/sticky-routing",
+                  "docs/setting-up-cicd-for-your-service"
+                ]
+              },
+              "docs/update-rollback-promote-your-service",
+              {
+                "group": "Monitoring Your Service",
+                "pages": [
+                  "docs/monitor-your-service",
+                  "docs/set-up-alerts",
+                  "docs/log-monitor-custom-metrics"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "Job",
+            "pages": [
+              "docs/introduction-to-a-job",
+              {
+                "group": "Running your first Job",
+                "pages": [
+                  "docs/deploy-job-from-a-public-github-repository",
+                  "docs/deploy-job-using-python-sdk"
+                ]
+              },
+              "docs/interacting-with-your-job",
+              "docs/monitor-your-job",
+              {
+                "group": "Configuring your Job",
+                "pages": [
+                  "docs/deploy-a-cron-job",
+                  "docs/deploy-a-job-with-additional-parameters",
+                  "docs/environment-variables-and-secrets-jobs",
+                  "docs/mounting-volumes-job",
+                  "docs/retries-and-timeout",
+                  "docs/concurrency-limits",
+                  "docs/access-data-from-s3-or-other-clouds-jobs",
+                  "docs/add-alerts-to-your-job"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "ML Repository",
+            "pages": [
+              "docs/introduction-to-ml-repo",
+              "docs/ml-repo-quickstart",
+              {
+                "group": "Guides",
+                "pages": [
+                  "docs/creating-a-ml-repo",
+                  "docs/create-run",
+                  "docs/log-params",
+                  "docs/log-metrics",
+                  "docs/log-artifacts",
+                  "docs/log-models",
+                  "docs/log-and-get-data",
+                  "docs/add-tags",
+                  "docs/log-image",
+                  "docs/log-plots",
+                  "docs/add-artifacts-via-ui",
+                  "docs/artifacts-and-model-files-structure-migration-notice",
+                  "docs/accessing-and-adding-tag-for-artifact-and-model-versions"
+                ]
+              },
+              {
+                "group": "API Reference",
+                "pages": [
+                  "docs/mlfoundry",
+                  "docs/runs",
+                  "docs/artifact",
+                  "docs/models",
+                  "docs/dataset"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "Workflow",
+            "pages": [
+              "docs/introduction-to-workflow",
+              "docs/creating-your-first-workflow",
+              "docs/interacting-with-workflow",
+              "docs/workflow-concepts",
+              {
+                "group": "Guides",
+                "pages": [
+                  "docs/creating-a-workflow-with-gpu-and-non-gpu-image",
+                  "docs/python-function-tasks-with-dockefile",
+                  "docs/container-task",
+                  "docs/adding-environment-variable",
+                  "docs/configuring-resources",
+                  "docs/conditional-task",
+                  "docs/creating-a-map-task",
+                  "docs/cron-workflow",
+                  "docs/task-config",
+                  "docs/attaching-mounts",
+                  "docs/passing-filesartifacts-between-tasks",
+                  "docs/example-of-task-config-with-different-parameters",
+                  "docs/adding-retries-and-handling-failures",
+                  "docs/running-workflow-locally"
+                ]
+              },
+              "docs/infra-set-up-for-workflows"
+            ]
+          },
+          {
+            "group": "Large Language Models (LLMs)",
+            "pages": [
+              "docs/introduction-1",
+              "docs/deploying-an-llm-model-from-the-model-catalogue",
+              "docs/deploy-llms-using-nvidia-tensorrt-llm-trt-llm",
+              "docs/finetuning-a-model-from-the-model-catalogue"
+            ]
+          },
+          {
+            "group": "LLM Gateway",
+            "pages": [
+              "docs/intro-to-llm-gateway",
+              {
+                "group": "Adding Models to LLM Gateway",
+                "pages": [
+                  "docs/adding-models-to-llm-gateway",
+                  "docs/aws-bedrock",
+                  "docs/google-vertex",
+                  "docs/azure-openai"
+                ]
+              },
+              "docs/unified-api-and-code-generation",
+              {
+                "group": "Configure Gateway",
+                "pages": [
+                  "docs/ratelimiting",
+                  "docs/load-balancing",
+                  "docs/fallback",
+                  "docs/gateway-access-control"
+                ]
+              },
+              "docs/realtime-api"
+            ]
+          },
+          {
+            "group": "Workbenches: Notebooks and SSH",
+            "pages": [
+              "docs/launch-notebooks",
+              "docs/launch-an-ssh-server"
+            ]
+          },
+          {
+            "group": "Volumes",
+            "pages": [
+              "docs/introduction-to-volume",
+              "docs/creating-a-volume",
+              "docs/adding-volume-browser",
+              "docs/creating-statically-provisioned-volumes"
+            ]
+          },
+          {
+            "group": "Async Service",
+            "pages": [
+              "docs/introduction-to-async-service",
+              "docs/deploy-your-first-asyncservice",
+              {
+                "group": "Configure async service",
+                "pages": [
+                  "docs/configure-ports",
+                  "docs/configure-queue",
+                  "docs/autoscaling",
+                  "docs/configure-sidecar"
+                ]
+              },
+              {
+                "group": "Queue Integrations",
+                "pages": [
+                  "docs/aws-sqs"
+                ]
+              },
+              "docs/monitoring-your-async-service"
+            ]
+          },
+          {
+            "group": "Secret Management",
+            "pages": [
+              "docs/introduction-to-secrets",
+              "docs/manage-secrets"
+            ]
+          },
+          {
+            "group": "Collaboration and Access Control",
+            "pages": [
+              "docs/collaboration-and-access-control"
+            ]
+          },
+          {
+            "group": "Deploying On Your Own Cloud",
+            "pages": [
+              "docs/truefoundry-architecture",
+              {
+                "group": "Deploy Compute Plane",
+                "pages": [
+                  "docs/deploy-compute-plane",
+                  {
+                    "group": "AWS",
+                    "pages": [
+                      "docs/overview",
+                      "docs/infrastructure-requirements",
+                      "docs/requirements",
+                      "docs/setting-up-dns-and-tls-in-aws"
+                    ]
+                  },
+                  {
+                    "group": "GCP",
+                    "pages": [
+                      "docs/overview-1",
+                      "docs/infrastructure-requirements-gcp",
+                      "docs/gcp-requirements",
+                      "docs/setting-up-dns-and-tls-in-gcp"
+                    ]
+                  },
+                  {
+                    "group": "Azure",
+                    "pages": [
+                      "docs/overview-2",
+                      "docs/infrastructure-requirements-azure",
+                      "docs/requirements-azure",
+                      "docs/setting-up-dns-and-tls-in-aks"
+                    ]
+                  },
+                  {
+                    "group": "Generic",
+                    "pages": [
+                      "docs/overview-3"
+                    ]
+                  }
+                ]
+              },
+              {
+                "group": "Deploy Control Plane Only",
+                "pages": [
+                  "docs/deploy-control-and-compute-plane",
+                  "docs/aws-control-plane",
+                  "docs/gcp-control-plane",
+                  "docs/azure-control-plane",
+                  "docs/installing-control-plane-using-helm-chart",
+                  "docs/dev-mode-installation",
+                  "docs/generic-control-plane"
+                ]
+              },
+              {
+                "group": "Advanced Configuration",
+                "pages": [
+                  "docs/loadbalancers",
+                  "docs/add-certificate-for-tls",
+                  "docs/metrics",
+                  "docs/logging",
+                  "docs/cost-monitoring",
+                  "docs/notebook-controller",
+                  "docs/tfy-agent",
+                  "docs/enable-self-signed-ca-certificates",
+                  "docs/enabling-git-integrations",
+                  "docs/adding-pre-and-post-build-scripts",
+                  "docs/tfy-llm-gateway-installation",
+                  "docs/customize-build-workflow",
+                  "docs/azure-node-pools",
+                  "docs/customizing-cicd-templates"
+                ]
+              },
+              {
+                "group": "Integrations",
+                "pages": [
+                  "docs/integrations",
+                  "docs/integration-provider-aws",
+                  "docs/integration-provider-gcp",
+                  "docs/integration-provider-azure",
+                  "docs/integrations-git",
+                  "docs/integration-provider-others"
+                ]
+              },
+              {
+                "group": "SSO Integration",
+                "pages": [
+                  "docs/sso",
+                  "docs/openid-connect-with-azure-ad",
+                  "docs/openid-connect-with-okta",
+                  "docs/saml-v2-with-azure-ad"
+                ]
+              },
+              "docs/deploy-truefoundry-in-an-air-gapped-environment"
+            ]
+          },
+          {
+            "group": "HOW TOs",
+            "pages": [
+              "docs/migrate-pytorch-sagemaker-endpoints-to-truefoundry-platform",
+              "docs/create-custom-k8s-objects",
+              {
+                "group": "Model Deployment",
+                "pages": [
+                  "docs/model-deployment",
+                  "docs/scikit-learn",
+                  "docs/xgboost"
+                ]
+              },
+              "docs/setup-gitops-using-truefoundry",
+              "docs/using-images-from-ngc-container-registry"
+            ]
+          },
+          {
+            "group": "References",
+            "pages": [
+              "docs/service",
+              "docs/job",
+              "docs/asyncservice",
+              "docs/helm",
+              "docs/api-reference-image-and-build",
+              "docs/deployment-additional-configuration",
+              "docs/guide-to-inference-model-on-truefoundry"
             ]
           }
         ]
@@ -38,65 +385,116 @@
         "tab": "API Reference",
         "groups": [
           {
-            "group": "API Documentation",
+            "group": "TrueFoundry API",
             "pages": [
-              "api-reference/introduction"
-            ]
-          },
-          {
-            "group": "Endpoint Examples",
-            "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "reference/clusterfindall",
+              {
+                "group": "Clusters",
+                "pages": [
+                  "reference/clusterfindall"
+                ]
+              },
+              {
+                "group": "Workspaces",
+                "pages": [
+                  "reference/workspaceslistallworkspaces"
+                ]
+              },
+              {
+                "group": "MLRepos",
+                "pages": [
+                  "reference/mlrepocreateorupdatemlrepo"
+                ]
+              },
+              {
+                "group": "Applications",
+                "pages": [
+                  "reference/applicationgetalllatestapplicationsforuser"
+                ]
+              },
+              {
+                "group": "Jobs",
+                "pages": [
+                  "reference/jobgetrunshistory"
+                ]
+              },
+              {
+                "group": "Models",
+                "pages": [
+                  "reference/get_model_v1_models__id__get"
+                ]
+              },
+              {
+                "group": "Artifacts",
+                "pages": [
+                  "reference/get_artifact_v1_artifacts__id__get"
+                ]
+              },
+              {
+                "group": "Prompts",
+                "pages": [
+                  "reference/get_prompt_v1_prompts__id__get"
+                ]
+              },
+              {
+                "group": "Secret Groups",
+                "pages": [
+                  "reference/secretgroupget"
+                ]
+              },
+              {
+                "group": "Secrets",
+                "pages": [
+                  "reference/secretgetsecrets"
+                ]
+              },
+              {
+                "group": "Model Deployments",
+                "pages": [
+                  "reference/modelcataloguegetdeploymentspecs"
+                ]
+              },
+              {
+                "group": "Users",
+                "pages": [
+                  "reference/usergetallusersoftenant"
+                ]
+              },
+              {
+                "group": "Teams",
+                "pages": [
+                  "reference/teamsgetallteamsofuser"
+                ]
+              },
+              {
+                "group": "Personal Access Tokens",
+                "pages": [
+                  "reference/personalaccesstokengetallpatforuser"
+                ]
+              },
+              {
+                "group": "Virtual Accounts",
+                "pages": [
+                  "reference/virtualaccountgetallvirtualaccountsfortenant"
+                ]
+              },
+              {
+                "group": "Logs",
+                "pages": [
+                  "reference/logsgetlogs"
+                ]
+              },
+              {
+                "group": "Apply",
+                "pages": [
+                  "reference/tfyapplyapply"
+                ]
+              }
             ]
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Community",
-          "href": "https://mintlify.com/community",
-          "icon": "slack"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
+    ]
   },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
-  }
+  "logo": "/images/3c586c6-tf-logo-black.svg"
 }

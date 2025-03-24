@@ -1,0 +1,214 @@
+---
+title: "Artifact"
+---
+
+# `module` `artifact.py`
+
+***
+
+## `class` `ArtifactPath`
+
+ArtifactPath(src, dest)
+
+***
+
+## `class` `ArtifactVersion`
+
+### `property` artifact\_fqn
+
+Get fqn of the artifact
+
+***
+
+#### `property` created\_at
+
+Get the time at which artifact was created
+
+***
+
+#### `property` created\_by
+
+Get the information about who created the artifact
+
+***
+
+#### `property` description
+
+Get description of the artifact
+
+***
+
+#### `property` fqn
+
+Get fqn of the current artifact version
+
+***
+
+#### `property` metadata
+
+Get metadata for the current artifact
+
+***
+
+#### `property` name
+
+Get the name of the artifact
+
+***
+
+#### `property` step
+
+Get the step in which artifact was created
+
+***
+
+#### `property` updated\_at
+
+Get the information about the when the artifact was updated
+
+***
+
+#### `property` version
+
+Get version information of the artifact
+
+***
+
+### `function` `delete`
+
+Deletes the current instance of the ArtifactVersion hence deleting the current version.
+
+**Returns:** True if artifact was deleted successfully
+
+**Examples:**
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+  artifact_version = client.get_artifact_version_by_fqn(fqn="<your-artifact-fqn>")
+  artifact_version.delete()
+  ```
+</CodeGroup>
+
+***
+
+### `function` `download`
+
+Download an artifact file or directory to a local directory if applicable, and return a local path for it.
+
+**Args:**
+
+* **`path`** (str): Absolute path of the local filesystem destination directory to which to download the specified artifacts. This directory must already exist. If unspecified, the artifacts will either be downloaded to a new uniquely-named directory on the local filesystem or will be returned directly in the case of the Local ArtifactRepository.
+* **`overwrite`** (bool): If True it will overwrite the file if it is already present in the download directory else it will throw an error
+
+**Returns:**
+
+* **`path`**: Absolute path of the local filesystem location containing the desired artifacts.
+
+**Examples:**
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+  artifact_version = client.get_artifact_version_by_fqn(fqn="<your-artifact-fqn>")
+  download_path = artifact_version.download(path="<your-desired-download-path>")
+  ```
+</CodeGroup>
+
+***
+
+### `classmethod` `from_fqn`
+
+Get the version of an Artifact to download contents or load them in memory
+
+**Args:**
+
+* **`fqn`** (str): Fully qualified name of the artifact version.
+
+**Returns:**
+
+* **`ArtifactVersion`**: An ArtifactVersion instance of the artifact
+
+**Examples:**
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml a tfm
+
+  client = tfm.get_client()
+  artifact_version = tfm.ArtifactVersion.from_fqn(fqn="<artifact-fqn>")
+  ```
+</CodeGroup>
+
+***
+
+### `function` `raw_download`
+
+Download an artifact file or directory to a local directory if applicable, and return a local path for it.
+
+**Args:**
+
+* **`path`** (str): Absolute path of the local filesystem destination directory to which to download the specified artifacts. This directory must already exist. If unspecified, the artifacts will either be downloaded to a new uniquely-named directory on the local filesystem.
+* **`overwrite`** (bool): If True it will overwrite the file if it is already present in the download directory else it will throw an error
+
+**Returns:**
+
+* **`path`**: Absolute path of the local filesystem location containing the desired artifacts.
+
+**Examples:**
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+  artifact_version = client.get_artifact_version_by_fqn(fqn="<your-artifact-fqn>")
+  artifact_version.raw_download(path="<your-desired-download-path>")
+  ```
+</CodeGroup>
+
+***
+
+### `function` `update`
+
+Updates the current instance of the ArtifactVersion hence updating the current version.
+
+**Examples:**
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+  artifact_version = client.get_artifact_version_by_fqn(fqn="<your-artifact-fqn>")
+  artifact_version.description = 'This is the new description'
+  artifact_version.update()
+  ```
+</CodeGroup>
+
+***
+
+## `class` `ArtifactVersionDownloadInfo`
+
+***
+
+## `class` `ArtifactVersionInternalMetadata`
+
+***
+
+[Runs](/docs/runs)
+
+[Models](/docs/models)
+
+* [Table of Contents](#)
+
+* * [module artifact.py](#module-artifactpy)
+
+  * * [class ArtifactPath](#class-artifactpath)
+    * [class ArtifactVersion](#class-artifactversion)
+    * [class ArtifactVersionDownloadInfo](#class-artifactversiondownloadinfo)
+    * [class ArtifactVersionInternalMetadata](#class-artifactversioninternalmetadata)

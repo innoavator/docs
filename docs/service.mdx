@@ -1,0 +1,443 @@
+---
+title: "Overview"
+---
+
+<Info>
+  While using TrueFoundry python SDK `type` is not a required field in any of the imported classes
+</Info>
+
+# Service
+
+### Description
+
+Describes the configuration for the service
+
+### Schema
+
+<CodeGroup>
+  ```bash bash
+  {
+    "type": "string",
+    "replicas": 1,
+    "allow_interception": false,
+    "rollout_strategy": {}
+  }
+  ```
+</CodeGroup>
+
+### Properties
+
+| Name                | Type    | Required | Description                                                                                                                                                  |
+| ------------------- | ------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| type                | string  | false    | +value=service                                                                                                                                               |
+| replicas            | any     | false    | Replicas of service you want to run                                                                                                                          |
+| allow\_interception | boolean | false    | Whether to allow intercepts to be applied for this service.This would inject an additional sidecar in each pod of the service. Not recommended on production |
+| rollout\_strategy   | object  | false    | Strategy to dictate how a rollout should happen when a new release for this service is made                                                                  |
+
+***
+
+# Liveliness/Readiness Probe
+
+The modules below help configuring the Health Probes for the Service. Learn more about Health Probes [here](https://docs.truefoundry.com/docs/add-health-checks-to-deployments).
+
+## HttpProbe
+
+### Description
+
+Describes the Instructions for assessing container health by executing an HTTP GET request. To learn more you can go [here](doc:add-health-checks-to-deployments)
+
+### Schema
+
+<CodeGroup>
+  ```bash bash
+  {
+    "type": "string",
+    "path": "string",
+    "port": 65535,
+    "host": "string",
+    "scheme": "HTTP"
+  }
+  ```
+</CodeGroup>
+
+### Properties
+
+| Name   | Type    | Required | Description                                                                           |
+| ------ | ------- | -------- | ------------------------------------------------------------------------------------- |
+| type   | string  | true     | +sort=1+value=http                                                                    |
+| path   | string  | true     | The endpoint, relative to the port, to which the HTTP GET request should be directed. |
+| port   | integer | true     | The TCP socket within the container to which the HTTP GET request should be directed. |
+| host   | string  | false    | Host name to connect to, defaults to the pod IP                                       |
+| scheme | string  | false    | Scheme to use for connecting to the host                                              |
+
+## HealthProbe
+
+### Description
+
+Describes the configuration for the Health Probe's To learn more you can go [here](doc:add-health-checks-to-deployments)
+
+### Schema
+
+<CodeGroup>
+  ```bash bash
+  {
+    "config": {
+      "type": "string",
+      "path": "string",
+      "port": 65535,
+      "host": "string",
+      "scheme": "HTTP"
+    },
+    "initial_delay_seconds": 0,
+    "period_seconds": 10,
+    "timeout_seconds": 1,
+    "success_threshold": 1,
+    "failure_threshold": 3
+  }
+  ```
+</CodeGroup>
+
+### Properties
+
+| Name                    | Type                                 | Required | Description                                                                                                                                                      |
+| ----------------------- | ------------------------------------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| config                  | [HttpProbe](doc:service-1#httpprobe) | true     | Describes the Instructions for assessing container health by executing an HTTP GET request.To learn more you can go [here](doc:add-health-checks-to-deployments) |
+| initial\_delay\_seconds | integer                              | false    | Number of seconds after the container is started before the first probe is initiated.                                                                            |
+| period\_seconds         | integer                              | false    | How often, in seconds, to execute the probe.                                                                                                                     |
+| timeout\_seconds        | integer                              | false    | Number of seconds after which the probe times out.                                                                                                               |
+| success\_threshold      | integer                              | false    | Minimum consecutive successes for the probe to be considered successful after having failed.                                                                     |
+| failure\_threshold      | integer                              | false    | Number of consecutive failures required to determine the container is not alive (liveness probe) or not ready (readiness probe).                                 |
+
+***
+
+# Port
+
+## Port
+
+### Description
+
+Describes the ports the service should be exposed to.
+
+### Schema
+
+<CodeGroup>
+  ```bash bash
+  {
+    "port": 80,
+    "protocol": "TCP",
+    "expose": true,
+    "app_protocol": "http",
+    "host": "string",
+    "path": "string",
+    "rewrite_path_to": "string",
+    "auth": {
+      "type": "string",
+      "username": "string",
+      "password": "string"
+    }
+  }
+  ```
+</CodeGroup>
+
+### Properties
+
+| Name              | Type               | Required | Description                                                                                                                                                                                                                                                                                                                        |
+| ----------------- | ------------------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| port              | integer            | true     | Port number to expose.                                                                                                                                                                                                                                                                                                             |
+| protocol          | string             | true     | Protocol for the port.                                                                                                                                                                                                                                                                                                             |
+| expose            | boolean            | true     | Expose the port                                                                                                                                                                                                                                                                                                                    |
+| app\_protocol     | string             | false    | Application Protocol for the port.Select the application protocol used by your service. For most use cases, this should be `http`(HTTP/1.1).If you are running a gRPC server, select the `grpc` option.This is only applicable if `expose=true`.                                                                                   |
+| host              | string             | false    | Host e.g. ai.example.com, app.truefoundry.com                                                                                                                                                                                                                                                                                      |
+| path              | string             | false    | Path e.g. /v1/api/ml/, /v2/docs/                                                                                                                                                                                                                                                                                                   |
+| rewrite\_path\_to | string             | false    | Rewrite the path prefix to a different path.If `path` is `/v1/api` and `rewrite_path_to` is `/api`. The URI in the HTTP request `http://0.0.0.0:8080/v1/api/houses` will be rewritten to `http://0.0.0.0:8080/api/houses` before the request is forwarded your service.Defaults to `/`.This is only applicable if `path` is given. |
+| auth              | [BasicAuthCreds]() | false    | Username and password for Basic Service Authentication                                                                                                                                                                                                                                                                             |
+
+#### Enumerate Values
+
+| Property      | Value |
+| ------------- | ----- |
+| protocol      | TCP   |
+| protocol      | UDP   |
+| app\_protocol | http  |
+| app\_protocol | grpc  |
+| app\_protocol | tcp   |
+
+***
+
+# RolloutStrategy
+
+## Rolling
+
+### Description
+
+This strategy updates the pods in a rolling fashion such that a subset of the total pods are replaced with new version at one time. A commonly used strategy can be to have maxUnavailablePercentage close to 0 so that there is no downtime and keep the maxSurgePercentage to around 25%. If you are anyways running a large number of pods, the service can often tolerate a few pods going down - so you max maxUnavailablePercentage = 10 and maxSurgePercentage=0. You can read about it more [here](https://spot.io/resources/kubernetes-autoscaling/5-kubernetes-deployment-strategies-roll-out-like-the-pros/)
+
+### Schema
+
+<CodeGroup>
+  ```bash bash
+  {
+    "type": "string",
+    "max_unavailable_percentage": 25,
+    "max_surge_percentage": 0
+  }
+  ```
+</CodeGroup>
+
+### Properties
+
+| Name                         | Type    | Required | Description                                                                                                                                                                                                                                                                                             |
+| ---------------------------- | ------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| type                         | string  | true     | +value=rolling\_update                                                                                                                                                                                                                                                                                  |
+| max\_unavailable\_percentage | integer | true     | Percentage of total replicas that can be brought down at one time.For a value of 25 when replicas are set to 12 this would mean minimum (25% of 12) = 3 pods might be unavailable during the deployment.Setting this to a higher value can help in speeding up the deployment process.                  |
+| max\_surge\_percentage       | integer | true     | Percentage of total replicas of updated image that can be brought up over the total replicas count.For a value of 25 when replicas are set to 12 this would mean (12+(25% of 12) = 15) pods might be running at one time.Setting this to a higher value can help in speeding up the deployment process. |
+
+## Canary
+
+### Description
+
+This strategy brings up the new release without bringing the older release down. Traffic is shifted from the older release to the newer release in a staged manner. This can help with verifying the health of the new release without shifting complete traffic.
+
+### Schema
+
+<CodeGroup>
+  ```bash bash
+  {
+    "type": "string",
+    "steps": [
+      {
+        "weight_percentage": 100,
+        "pause_duration": 30
+      }
+    ]
+  }
+  ```
+</CodeGroup>
+
+### Properties
+
+| Name  | Type              | Required | Description                                                                                               |
+| ----- | ----------------- | -------- | --------------------------------------------------------------------------------------------------------- |
+| type  | string            | true     | +value=canary                                                                                             |
+| steps | \[[CanaryStep]()] | true     | These steps would be executed in order to enable shifting of traffic slowly from stable to canary version |
+
+## CanaryStep
+
+### Description
+
+Describes a canary deployment step
+
+### Schema
+
+<CodeGroup>
+  ```bash bash
+  {
+    "weight_percentage": 100,
+    "pause_duration": 30
+  }
+  ```
+</CodeGroup>
+
+### Properties
+
+| Name               | Type    | Required | Description                                                                                                                                                                                   |
+| ------------------ | ------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| weight\_percentage | integer | true     | Percentage of total traffic to be shifted to the canary release.The rest will continue to go to the existing deployment                                                                       |
+| pause\_duration    | integer | false    | Duration for which to pause the release. The release process will wait for these seconds before proceeding to the next step.If this is not set, the step will pause indefinitely on this step |
+
+## BlueGreen
+
+### Description
+
+This strategy brings up the new release completely before switching the complete load to the new release. This minimizes the time that two versions are serving traffic at the same time.
+
+### Schema
+
+<CodeGroup>
+  ```bash bash
+  {
+    "type": "string",
+    "enable_auto_promotion": false,
+    "auto_promotion_seconds": 30
+  }
+  ```
+</CodeGroup>
+
+### Properties
+
+| Name                     | Type    | Required | Description                                                                                                    |
+| ------------------------ | ------- | -------- | -------------------------------------------------------------------------------------------------------------- |
+| type                     | string  | true     | +value=blue\_green                                                                                             |
+| enable\_auto\_promotion  | boolean | true     | Promote the new release to handle the complete traffic. A manual promotion would be needed if this is disabled |
+| auto\_promotion\_seconds | integer | false    | Promote the new release to handle the complete traffic after waiting for these many seconds                    |
+
+***
+
+# Autoscaling
+
+## ServiceAutoscaling
+
+### Description
+
+Describes a Service Autoscaling configuration
+
+### Schema
+
+<CodeGroup>
+  ```bash bash
+  {
+    "metrics": {}
+  }
+  ```
+</CodeGroup>
+
+### Properties
+
+| Name    | Type   | Required | Description                       |
+| ------- | ------ | -------- | --------------------------------- |
+| metrics | object | false    | Metrics to use for the autoscaler |
+
+## CPUUtilizationMetric
+
+### Description
+
+Describes CPU utilization metric for autoscaling
+
+### Schema
+
+<CodeGroup>
+  ```bash bash
+  {
+    "type": "string",
+    "value": 0
+  }
+  ```
+</CodeGroup>
+
+### Properties
+
+| Name  | Type    | Required | Description                                                                                      |
+| ----- | ------- | -------- | ------------------------------------------------------------------------------------------------ |
+| type  | string  | true     | +value=cpu\_utilization                                                                          |
+| value | integer | true     | Percentage of cpu request averaged over all replicas which the autoscaler should try to maintain |
+
+## RPSMetric
+
+### Description
+
+Describes requests per second metric for autoscaling
+
+### Schema
+
+<CodeGroup>
+  ```bash bash
+  {
+    "type": "string",
+    "value": 1
+  }
+  ```
+</CodeGroup>
+
+### Properties
+
+| Name  | Type    | Required | Description                                                                                  |
+| ----- | ------- | -------- | -------------------------------------------------------------------------------------------- |
+| type  | string  | true     | +value=rps                                                                                   |
+| value | integer | true     | Average request per second averaged over all replicas that autoscaler should try to maintain |
+
+## CronMetric
+
+### Description
+
+Describes cron metric for autoscaling
+
+### Schema
+
+<CodeGroup>
+  ```bash bash
+  {
+    "type": "string",
+    "desired_replicas": 1,
+    "start": "string",
+    "end": "string",
+    "timezone": "UTC"
+  }
+  ```
+</CodeGroup>
+
+### Properties
+
+| Name              | Type    | Required | Description                                                                                                                                                                                                                                    |
+| ----------------- | ------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| type              | string  | true     | +value=cron                                                                                                                                                                                                                                    |
+| desired\_replicas | integer | false    | Desired number of replicas during the given interval. Default value is max\_replicas.                                                                                                                                                          |
+| start             | string  | true     | Cron expression indicating the start of the cron schedule.                                                                                                                                                                                     |
+| end               | string  | true     | Cron expression indicating the end of the cron schedule.                                                                                                                                                                                       |
+| timezone          | string  | true     | Timezone against which the cron schedule will be calculated, e.g. "Asia/Tokyo". Default is machine's local time.[https://docs.truefoundry.com/docs/list-of-supported-timezones](https://docs.truefoundry.com/docs/list-of-supported-timezones) |
+
+***
+
+# Authentication
+
+## BasicAuthCreds
+
+### Description
+
+Username and password for Basic Service Authentication
+
+### Schema
+
+<CodeGroup>
+  ```bash bash
+  {
+    "type": "string",
+    "username": "string",
+    "password": "string"
+  }
+  ```
+</CodeGroup>
+
+### Properties
+
+| Name     | Type   | Required | Description                                                                                    |
+| -------- | ------ | -------- | ---------------------------------------------------------------------------------------------- |
+| type     | string | true     | +value=basic\_auth                                                                             |
+| username | string | true     | +label=Username for service auth+message=Upto 64 lower case alphanumeric character long+sort=1 |
+| password | string | true     | +label=Password for service auth+message=Password should not be more than 64 characters+sort=2 |
+
+***
+
+[Using Images from NVIDIA NGC Container Registry](/docs/using-images-from-ngc-container-registry)
+
+[Job](/docs/job)
+
+* [Table of Contents](#)
+
+* * [Service](#service)
+
+  * [Liveliness/Readiness Probe](#livelinessreadiness-probe)
+
+  * * [HttpProbe](#httpprobe)
+    * [HealthProbe](#healthprobe)
+
+  * [Port](#port)
+
+  * * [Port](#port-1)
+
+  * [RolloutStrategy](#rolloutstrategy)
+
+  * * [Rolling](#rolling)
+    * [Canary](#canary)
+    * [CanaryStep](#canarystep)
+    * [BlueGreen](#bluegreen)
+
+  * [Autoscaling](#autoscaling)
+
+  * * [ServiceAutoscaling](#serviceautoscaling)
+    * [CPUUtilizationMetric](#cpuutilizationmetric)
+    * [RPSMetric](#rpsmetric)
+    * [CronMetric](#cronmetric)
+
+  * [Authentication](#authentication)
+
+  * * [BasicAuthCreds](#basicauthcreds)

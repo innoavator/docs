@@ -1,0 +1,149 @@
+---
+title: "TrueFoundry API"
+description: "JUMP TO"
+---
+
+* [Clusters](/reference/clusterfindall)
+
+  * [List Clustersget](/reference/clusterfindall)
+  * [Create or Update Clusterput](/reference/clustercreateorupdate)
+  * [Get Clusterget](/reference/clusterget)
+  * [Delete clusterdelete](/reference/clusterdelete)
+  * [List Addonsget](/reference/clustergetaddons)
+  * [Get Cluster statusget](/reference/clustergetclusterstatus)
+
+* [Workspaces](/reference/workspaceslistallworkspaces)
+
+  * [List Workspaceget](/reference/workspaceslistallworkspaces)
+  * [Create or Update Workspaceput](/reference/workspacescreateorupdateworkspace)
+  * [Get Workspaceget](/reference/workspacesget)
+  * [Delete Workspacedelete](/reference/workspacesdestroy)
+
+* [MLRepos](/reference/mlrepocreateorupdatemlrepo)
+
+  * [Create or Update MLRepoput](/reference/mlrepocreateorupdatemlrepo)
+  * [Get Ml Repoget](/reference/get_ml_repo_v1_ml_repos__id__get)
+  * [Delete Ml Repodelete](/reference/delete_ml_repo_v1_ml_repos__id__delete)
+  * [List Ml Reposget](/reference/list_ml_repos_v1_ml_repos_get)
+
+* [Applications](/reference/applicationgetalllatestapplicationsforuser)
+
+  * [List Applicationsget](/reference/applicationgetalllatestapplicationsforuser)
+  * [Create Application Deploymentput](/reference/applicationcreateapplicationdeploymentputrequest)
+  * [Get Applicationget](/reference/applicationgetapplication)
+  * [Delete Applicationdelete](/reference/applicationdeleteapplication)
+  * [List Application Deploymentsget](/reference/applicationgetapplicationdeployment)
+  * [Get Deployment detailsget](/reference/applicationgetapplicationdeploymentdetails)
+  * [Pause an Applicationpatch](/reference/applicationscaletozero)
+  * [Resume an Applicationpatch](/reference/applicationscaletooriginalstate)
+  * [Cancel an Ongoing Deploymentpost](/reference/applicationcanceldeployment)
+
+* [Jobs](/reference/jobgetrunshistory)
+
+  * [List Job Runsget](/reference/jobgetrunshistory)
+  * [Get Job Runget](/reference/jobgetrun)
+  * [Delete Job Rundelete](/reference/jobdeleterun)
+  * [Trigger Jobpost](/reference/jobtriggerjob)
+  * [Terminate Jobpost](/reference/jobterminatejob)
+
+* [Models](/reference/get_model_v1_models__id__get)
+
+  * [Get Modelget](/reference/get_model_v1_models__id__get)
+  * [Delete Modeldelete](/reference/delete_model_v1_models__id__delete)
+  * [List Modelsget](/reference/list_models_v1_models__get)
+  * [Get Model Versionget](/reference/get_model_version_v1_model_versions__id__get)
+  * [Delete Model Versiondelete](/reference/delete_model_version_v1_model_versions__id__delete)
+  * [List Model Versionsget](/reference/list_model_versions_v1_model_versions_get)
+  * [Applyput](/reference/apply_v1_model_versions_put)
+
+* [Artifacts](/reference/get_artifact_v1_artifacts__id__get)
+
+  * [Get Artifactget](/reference/get_artifact_v1_artifacts__id__get)
+  * [Delete Artifactdelete](/reference/delete_artifact_v1_artifacts__id__delete)
+  * [List Artifactsget](/reference/list_artifacts_v1_artifacts_get)
+  * [Get Artifact Versionget](/reference/get_artifact_version_v1_artifact_versions__id__get)
+  * [Delete Artifact Versiondelete](/reference/delete_artifact_version_v1_artifact_versions__id__delete)
+  * [List Artifact Versionsget](/reference/list_artifact_versions_v1_artifact_versions_get)
+  * [Applyput](/reference/apply_v1_artifact_versions_put)
+  * [Get Signed Urls For Artifact Versionpost](/reference/get_signed_urls_for_artifact_version_v1_artifact_versions_signed_urls_post)
+  * [Create Multi Part Uploadpost](/reference/create_multi_part_upload_v1_artifact_versions_signed_urls_multipart_post)
+  * [Stage Artifact Versionpost](/reference/stage_artifact_version_v1_artifact_versions_stage_post)
+  * [List Files For Artifact Versionpost](/reference/list_files_for_artifact_version_v1_artifact_versions_files_post)
+
+* [Prompts](/reference/get_prompt_v1_prompts__id__get)
+
+  * [Get Promptget](/reference/get_prompt_v1_prompts__id__get)
+  * [Delete Promptdelete](/reference/delete_prompt_v1_prompts__id__delete)
+  * [List Promptsget](/reference/list_prompts_v1_prompts__get)
+  * [Get Prompt Versionget](/reference/get_prompt_version_v1_prompt_versions__id__get)
+  * [Delete Prompt Versiondelete](/reference/delete_prompt_version_v1_prompt_versions__id__delete)
+  * [List Prompt Versionsget](/reference/list_prompt_versions_v1_prompt_versions_get)
+  * [Applyput](/reference/apply_v1_prompt_versions_put)
+
+* [Secret Groups](/reference/secretgroupget)
+
+  * [List Secret Groupsget](/reference/secretgroupget)
+  * [Create Secret Grouppost](/reference/secretgrouppost)
+  * [Update Secret Groupput](/reference/secretgroupupdate)
+  * [Get Secret Groupget](/reference/secretgroupgetsecretgroupbyid)
+  * [Delete Secret Groupdelete](/reference/secretgroupdelete)
+  * [List Secrets of Secret Groupget](/reference/secretgroupgetbysecretgroup)
+
+* [Secrets](/reference/secretgetsecrets)
+
+  * [List Secretspost](/reference/secretgetsecrets)
+  * [Get Secretget](/reference/secretgetsecretbyid)
+  * [Delete Secretdelete](/reference/secretdelete)
+  * [List Associated Active Deploymentsget](/reference/secretgetassociatedactivedeployments)
+
+* [Model Deployments](/reference/modelcataloguegetdeploymentspecs)
+
+  * [Get Deployment Specificationsget](/reference/modelcataloguegetdeploymentspecs)
+  * [Get Finetuning Specificationsget](/reference/modelcataloguegetfinetunespecs)
+
+* [Users](/reference/usergetallusersoftenant)
+
+  * [List Usersget](/reference/usergetallusersoftenant)
+  * [Update User Rolespatch](/reference/useredituserrole)
+  * [Get Userget](/reference/usergetuserbyid)
+  * [Invite Userpost](/reference/userinviteuser)
+  * [Resend Invitepost](/reference/userresendinvite)
+  * [Deactivate Userpatch](/reference/userdeactivateuser)
+  * [Activate Userpatch](/reference/useractivateuser)
+
+* [Teams](/reference/teamsgetallteamsofuser)
+
+  * [List Teams for Userget](/reference/teamsgetallteamsofuser)
+  * [Create or Update a Teamput](/reference/teamscreateorupdateteam)
+  * [Get Teamget](/reference/teamsgetteambyid)
+  * [Delete Teamdelete](/reference/teamsdeleteteam)
+
+* [Personal Access Tokens](/reference/personalaccesstokengetallpatforuser)
+
+  * [List Personal Access Tokensget](/reference/personalaccesstokengetallpatforuser)
+  * [Create Personal Access Tokenpost](/reference/personalaccesstokencreatepersonalaccesstoken)
+  * [Delete Personal Access Tokendelete](/reference/personalaccesstokendeletepersonalaccesstoken)
+
+* [Virtual Accounts](/reference/virtualaccountgetallvirtualaccountsfortenant)
+
+  * [List Virtual Accountsget](/reference/virtualaccountgetallvirtualaccountsfortenant)
+  * [Create or Update a Virtual Accountput](/reference/virtualaccountcreateorupdatevirtualaccount)
+  * [Get virtual accountget](/reference/virtualaccountget)
+  * [Delete a Virtual Accountdelete](/reference/virtualaccountdeletevirtualaccount)
+
+* [Logs](/reference/logsgetlogs)
+
+  * [Get Logsget](/reference/logsgetlogs)
+  * [Download Logsget](/reference/logsdownloadlogs)
+
+* [Apply](/reference/tfyapplyapply)
+
+  * [Create or Update Resourcesput](/reference/tfyapplyapply)
+  * [Delete Resourcespost](/reference/tfyapplydelete)
+  * [Applyput](/reference/apply_v1_apply_put)
+
+# List Applications
+
+get https\://\{controlPlaneURL}/api/svc/v1/apps
+
+Retrieves a list of all latest applications. Supports filtering by application ID, name, type, and other parameters. Pagination is available based on query parameters.

@@ -1,0 +1,99 @@
+---
+title: "Log and Get Metrics"
+description: "Metrics are values that help you to evaluate and compare different runs. For example, , ."
+---
+
+### Capturing metrics
+
+You can capture metrics using the [`log_metrics`](https://docs.truefoundry.com/docs/runs#kbdfunctionkbd-log_metrics) method.
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.ml import get_client
+
+  client = get_client()
+  run = client.create_run(ml_repo="iris-demo")
+  run.log_metrics(metric_dict={"accuracy": 0.7, "loss": 0.6})
+
+  run.end()
+  ```
+</CodeGroup>
+
+These metrics can be seen in MLFoundry dashboard. Filters can be used on metrics values to filter out runs as shown in the figure.
+
+<Frame caption="Filter runs on the basis of metrics">
+  <img src="/images/docs/82b97e0-filter1.png" />
+</Frame>
+
+These metrics can also be found in the overview section of run in the dashboard.
+
+<Frame caption="Metrics Overview">
+  <img src="/images/docs/7983f19-filter2.png" />
+</Frame>
+
+### Accessing the metrics for a run
+
+You can use the [`get_metrics`](https://docs.truefoundry.com/docs/runs#kbdfunctionkbd-get_metrics) method. It returns a dictionary.
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.ml import get_client
+
+  client = get_client()
+  run = client.get_run("run-id-of-the-run")
+
+  metrics = run.get_metrics()
+
+  for metric_name, metric_history in metrics.items():
+      print(f"logged metrics for metric {metric_name}:")
+      for metric in metric_history:
+          print(f"value: {metric.value}")
+          print(f"step: {metric.step}")
+          print(f"timestamp_ms: {metric.timestamp}")
+          print("--")
+
+  run.end()
+  ```
+</CodeGroup>
+
+### Step-wise metric logging
+
+You can capture step-wise metrics too using the `step` argument.
+
+<CodeGroup>
+  ```bash bash
+  for global_step in range(1000):
+      run.log_metrics(metric_dict={"accuracy": 0.7, "loss": 0.6}, step=global_step)
+  ```
+</CodeGroup>
+
+The stepwise-metrics can be visualized as graphs in the dashboard.
+
+<Frame caption="Step-wise metrics">
+  <img src="/images/docs/7a516f2-filter3.png" />
+</Frame>
+
+### Should I use epoch or global step as a value for the `step` argument?
+
+If available you should use the global step as a value for the `step` argument. To capture epoch-level metric aggregates, you can use the following pattern.
+
+<CodeGroup>
+  ```bash bash
+  run.log_metrics(
+      metric_dict={"epoch/train_accuracy": 0.7, "epoch": epoch}, step=global_step
+  )
+  ```
+</CodeGroup>
+
+***
+
+[Log and Get Parameters](/docs/log-params)
+
+[Log and Get Artifacts](/docs/log-artifacts)
+
+* [Table of Contents](#)
+
+* * [Capturing metrics](#capturing-metrics)
+  * [Accessing the metrics for a run](#accessing-the-metrics-for-a-run)
+  * [Step-wise metric logging](#step-wise-metric-logging)
+  * [Should I use epoch or global step as a value for the step argument?](#should-i-use-epoch-or-global-step-as-a-value-for-the-step-argument)

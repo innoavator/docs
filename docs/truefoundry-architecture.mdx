@@ -1,0 +1,45 @@
+---
+title: "Overview"
+description: "Understanding modes of deployment in truefoundry"
+---
+
+Truefoundry provides a split plane architecture which comprises of a control plane and a compute plane. The control-plane orchestrates the deployments across multiple compute plane Kubernetes clusters connected to the control plane. You can read more about the [Truefoundry architecture](https://www.truefoundry.com/blog/truefoundry-ml-platform-on-kubernetes)
+
+<Frame caption="TrueFoundry Split-Plane Architecture">
+  <img src="/images/docs/8c16315-Truefoundry_Split-Pane_Architecture.png" />
+</Frame>
+
+Because of this, Truefoundry can be deployed in two ways on your own cloud:
+
+### Compute-plane in your own cloud environment and use hosted Truefoundry control plane
+
+Truefoundry hosts a multi-tenant control plane which can orchestrate deployments across multiple compute-planes. In this case, you create a Kubernetes cluster in your own cloud account and connect it to the hosted control plane. The connection is done via installing the *tfy-agent* in your own kubernetes cluster which helps it connect to the hosted control plane. In this case, all compute and data stays in your own cloud environment - however the control plane has access to fetch the artifacts and logs of your applications.
+
+**This is a more managed setup wherein the upgrade of Truefoundry is automatically handled by the Truefoundry team.**
+
+To understand all the steps involved in connecting cluster to control plane, you can read [Deploy Compute Plane](doc:deploy-compute-plane). To get started with deploying, follow the guide below based on your cloud provider.
+
+1. [Deploy Compute Plane on AWS](doc:aws-1)
+2. [Deploy Compute Plane on GCP](doc:overview-1)
+3. [Deploy Compute Plane on Azure](azure-1)
+
+### Both compute and control plane in your own cloud environments (Enterprise Plan)
+
+In this case, both the control plane and the compute plane are hosted on your own cloud environment. The control plane comprises of the following components:
+
+1. Truefoundry helm chart (This can be installed on any Kubernetes cluster - including one of the compute plane clusters itself)
+2. Postgres Database
+3. One Blob Storage (S3 bucket / Azure Container / Google Storage Bucket / Minio)
+
+To get started with installing the control plane and compute plane, please follow the guide: [Deploy Control Plane and Compute Plane](doc:deploy-control-and-compute-plane)
+
+***
+
+[Collaboration and Access Control](/docs/collaboration-and-access-control)
+
+[Deploy Compute Plane](/docs/deploy-compute-plane)
+
+* [Table of Contents](#)
+
+* * [Compute-plane in your own cloud environment and use hosted Truefoundry control plane](#compute-plane-in-your-own-cloud-environment-and-use-hosted-truefoundry-control-plane)
+  * [Both compute and control plane in your own cloud environments (Enterprise Plan)](#both-compute-and-control-plane-in-your-own-cloud-environments-enterprise-plan)

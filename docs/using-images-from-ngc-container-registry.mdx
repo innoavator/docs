@@ -1,0 +1,140 @@
+---
+title: "Using Images from NVIDIA NGC Container Registry"
+description: "Nvidia Container Registry (nvcr.io)"
+---
+
+## Create a NGC Personal Token
+
+1. Sign up at [https://ngc.nvidia.com/](https://ngc.nvidia.com/)
+2. Generate a Personal Key from [https://org.ngc.nvidia.com/setup/personal-keys](https://org.ngc.nvidia.com/setup/personal-keys)
+
+![](/images/docs/ed20d72eae9be62f264d1a0268b6212da48669a037a3218d7656e1810f861574-image.png)
+
+## Add `nvcr.io` as Custom Docker Registry
+
+1. Under Integrations Tab, Click `+Add Integration Provider` on top right
+
+2. Under Integrations, select Custom Docker Registry and enter as follows:
+
+   * Registry URL: `nvcr.io`
+   * Username: `$oauthtoken`
+   * Password: Enter the Personal Token you created earlier
+
+3. Save
+
+![](/images/docs/f2e548c646eff097a73425930e4411e6dc87a4aca05f145381e32725e510cf16-image.png)
+
+## Use the Integration - E.g. Deploying Nvidia NIM Container
+
+<Info>
+  We recommend saving the generated token as a [Secret](doc:manage-secrets) on the platform to be able to use it for other purposes
+</Info>
+
+We can now deploy a [Nvidia NIM](https://docs.nvidia.com/nim/large-language-models/latest/introduction.html) LLM Container for Inference. You can find the list of all [Supported Models from the docs page](https://docs.nvidia.com/nim/large-language-models/latest/models.html)
+
+1. We will pick the Llama 3.1 8B Instruct model as an example. From the list of models page, click the NGC Catalog link
+
+2. ![](/images/docs/6395b57c9afe4f04e97c4a99dbc464593b23caa9716e3b5c36472dbaf258911d-image.png)
+
+   From the Container page, copy the image tag
+
+3. ![](/images/docs/a92727bf2c72e80c4661ff1e45fe623b8fa3aff29c4bcd001605dbe1407703d9-image.png)
+
+   Next, Start a new **Service** deployment on TrueFoundry
+
+* In the Image Section, add the Image URI we copied from NGC Page
+* Select the nvcr Docker Registry we added earlier
+* Enter `8000` for port
+* Select a GPU
+
+![](/images/docs/b06d07c853f94c1732287cc1f8d9c8b1736361e2bbb09c532faa679b353a4b2f-image.png)
+
+4. Optionally add Environment Variables (See [Configuring NIM](https://docs.nvidia.com/nim/large-language-models/latest/configuration.html#environment-variables) docs page)
+
+![](/images/docs/c5ecb8b60c451b04bb1b5fa3802b01250b366981f649dd5f3605a0b8945211ea-image.png)
+
+5. Submit
+
+Here is the full spec for reference for 2 x Nvidia T4
+
+<CodeGroup>
+  ```bash bash
+  name: nim-llama31-8b-ins-v03
+  type: service
+  image:
+    type: image
+    image_uri: nvcr.io/nim/meta/llama-3.1-8b-instruct:1.3.3
+    docker_registry: tenant:custom:nvcr:docker-registry:nvcr-truefoundry
+  ports:
+    - host: <your-host>
+      port: 8000
+      expose: true
+      protocol: TCP
+      app_protocol: http
+  env:
+    NGC_API_KEY: tfy-secret://tenant:secret-group:NGC_API_KEY
+    NIM_LOG_LEVEL: DEFAULT
+    NIM_SERVER_PORT: '8000'
+    NIM_JSONL_LOGGING: '1'
+    NIM_MAX_MODEL_LEN: '4096'
+    NIM_MODEL_PROFILE: vllm-bf16-tp2
+    NIM_LOW_MEMORY_MODE: '1'
+    NIM_SERVED_MODEL_NAME: llm
+    NIM_TRUST_CUSTOM_CODE: '1'
+    NIM_ENABLE_KV_CACHE_REUSE: '1'
+    NIM_CACHE_PATH: /opt/nim/.cache
+  labels:
+    tfy_model_server: vLLM
+    tfy_openapi_path: openapi.json
+    tfy_sticky_session_header_name: x-truefoundry-sticky-session-id
+  replicas: 1
+  resources:
+    node:
+      type: node_selector
+      capacity_type: on_demand
+    devices:
+      - name: T4
+        type: nvidia_gpu
+        count: 2
+    cpu_limit: 8
+    cpu_request: 6
+    memory_limit: 32000
+    memory_request: 27200
+    shared_memory_size: 24000
+    ephemeral_storage_limit: 100000
+    ephemeral_storage_request: 20000
+  workspace_fqn: <your-workspace-fqn>
+  readiness_probe:
+    config:
+      path: /v1/health/ready
+      port: 8000
+      type: http
+    period_seconds: 10
+    timeout_seconds: 1
+    failure_threshold: 3
+    success_threshold: 1
+    initial_delay_seconds: 0
+  allow_interception: false
+  ```
+</CodeGroup>
+
+6. Once Deployed and ready, you can visit `/docs` route on the endpoint to try it out ![](/images/docs/d4895d615277b06732d9aef3b34be1edbc17ac967b086c5c2cf0a7952c9cf770-image.png)
+
+## Model Caching using a Volume
+
+To ensure fast startup , you can [Create a Read Write Many Volume](doc:creating-a-volume) in the same workspace and mount the volume at `/opt/nim/.cache` (the value of `NIM_CACHE_PATH` environment variable) to cache the model weights.
+
+![](/images/docs/5d90c572d92dd8c09ec0590fba11f5058f486f2d663594b95086fec59f074340-image.png)
+
+***
+
+[Setup Gitops using Truefoundry](/docs/setup-gitops-using-truefoundry)
+
+[Service](/docs/service)
+
+* [Table of Contents](#)
+
+* * [Create a NGC Personal Token](#create-a-ngc-personal-token)
+  * [Add nvcr.io as Custom Docker Registry](#add-nvcrio-as-custom-docker-registry)
+  * [Use the Integration - E.g. Deploying Nvidia NIM Container](#use-the-integration---eg-deploying-nvidia-nim-container)
+  * [Model Caching using a Volume](#model-caching-using-a-volume)

@@ -1,0 +1,152 @@
+---
+title: "Mounting Files"
+description: "In some applications, you might need a file to be present at a certain path for the application to work. Or you have data in directories that need to be mounted for the application to work. TrueFoundry allows you to mount files in the following ways:"
+---
+
+## Mount Volume
+
+If your application needs access to multiple files of data or multiple directories, you can use a volume to store the data and then mount the volume at the desired path. You can learn more about Volumes [here](doc:introduction-to-volume).
+
+To use a persistent volume, we will first need to create one and then attach it to your deployment. You can learn how to create volumes using the [Creating a Volume](doc:creating-a-volume) guide
+
+### Mount Volume through the User Interface (UI)
+
+### Mount Volume using the Python SDK
+
+You can add the following in your **`deploy.py`** file.
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.deploy import Build, Service, DockerFileBuild, VolumeMount
+
+  service = Service(
+      name="my-service",
+      image=Build(build_spec=DockerFileBuild()),
+      ports=[
+        Port(
+          host="your_host",
+          port=8501
+        )
+      ]
+  +  mounts=[
+  +    VolumeMount(
+  +      mount_path="/model", #or your desired path
+  +      volume_fqn="your-volume-fqn"
+  +    )
+  +  ]
+  )
+  service.deploy(workspace_fqn="YOUR_WORKSPACE_FQN")
+  ```
+</CodeGroup>
+
+## Mount Secret
+
+This is similar to string mount, except, in this case, you will directly provide a TrueFoundry Secret FQN. You can read more about Secrets and how to create them [here](doc:secrets).
+
+The content in the secret will be dumped into a file and mounted in the provided location. A good usecase of this is for mounting Google credentials file which you might need to access Google services.
+
+### Mount secret through the User Interface (UI)
+
+### Mount secret using the Python SDK
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.deploy import Build, Service, DockerFileBuild, Port, SecretMount
+
+  service = Service(
+      name="my-service",
+      image=Build(build_spec=DockerFileBuild()),
+      ports=[
+        Port(
+          host="your_host",
+          port=8501
+        )
+      ],
+  +    mount = [  
+  +    	SecretMount(
+  +      	mount_path="/etc/google-credentials.json", 
+  +        data="tfy-secret://user:my-secret-group:my-secret"
+  +      )  
+  +    ]
+  )
+  service.deploy(workspace_fqn="YOUR_WORKSPACE_FQN")
+  ```
+</CodeGroup>
+
+## Mount String
+
+This can be useful if you need a small configuration file to be present at a certain file path. To configure this, you need to provide the path where it needs to be mounted and the string data that should be in that file. A good example can be a Nginx configuration file that you can mount along with the Nginx docker image.
+
+### Mount string through the User Interface (UI)
+
+### Mount string using the Python SDK
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.deploy import Build, Service, DockerFileBuild, Port, StringDataMount
+
+  service = Service(
+      name="my-service",
+      image=Build(build_spec=DockerFileBuild()),
+      ports=[
+        Port(
+          host="your_host",
+          port=8501
+        )
+      ],
+  +    mount = [
+  +    	StringDataMount(
+  +      	mount_path="/etc/nginx/conf.d/my_config.conf",
+  +        data="server { listen 80; }"
+  +      )
+  +    ]  
+  )
+  service.deploy(workspace_fqn="YOUR_WORKSPACE_FQN")
+  ```
+</CodeGroup>
+
+## Using mounted files in your deployment
+
+Once you have attached a file to your deployment, you can use it in your deployment like any other file. For example, if you mounted the file to `/etc/config.json`, you can access the file in the `/etc/config.json` path
+
+<CodeGroup>
+  ```bash bash
+  import json
+
+  with open("/etc/config.json", "r") as f:
+    config_data = json.load(f)
+
+  # Access specific values from the config data dictionary
+  api_key = config_data["api_key"]
+  database_url = config_data["database_url"]
+
+  # Use these values in your application logic
+  print(f"API key: {api_key}")
+  print(f"Database URL: {database_url}")
+  ```
+</CodeGroup>
+
+***
+
+[Rollout Strategy](/docs/rollout-strategy)
+
+[Access Cloud Services like S3](/docs/access-data-from-s3-or-other-clouds-services)
+
+* [Table of Contents](#)
+
+* * [Mount Volume](#mount-volume)
+
+  * * [Mount Volume through the User Interface (UI)](#mount-volume-through-the-user-interface-ui)
+    * [Mount Volume using the Python SDK](#mount-volume-using-the-python-sdk)
+
+  * [Mount Secret](#mount-secret)
+
+  * * [Mount secret through the User Interface (UI)](#mount-secret-through-the-user-interface-ui)
+    * [Mount secret using the Python SDK](#mount-secret-using-the-python-sdk)
+
+  * [Mount String](#mount-string)
+
+  * * [Mount string through the User Interface (UI)](#mount-string-through-the-user-interface-ui)
+    * [Mount string using the Python SDK](#mount-string-using-the-python-sdk)
+
+  * [Using mounted files in your deployment](#using-mounted-files-in-your-deployment)

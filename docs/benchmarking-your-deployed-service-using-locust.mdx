@@ -1,0 +1,144 @@
+---
+title: "Benchmarking your deployed service using Locust"
+description: "This guide will help you learn how to benchmark your deployed service."
+---
+
+When deploying a service into production, it becomes essential to thoroughly understand its performance metrics. Key considerations include:
+
+* Determining the service's capacity in terms of handling requests per second.
+* Assessing the threshold of concurrent requests, indicating the number of users the service can accommodate simultaneously.
+* Analyzing how latency fluctuates with increasing traffic volume.
+
+These inquiries are important as they inform crucial decisions regarding service configurations and operational strategies:
+
+* Determining the requisite number of replicas necessary.
+
+* Evaluating the necessity of implementing auto-scaling mechanisms.
+
+* If auto-scaling is necessary:
+
+  * Selecting appropriate metrics for triggering auto-scaling mechanisms (e.g., request per second, CPU utilization, or custom metrics).
+  * Establishing thresholds for these auto-scaling strategies.
+
+This evaluation ensures adherence to service level agreements (SLAs) while simultaneously optimizing costs.
+
+In this guide, we will use [Locust](https://locust.io/) which is an open-sourced tool for benchmarking services.
+
+### Setup
+
+You can setup locust in any environment with python installed with the following command:
+
+```
+pip install locust
+```
+
+### Writing the Locust File
+
+In order to benchmark your service with locust, you need to write a locust file. You need to define what API Endpoint (path) you need to benchmark and write a sample request for the same.
+
+Here is a small example to benchmark a deployed LLM. You can write this script to **benchmark to any service** and not just LLMs.
+
+Note: You will need to replace your model name with the name of deployed service.
+
+<CodeGroup>
+  ```bash bash
+  from locust import FastHttpUser, task
+
+  class HelloWorldUser(FastHttpUser):
+      @task
+      def hello_world(self):
+          self.client.post(
+              "/v1/completions",
+              json={
+                  "model": "<Add your deployed service name>",
+                  "prompt": [
+                      "This is a test prompt"
+                  ],
+                  "max_tokens":80,
+                  "ignore_eos":True
+              }
+          )
+  ```
+</CodeGroup>
+
+### Running the benchmarks
+
+You can start the launcher for locust with the following command:
+
+```
+locust -f locust_benchmark.py
+```
+
+Once you run this, you will find the find a service running on port `8089`
+
+Now, open [http://localhost:8089]() in a browser window. You will find the UI like this:
+
+![](/images/docs/669e928-image.png)
+
+In the section of host, paste the endpoint of your "Service" by copying the deployed endpoint as shown below:
+
+![](/images/docs/91163ef-image.png)
+
+Once you paste the link, you can click on "Start Swarming" after setting the following parameters:
+
+* Number of Users: Number of concurrent users that will bombard your service
+* Spawn Rate: If multiple users are selected, the rate at which it will create new users (this can be 1 by default)
+
+Once you start swarming, you can see the results on the dashboard:
+
+![](/images/docs/8ea70db-image.png)
+
+Once this is setup, you can edit and increase the number of users from top by clicking on Edit.
+
+You can view the detailed charts by clicking on "Charts" tab as shown in the picture. The results look something like this.
+
+![](/images/docs/385fe2e-image.png)
+
+### Deploying this Locust Script as a Service:
+
+While you can run this script locally, your internet speed and difference in local setup of different users might affect the results.
+
+For this, you can deploy this as a service on Truefoundry.
+
+You will need two files:
+
+* `locust_benchmark.py`(shown above)
+* `requirements.txt`
+
+The contents of requirements.txt are:
+
+<CodeGroup>
+  ```bash bash
+  locust
+  # add other dependencies if used in your locust script
+  ```
+</CodeGroup>
+
+Once you have this ready, please go to Truefoundry UI and follow the following steps:
+
+1. Click on `New Deployment` button on top right of your screen.
+2. Select your workspace
+3. Select `Code from Laptop`
+4. Click on `Next`
+5. Follow the guide from the UI
+
+Step 2 to 4 are illustrated in the image below:
+
+![](/images/docs/fd89e39-image.png)
+
+Once you complete all the steps and deploy your Service, you can access the deployed locust benchmarking script from the UI by clicking on the "Endpoint" as shown below:
+
+![](/images/docs/e37cf6b-image.png)
+
+***
+
+[Autoscaling](/docs/scaling-and-autoscaling)
+
+[Liveness/Readiness Probe](/docs/liveness-readiness-probe)
+
+* [Table of Contents](#)
+
+* * [Setup](#setup)
+  * [Writing the Locust File](#writing-the-locust-file)
+  * [Running the benchmarks](#running-the-benchmarks)
+  * [Deploying this Locust Script as a Service:](#deploying-this-locust-script-as-a-service)

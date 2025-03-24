@@ -1,0 +1,314 @@
+---
+title: "Overview"
+description: "Truefoundry provides a straightforward migration path for Pytorch endpoints already running in Sagemaker using a custom inference script to the Truefoundry platform. We will start with an inference script and follow a workflow to implement the expected changes."
+---
+
+# Existing Code
+
+A Sagemaker deployment typically contains code in the form of the following file tree -
+
+```
+code/  
+├── inference.py
+└── requirements.txt
+```
+
+* `inference.py` - This is the inference handler that implements the Sagemaker functions like `model_fn`, `input_fn`, `predict_fn`, `output_fn` etc
+* `requirements.txt` - This contains any additional Python packages needed by the inference handler
+
+Apart from these, there are also -
+
+* Model artifacts - Generated model files (e.g. `model.pth`). These may reside on your S3 buckets.
+* Sagemaker deployment code (e.g. `sagemaker_deploy.py`) - Code to call Sagemaker to deploy the model as an endpoint
+
+Examples:
+
+### `inference.py`
+
+<CodeGroup>
+  ```bash bash
+  # defining model and loading weights to it.
+  import json
+  import torch
+
+  class Net(torch.nn.Module):
+    ...
+
+   
+  def model_fn(model_dir):
+      model = Net()
+      with open(os.path.join(model_dir, "model.pth"), "rb") as f:
+          model.load_state_dict(torch.load(f))
+      model.to(device).eval()
+      return model
+
+  # data preprocessing
+  def input_fn(request_body, request_content_type):
+      assert request_content_type == "application/json"
+      data = json.loads(request_body)["inputs"]
+      data = torch.tensor(data, dtype=torch.float32, device=device)
+      return data
+
+  # inference
+  def predict_fn(input_object, model):
+      with torch.no_grad():
+          prediction = model(input_object)
+      return prediction
+
+  # postprocess
+  def output_fn(predictions, content_type):
+      assert content_type == "application/json"
+      res = predictions.cpu().numpy().tolist()
+      return json.dumps(res)
+  ```
+</CodeGroup>
+
+### `sagemaker_deploy.py`
+
+<CodeGroup>
+  ```bash bash
+  from sagemaker.pytorch import PyTorchModel
+  from sagemaker.serializers import JSONSerializer
+  from sagemaker.deserializers import JSONDeserializer
+
+  pytorch_model = PyTorchModel(
+      model_data = s3_model_uri,
+      role=role,                  
+      entry_point=<"inference.py">,
+      framework_version = "1.12.1",
+      py_version='py38',
+      name = <"model_name">,
+  )
+
+  predictor = pytorch_model.deploy(
+      serializer = JSONSerializer(),
+      deserializer = JSONDeserializer(),
+      endpoint_name = <"endpoint_name">,
+      instance_type = "ml.g4dn.xlarge",
+      initial_instance_count = 2,
+  )
+  ```
+</CodeGroup>
+
+# Migration Workflow
+
+Broadly speaking these are the things we shall do -
+
+* Enclose the inference handler within a Docker container containing `torchserve` to support pytorch-based models
+* Upload the model artifact as a Truefoundry Artifact to make it accessible from the running container
+* Launch a TrueFoundry deployment utilizing the above two pieces
+
+## Steps
+
+1. Upload the Pytorch model artifacts to the [Truefoundry Model Registry](doc:).
+
+   For reference, your model on disk may look like this
+
+```
+model/
+└── model.pth
+```
+
+Add a `upload_model.py`
+
+* Create an ML repo ([docs](https://docs.truefoundry.com/docs/key-concepts#creating-an-ml-repo)) and provide access to that repo from the workspace we need to deploy in ([docs](https://docs.truefoundry.com/docs/key-concepts#grant-access-of-ml-repo-to-workspace)). Change `ml_repo` arguments
+* Change `model_file_or_folder` to point to your model folder
+
+The code prints a model fqn at the end which we will use in later steps.
+
+<CodeGroup>
+  ```bash bash
+  import mlfoundry
+
+  client = mlfoundry.get_client()
+
+  model_version = client.log_model(
+      ml_repo=<"ml_repo_name">,
+      name=<"my-pytorch-model">,
+      model_file_or_folder=<"model/">,  # Path to directory containing the model
+      framework=mlfoundry.ModelFramework.PYTORCH,
+      description="TorchServe + Sagemaker compatible model artifact",
+  )
+  print("Model Version FQN:", model_version.fqn)
+  ```
+</CodeGroup>
+
+2. We will write a Python script called `main.py` that could launch the `torchserve` process at startup -
+
+<CodeGroup>
+  ```bash bash
+  import os
+  # We are reusing sagemaker's open source toolkit to manage torchserve
+  from sagemaker_pytorch_serving_container import serving
+  import shutil
+
+  def main():
+      home_dir = os.getenv("HOME")
+      # MODEL_DIR is populated by truefoundry artifacts. Model will be downloaded here
+      artifact_model_dir = os.getenv("MODEL_DIR")
+      if not artifact_model_dir:
+          raise ValueError("`MODEL_DIR` must be set in environment and point to a model directory")
+      # Base dir where models are supposed to be present
+      base_dir = os.getenv("SAGEMAKER_BASE_DIR", os.path.join(home_dir, "model-store"))
+      model_dir = os.path.join(base_dir, "model")
+      # Copying over the model artifacts to the model dir
+      shutil.copytree(src=artifact_model_dir, dst=model_dir)
+      # Copying over the code to model dir
+      shutil.copytree(src=os.path.join(home_dir, "code"), dst=os.path.join(model_dir, "code"))
+      # Launching the torchserve process
+      serving.main()
+
+  if __name__ == '__main__':
+      main()
+  ```
+</CodeGroup>
+
+3. Next, we'll write a `Dockerfile` that can create the Truefoundry application
+
+<CodeGroup>
+  ```bash bash
+  # We pick a gpu enabled torchserve image as base. Others can be found here - https://hub.docker.com/r/pytorch/torchserve/tags
+  FROM --platform=linux/amd64 pytorch/torchserve:0.9.0-gpu
+  ENV SAGEMAKER_BASE_DIR=/home/model-server/model-store
+  RUN pip install -U pip setuptools wheel && \
+      pip install --no-cache-dir \
+          sagemaker-pytorch-inference==2.0.22 \
+          scikit-learn \
+          pandas \
+          scipy==1.10.1
+  USER root
+  RUN touch /etc/sagemaker-ts.properties && \
+      chown model-server:model-server /etc/sagemaker-ts.properties
+  USER model-server
+  WORKDIR /home/model-server/
+  # Assuming code is the directory where inference code and requirements.txt is present
+  COPY code ./code
+  COPY main.py ./
+  EXPOSE 8080
+  ```
+</CodeGroup>
+
+4. Now let's go ahead and write a `deploy.py` script that can be used with Truefoundry to get a service deployed. Here you'll need to change the following
+
+   * Service Name - Name for the service we'll deploy
+   * Entrypoint Script Name (value for `SAGEMAKER_PROGRAM`) - The code file name containing `model_fn`, `input_fn`, `predict_fn` and `output_fn`
+   * Model Version FQN - The FQN obtained from `upload_model.py`
+
+<CodeGroup>
+  ```bash bash
+  import argparse
+  import logging
+  from typing import Optional
+
+  from servicefoundry import (
+      Service, Build, LocalSource,
+      DockerFileBuild, Port, ArtifactsDownload,
+      TruefoundryArtifactSource,
+      ArtifactsCacheVolume, Resources, GPUType, NvidiaGPU,
+  )
+
+  logging.basicConfig(level=logging.INFO, format=logging.BASIC_FORMAT)
+
+  def main():
+      service = Service(
+          name=<"service_name">,
+          image=Build(
+              build_source=LocalSource(local_build=False),
+              build_spec=DockerFileBuild(
+                  dockerfile_path="./Dockerfile",
+                  command="python main.py"
+              )
+          ),
+          ports=[Port(port=8080, host=<"host.app.example.com">, path=<"/">)],
+          env={
+              # This should be the `entry_point` argument, the code file containing model_fn, predict_fn, etc
+              "SAGEMAKER_PROGRAM": <"inference.py">
+          },
+          artifacts_download=ArtifactsDownload(
+              artifacts=[              	
+                  TruefoundryArtifactSource(
+                      # This should be the model version fqn obtained by running `upload_model.py`
+                      artifact_version_fqn=<"model_version_fqn">
+                      download_path_env_variable="MODEL_DIR",
+                  )
+              ],
+          ),
+          resources=Resources(
+              cpu_request=1,
+              cpu_limit=4,
+              memory_request=8000,
+              memory_limit=16000,
+              ephemeral_storage_request=10000,
+              ephemeral_storage_limit=16000,
+              devices=[
+                  NvidiaGPU(name=GPUType.T4, count=1)
+              ]
+          ),
+          liveness_probe=HealthProbe(
+              config=HttpProbe(path="/ping", port=8080),
+              initial_delay_seconds=30,
+              period_seconds=10,
+              timeout_seconds=1,
+              success_threshold=1,
+              failure_threshold=5,
+          ),
+          readiness_probe=HealthProbe(
+              config=HttpProbe(path="/ping", port=8080),
+              initial_delay_seconds=30,
+              period_seconds=10,
+              timeout_seconds=1,
+              success_threshold=1,
+              failure_threshold=5,
+          ),
+      )
+      service.deploy(workspace_fqn=<"workspace_fqn">, wait=False)
+
+  if __name__ == '__main__':
+      main()
+  ```
+</CodeGroup>
+
+5. Deploy using `servicefoundry`
+
+<CodeGroup>
+  ```bash bash
+  $ python deploy.py
+  ```
+</CodeGroup>
+
+6. Once the deployment has gone through, it can be tested using this script -
+
+<CodeGroup>
+  ```bash bash
+  if __name__ == "__main__":
+      # The URL of the endpoint you're sending the request to
+      url = 'https://<host.app.example.com>/predictions/model'
+
+      # Your JSON payload
+      data = {"inputs": <serialized_input>}
+
+      # Send the POST request with the JSON payload
+      response = requests.post(url, json=data)
+
+      # Check the response
+      if response.status_code == 200:
+          print("Request successful.")
+          # Process response data if needed
+          print(response.json())
+      else:
+          print("Request failed.", response.status_code)
+          print(response.text)
+  ```
+</CodeGroup>
+
+***
+
+[Deploy Truefoundry in an Air-gapped Environment](/docs/deploy-truefoundry-in-an-air-gapped-environment)
+
+[Create custom K8s objects](/docs/create-custom-k8s-objects)
+
+* [Table of Contents](#)
+
+* * [Existing Code](#existing-code)
+  * [Migration Workflow](#migration-workflow)
+  * * [Steps](#steps)

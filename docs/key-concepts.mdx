@@ -1,0 +1,107 @@
+---
+title: "TrueFoundry Key Concepts"
+description: "Key Concepts and Information Architecture to get started"
+---
+
+Before we get started with deploying on TrueFoundry, it's important to understand a few key concepts. These are primarily Cluster, Workspace, and ML Repo.
+
+## Cluster
+
+A cluster (Kubernetes Cluster) is a group of machines that can autoscale up and down. One cluster belongs to only one region, however, there can be multiple clusters in a region. A cluster represents a physical separation between resources. So we can have 2 clusters in Europe West, 1 cluster in us-east and 1 cluster in Asia.
+
+## Workspace
+
+A cluster can have multiple workspaces. Each workspace is a logical separation within a cluster so that different teams, applications, and environments can sit within a cluster. Each workspace is essentially a Kubernetes namespace.
+
+For e.g, let's say there are three teams within a company. Team1 manages application1, application2, team2 manages application3, and team3 manages application4 and application5. Each of the applications further has three environments - dev, staging, and production. One way to organize the workspaces can be:
+
+![](/images/docs/97157ba-image.png)
+
+We can also have the dev and prod workspaces in one cluster if you want to structure them like that.
+
+***
+
+### Creating a Workspace
+
+You can create a workspace from the Workspace tab in the platform. Once you create, you can get the FQN of the workspace from the FQN button.
+
+### Getting Workspace FQN
+
+In the Workspace section, locate your workspace and then click the FQN button on the right side to copy the FQN to your clipboard
+
+![](/images/docs/4d56ff5cc0312af8be61ec7912fe26adce50ac0495cf3dad7fac512017b1d244-image.png)
+
+## ML Repo
+
+ML Repos concepts in TrueFoundry are like Git repos for code versioning, except that ML Repos are meant for versioning of ML models, artifacts, and metadata. You can provide access to certain ML Repos to users, teams, or workspaces. Once a workspace has access to an ML repo, all applications inside the workspace can then read or write to the MLRepo depending on whether the workspace has viewer or editor access. This way, we don't need to inject any keys and this makes the entire system much more secure.
+
+![](/images/docs/7e11e87-image.png)
+
+In the case above, workspace1 has access to MLRepo1 and hence team1 can access the assets in MLrepo1. This way, you can also divide datasets and model access across teams and workspaces.
+
+### Creating a ML Repo
+
+<Info>
+  Before you can create an ML Repo, you'd need to connect one or more Blob Storages (S3, GCS, Azure Blob, MinIO, etc) to store artifacts and models associated with a ML Repo. If this one time setup is already done, you can skip to next section
+
+  You can refer to one of the following pages to connect your blob storage to TrueFoundry
+
+  * [AWS S3](doc:integration-provider-aws)
+  * [Google Cloud Storage](doc:integration-provider-gcp)
+  * [Azure Blob Storage](doc:integration-provider-azure)
+  * Any S3 API Compatible Storage
+</Info>
+
+You can then create an ML Repo from the ML Repo's tab in the Platform.
+
+### Grant access of ML Repo to Workspace
+
+Providing access to a certain ML Repos to a workspace ensures that every application in the Workspace gains access to that ML Repo. You can Grant access to an ML Repo to a Workspace while creating or editing a Workspace.
+
+## Environment
+
+An environment is a tag applied to workspaces to categorize them based on factors like development stage, team ownership, etc. For example: dev, staging, production, frontend, backend, etc. We create three environments initially dev, staging and prod - which you can change at any point of time.
+
+Its essential to assign an environment to the cluster and workspace. A cluster can be associated to multiple environments but a workspace can only be associated to one environment. For each environment, you can also mark the following two metadata:
+
+1. **IsProduction** - This helps the TrueFoundry platform to understand its a production environment and it can later give you insights related to access control, availability and security.
+2. **OptimizeFor (Cost / Availability)**: This helps put more optimization in the cluster to either minimize cost or increase availability.
+
+![](/images/docs/7d9faf0-Untitled-2023-10-03-0731-26.png)
+
+### Creating Environments
+
+To create an environment in TrueFoundry, follow these steps:
+
+### How to tag a workspace with an environment
+
+To tag a workspace with an environment, first, the Cluster where the workspace resides needs to have those environments added.
+
+For this, you will have to add all environments relevant to your cluster (one cluster can have multiple environments) in the cluster, using the instructions provided below.
+
+Now all your applications deployed within that specific workspace will have the environment of the workspace show up beside them.
+
+***
+
+[Create and Setup your account](/docs/create-and-setup-your-account)
+
+[Create Your First Deployment](/docs/create-your-first-deployment)
+
+* [Table of Contents](#)
+
+* * [Cluster](#cluster)
+
+  * [Workspace](#workspace)
+
+  * * [Creating a Workspace](#creating-a-workspace)
+    * [Getting Workspace FQN](#getting-workspace-fqn)
+
+  * [ML Repo](#ml-repo)
+
+  * * [Creating a ML Repo](#creating-a-ml-repo)
+    * [Grant access of ML Repo to Workspace](#grant-access-of-ml-repo-to-workspace)
+
+  * [Environment](#environment)
+
+  * * [Creating Environments](#creating-environments)
+    * [How to tag a workspace with an environment](#how-to-tag-a-workspace-with-an-environment)

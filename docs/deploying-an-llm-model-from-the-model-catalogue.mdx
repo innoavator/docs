@@ -1,0 +1,272 @@
+---
+title: "Deploying LLMs"
+description: "Deploying LLMs on your own cloud infrastructure in an optimal way can be complicated because of the following reasons:"
+---
+
+1. **Choosing the most optimal model server:** There are multiple options to serve LLMs ranging from using fastapi to more optimized model servers like [vLLM](https://github.com/vllm-project/vllm), [Nvidia Triton](doc:deploy-llms-using-nvidia-tensorrt-llm-trt-llm), etc.
+2. **GPU Provisioning and choosing the right GPU:** Provisioning GPUs and figuring out the right GPU for your LLM requires deep infrastructure understanding and benchmarking.
+3. **Configure Model Caching**: LLMs are quite big in size ranging from 5 GB to 150GB. Downloading such models on every restart incurs huge amount of networking cost and leads to lower startup times. Hence, we need to configure model caching to allow multiple downloads and make autoscaling faster.
+4. **Configure Autoscaling**: The most common metric that works for LLM autoscaling is requests per second. We will need to setup autoscaling metrics to make sure the service can scale up as traffic increases.
+5. **Hosting on multiple regions or clouds**: Sometime, you might not get availability of GPUs in one cloud provider or one region. So you will need to host the LLMs in multiple regions or cloud providers. This can allow you to utilize spot instances effectively and lower your LLM hosting by 70-80%.
+
+TrueFoundry simplifies the process of deploying LLM by automaticaly figuring out the most optimal way of deploying any LLM and configuring the correct set of GPUs. We also enable model caching by default and make it really easy to configure autoscaling based on your needs.
+
+To deploy a LLM, you can either choose one of the models in the LLM catalogue or **paste the HuggingFace LLM url**. Truefoundry will try its best to figure out the details from the models page and come up with the best deployment pattern for it. This should work for most of the LLM models - but you might have to tweak in some cases in case we don't find all the information on the HuggingFace page.
+
+## Pre-requisites
+
+Before you begin, ensure you have the following:
+
+* **Workspace**: To deploy your LLM, you'll need a workspace. If you don't have one, you can create it using this guide: [Create a Workspace](doc:key-concepts#creating-a-workspace)
+
+## Deploying a LLM
+
+Let's deploy a Llama2-7B LLM through the Model Catalouge
+
+<Info>
+  To access private models, enable the `Is it a private model?` toggle and enter a [Secret](doc:manage-secrets) containing your [HuggingFace Token](https://huggingface.co/docs/hub/en/security-tokens) from the HuggingFace account that has access to the model
+
+  ![](/images/docs/c93b94b6b158592aa081cc989e666bcd5e3788e07d4ae8e08f796de7e26839f7-image.png)
+</Info>
+
+## Sending Requests to your Deployed LLM
+
+You can send requests to each LLM through either the **"Completions"** endpoint or the **"Chat Completions"**.
+
+**Note:** Chat Completions Endpoint is available for models which have prompt templates for chat defined.
+
+You can send requests to your LLM using both the normal and streaming methods.
+
+* **Normal method**: Sends the entire request at once and receives the response as a JSON object.
+* **Streaming method**: Sends the request as a stream of events, allowing you to process the response as it arrives. This can be done with streaming APIs or with OpenAI APIs also.
+
+#### Making requests normally
+
+You can get the code to send your request in any language using the OpenAPI tab. Follow the instructions below.
+
+<CodeGroup>
+  ```bash bash
+  {
+    "model": "<YOUR_MODEL_NAME_HERE>",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a helpful assistant."
+      },
+      {
+        "role": "user",
+        "content": "Hello!"
+      }
+    ]
+  }
+  ```
+
+  ```bash bash
+  {
+    "model": "<YOUR_MODEL_NAME_HERE>",
+    "prompt": "This is a test prompt"
+  }
+  ```
+</CodeGroup>
+
+You can find `MODEL_NAME` with a GET request on `<YOUR_ENDPOINT_HERE>/v1/models`Here is a sample response
+
+![](/images/docs/64018df-image.png)
+
+For example, here is a Python code snippet to send a request to your LLM
+
+<CodeGroup>
+  ```bash bash
+  # pip install requests
+
+  import json
+
+  import requests
+
+  URL = "<YOUR_ENDPOINT_HERE>/v1/chat/completions"
+  headers = {"Content-Type": "application/json", "Accept": "text/event-stream"}
+  payload = {
+    "model": "<YOUR_MODEL_NAME_HERE>",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a helpful assistant."
+      },
+      {
+        "role": "user",
+        "content": "Hello!"
+      }
+    ]
+  }
+
+  response = requests.post(URL, json=payload, headers=headers)
+
+  print(response.json())
+  ```
+
+  ```bash bash
+  # pip install requests
+
+  import json
+
+  import requests
+
+  URL = "<YOUR_ENDPOINT_HERE>/v1/completions"
+  headers = {"Content-Type": "application/json", "Accept": "text/event-stream"}
+  payload = {
+    "model": "llama-2-7b-chat-hf",
+    "prompt": "This is a test prompt"
+  }
+
+  response = requests.post(URL, json=payload, headers=headers)
+
+  print(response.json())
+  ```
+</CodeGroup>
+
+#### Making requests via streaming client
+
+Streaming requests allow you to receive the generated text from the LLM as it is being produced, without having to wait for the entire response to be generated. This method is useful for applications that require real-time processing of the generated text.
+
+<CodeGroup>
+  ```bash bash
+
+  from openai import OpenAI
+  import json
+
+  client = OpenAI(
+    base_url="<YOUR_ENDPOINT_HERE>/v1",
+    api_key="TEST",
+  )
+  stream = client.chat.completions.create(
+      messages = [
+         {"role": "user", "content": "Enter your prompt here"},
+      ],
+      model= "<YOUR_MODEL_NAME_HERE>",
+      stream=True,
+      max_tokens=500,
+  )
+  for chunk in stream:
+      if chunk.choices[0].delta.content is not None:
+          print(chunk.choices[0].delta.content, end="")
+  ```
+</CodeGroup>
+
+## Additional Configuration
+
+Optionally, in the advanced options, you might want to
+
+* [Add Authentication to Endpoints](doc:define-ports-and-domains#adding-basic-authentication-to-service)
+
+  <Info>
+    If you add Basic Authentication with username and password, you can pass them to OpenAI SDK using `default_headers` argument
+
+    python
+
+    ```
+    import base64
+    from openai import OpenAI
+
+    username = "..."
+    password = "..."
+    credentials = f"{username}:{password}"
+    encoded_credentials = base64.b64encode(credentials.encode()).decode()
+
+    client = OpenAI(
+      base_url="<YOUR_ENDPOINT_HERE>/v1",
+      api_key="TEST",
+      default_headers={"Authorization": f"Basic {encoded_credentials}"},
+    )
+    ```
+  </Info>
+
+* Configure [Autoscaling](doc:scaling-and-autoscaling) and [Rollout Strategy](doc:rollout-strategy)
+
+## Making LLM in TrueFoundry Model Registry Deployable
+
+If you are logging a LLM in TrueFoundry Model Registry, we would need some metadata to make it deployable - Specifically `pipeline_tag`, `library_name` and `base_model` / `huggingface_model_url`
+
+You can add / update these using the `truefoundry[ml]` Python SDK. Make sure to complete the [Setup for CLI](doc:setup) steps
+
+<CodeGroup>
+  ```bash bash
+  pip install -U truefoundry[ml]
+  tfy login --host <Your TrueFoundry Platform Url>
+  ```
+</CodeGroup>
+
+Here is an example:
+
+Say we finetuned a model based on `Meta-Llama-3-8B-Instruct` and are logging it in TrueFoundry Model Registry, we can add metadata like so:
+
+1. **Updating an already logged model**
+
+<Frame caption="Get the model version FQN">
+  <img src="/images/docs/b7c1847-image.png" />
+</Frame>
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.ml import get_client, ModelFramework
+
+  # Base Model ID from Huggingface Hub
+  base_model = "NousResearch/Meta-Llama-3-8B-Instruct"
+  logged_model_fqn = "<Copy the FQN from UI and Paste>"
+
+  client = get_client()
+  model_version = client.get_model_version_by_fqn(fqn=logged_model_fqn)
+  model_version.metadata.update({
+      "pipeline_tag": "text-generation",
+      "library_name": "transformers",
+      "base_model": base_model,
+      "huggingface_model_url": f"https://huggingface.co/{base_model}"
+  })
+  model_version.update()
+  ```
+</CodeGroup>
+
+2. **Or, While logging a new model**
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.ml import get_client, TransformersFramework
+
+  # Base Model ID from Huggingface Hub
+  base_model = "NousResearch/Meta-Llama-3-8B-Instruct"
+
+  client = get_client()
+  model_version = client.log_model(
+    ml_repo="my-ml-repo",
+    name="my-finetuned-llama-3-8b,
+    model_file_or_folder="path/to/local/model", # Model location on disk
+    framework=TransformersFramework(
+        library_name="transformers",
+        pipeline_tag="text-generation",
+        base_model=base_model,
+    ),
+    metadata={
+        "library_name": "transformers",  
+        "pipeline_tag": "text-generation",  
+        "base_model": base_model,
+        "huggingface_model_url": f"https://huggingface.co/{base_model}"
+    },
+  )  
+  print(model_version.fqn)
+  ```
+</CodeGroup>
+
+With this done, you should see a deploy button on the UI
+
+***
+
+What’s Next
+
+* [Send Requests to the Deployed LLM](/docs/how-to-infer-from-a-model-deployed-from-the-model-catalogue)
+
+* [Table of Contents](#)
+
+* * [Pre-requisites](#pre-requisites)
+  * [Deploying a LLM](#deploying-a-llm)
+  * [Sending Requests to your Deployed LLM](#sending-requests-to-your-deployed-llm)
+  * [Additional Configuration](#additional-configuration)
+  * [Making LLM in TrueFoundry Model Registry Deployable](#making-llm-in-truefoundry-model-registry-deployable)

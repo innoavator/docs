@@ -1,0 +1,171 @@
+---
+title: "Autoscaling"
+description: "While deploying a service, you can provision multiple instances of your container (pod in the kubernetes world) so that the incoming traffic is load-balanced between the multiple instances. We refer to each such instance as a replica in Truefoundry. While deploying at Truefoundry, the default value of a replica is 1. While this is fine for development purposes, a single replica is not the best choice for production workloads because of the following reasons:"
+---
+
+1. If one replica goes down because of any reason, the entire service goes down. Having 2-3 replicas at minimum helps provide more fault-tolerance.
+2. A single replica might not be able to take all of the incoming traffic and hence cause client side errors.
+
+To increase the number of replicas, we can either set it to a fixed higher value or enable autoscaling so that the number of replicas is automatically adjusted based on some configuration of incoming traffic, or cpu usage.
+
+## Setting Fixed Number of Replicas
+
+This can be a good choice if the incoming traffic remains constant and we have a good idea of the number of replicas needed. To set the replicas using the UI, you can follow the steps below:
+
+If you are using Python SDK to manage deployments then you need to add the following in your **deploy.py** file:
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.deploy import Build, Service, DockerFileBuild, Port
+
+  service = Service(
+      name="my-service",
+      image=Build(build_spec=DockerFileBuild()),
+      ports=[
+        Port(
+          host="your_host",
+          port=8501
+        )
+      ],
+  +  	replica=3,
+  )
+  service.deploy(workspace_fqn="YOUR_WORKSPACE_FQN")
+  ```
+</CodeGroup>
+
+## Enable Autoscaling
+
+When the traffic or resource usage of the service is not constant, we ideally want the number of replicas to go up and down based on the incoming traffic. We need to define the minimum and maximum number of replicas in this case and the autoscaling strategy will decide what should be the number of replicas between the min and max replicas. We can enable autoscaling based on the following parameters:
+
+1. **CPU Usage:** If the application's cpu usage goes up when traffic increases, this can be a good parameter to autoscale on. For e.g., let's say your application (one replica) consumes 0.3 vCPU on steady state - however, as traffic goes up, the CPU usage starts increasing to a max of 1 CPU. In this case, setting autoscaling to trigger when CPU usage is greater than 0.6 can be a good idea.
+2. **Requests Per Second (RPS)**: This is the easiest to reason about and calculate. We can benchmark our service to decide how many requests per second can be served by one replica using benchmarking tools like [Locust](https://docs.locust.io/en/stable/installation.html). Let's say one replica can serve 10 requests per second without an degradation in quality (increase in latency or errors). If we expect the traffic to vary from 50 requests per second to 200 requests per second, we can set the minimum replicas to 5, maximum to 20 and set the rps autoscaling metric to 10.
+3. **Time Based Autoscaling**: This can be useful if the traffic patterns shift based on timezones, or you want to shut down dev workloads during non-office hours. For e.g, if you want to scale up replicas only between Monday to Friday 9AM to 9PM, you can set time based scheduling with cron start schedule as `0 9 * * 1-5` and end schedule as `0 21 * * 1-5`.
+
+In most cases, **RPS** turns out as the most effective and simple to understand metric for autoscaling.
+
+## Configure Autoscaling for an Application Via UI
+
+## Configure Autoscaling for an Application Via Python SDK
+
+In your Service deployment code (**deploy.py**), include the following for autoscaling on RPS:
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.deploy import Build, Service, DockerFileBuild, Port, Autoscaling, RPSMetric
+
+  service = Service(
+      name="my-service",
+      image=Build(build_spec=DockerFileBuild()),
+      ports=[
+        Port(
+          host="your_host",
+          port=8501
+        )
+      ],
+  +    replicas = Autoscaling(
+  +        min_replicas=1,
+  +        max_replicas=3,
+  +        metrics=RPSMetric(
+  +            value=2
+  +        ),
+  +    )
+  )
+  service.deploy(workspace_fqn="YOUR_WORKSPACE_FQN")
+  ```
+</CodeGroup>
+
+In your Service deployment code (**deploy.py**), include the following for autoscaling on CPU utilization:
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.deploy import Build, Service, DockerFileBuild, Port, Autoscaling, CPUUtilizationMetric
+
+  service = Service(
+      name="my-service",
+      image=Build(build_spec=DockerFileBuild()),
+      ports=[
+        Port(
+          host="your_host",
+          port=8501
+        )
+      ],
+  +    replicas = Autoscaling(
+  +        min_replicas=1,
+  +        max_replicas=3,
+  +        metrics=CPUUtilizationMetric(
+  +            value=30
+  +        ),
+  +			)
+  )
+  service.deploy(workspace_fqn="YOUR_WORKSPACE_FQN")
+  ```
+</CodeGroup>
+
+In your Service deployment code (**deploy.py**), include the following for time based autoscaling:
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.deploy import Build, Service, DockerFileBuild, Port, Autoscaling, CronMetric
+
+  service = Service(
+      name="my-service",
+      image=Build(build_spec=DockerFileBuild()),
+      ports=[
+        Port(
+          host="your_host",
+          port=8501
+        )
+      ],
+  +    replicas = Autoscaling(
+  +        min_replicas=1,
+  +        max_replicas=3,
+  +        metrics=CronMetric(
+  +            desired_replicas: Any | None,
+  +            start: "0 9 * * 1-5", # Check https://crontab.guru/ for cron expressions
+  +            end: "0 21 * * 1-5", # You can see the list of supported timezones at https://docs.truefoundry.com/docs/list-of-supported-timezones
+  +            timezone: "Europe/London" 
+  +        ),
+  +    )
+  )
+  service.deploy(workspace_fqn="YOUR_WORKSPACE_FQN")
+  ```
+</CodeGroup>
+
+### Advanced configuration
+
+* `polling_interval`: Time interval in seconds to check the metrics on. By default, autoscaler will check metrics every 30 seconds.
+* `cooldown_period`: Time in seconds for which autoscaler waits before scaling to absolute `zero` replicas. It is **only** application in case the `min_replicas` is set to `0`. (default: 300)
+
+# Auto Shutdown
+
+This feature allows your workloads to automatically scale down to zero when they are idle, effectively eliminating unnecessary costs without sacrificing performance. You can specify the time during which, if no requests are received, the replicas should be scaled down to zero.
+
+## Installation
+
+You need to install an infra component called Elasti before using it. You can go to cluster page and install the component from modules.
+
+![](/images/docs/ef5fd42d215b4a8456fbafaedac6e18a1aecfd9ec363d9316512033dc2f7c8ba-image.png)
+
+## Usage
+
+This feature can be enabled from the advanced configuration in a Service's deployment configuration page.
+
+![](/images/docs/d684b01a06afea52360c6aa6f7d1b7469d69fe13596de47c3833061697e76b31-image.png)
+
+***
+
+[Environment Variables and Secrets](/docs/environment-variables-and-secrets-services)
+
+[Benchmarking your deployed service using Locust](/docs/benchmarking-your-deployed-service-using-locust)
+
+* [Table of Contents](#)
+
+* * * [Setting Fixed Number of Replicas](#setting-fixed-number-of-replicas)
+    * [Enable Autoscaling](#enable-autoscaling)
+    * [Configure Autoscaling for an Application Via UI](#configure-autoscaling-for-an-application-via-ui)
+    * [Configure Autoscaling for an Application Via Python SDK](#configure-autoscaling-for-an-application-via-python-sdk)
+
+  * [Auto Shutdown](#auto-shutdown)
+
+  * * [Installation](#installation)
+    * [Usage](#usage)

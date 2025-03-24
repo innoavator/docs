@@ -1,0 +1,164 @@
+---
+title: "XGBoost"
+description: "Logging and Deploying XGBoost Models in Truefoundry"
+---
+
+We will need to know some information about the model you are logging to generate a deployment package.
+
+* To load the model:
+  * The serialization format (`joblib`,`cloudpickle`, `pickle` or`json`) and the model file name.
+* To generate the inference script and wrap it around a model server:
+  * The input and output schema of the inference method. **NOTE** For XGBoost models we only support `predict` inference method name as of now.
+* To deploy and run:
+  * Python version along with pip package (numpy, xgboost) dependencies.
+
+***
+
+### **Log a deployable XGBoost Model**
+
+Below is an example of logging a model trained using XGBoost:
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.ml import get_client, XGBoostFramework, xgboost_infer_schema
+
+  import joblib
+  import os
+  import numpy as np
+  from xgboost import XGBClassifier
+
+  X = np.array([[-1, -1], [-2, -1], [1, 1], [2, 1]])
+  y = np.array([0, 0, 1, 1])
+  clf = XGBClassifier()
+  clf.fit(X, y)
+
+  name = "my-xgboost-model"
+  LOCAL_MODEL_DIR = f"{name}/"
+  model_file_name = "xgboost-model.joblib"
+  model_file_path = f"{name}/{model_file_name}"
+
+  os.makedirs(LOCAL_MODEL_DIR, exist_ok=True)
+  joblib.dump(clf, model_file_path)
+
+  client = get_client()
+  model = joblib.load(model_file_path)
+  model_schema = xgboost_infer_schema(
+      model_input=X, model=model,
+  )
+  model_version = client.log_model(
+      ml_repo="project-classification",
+      name="my-xgboost-model",
+      description="A simple xgboost model",
+      model_file_or_folder=model_file_path,
+      framework=XGBoostFramework(
+          model_filepath=model_file_name,
+          serialization_format="joblib",
+          model_schema=model_schema,
+      ),
+  )
+  ```
+</CodeGroup>
+
+* View and manage recently logged models in the ML Repos.
+
+![](/images/docs/81c3542d1264f8fa538303208155f4497517d370783d1f73fa0331d0f2c21846-image.png)
+
+* Access framework details like serialization format, model schema, and inference method.
+
+![](/images/docs/64ddb6d1e92c93da3b528d060f5dca095a162fb77146952155a00d4d6946407f-image.png)
+
+* Access environment details like the Python version and pip packages list required for a specific model version.
+
+![](/images/docs/bd9055b6ddc16dd1f35e1732a9ee1e216b1804723b1083638ded0d9983dda171-image.png)
+
+***
+
+### **Deploy the model**
+
+Once the model is deployable, you can start the deployment flow directly using the CLI.
+
+**Navigate to the Model Registry**
+
+* Locate the desired model in the list and click on the **Deploy** button
+
+![](/images/docs/72d799915248b761330b0a2559491e473676755621f807dc67b334b22802bec8-image.png)
+
+* Select the **workspace** for deployment, then click the **copy** icon to use the generated CLI command and initialize the model deployment package.
+
+![](/images/docs/057e8afe5728521fa3c46d2b5af232ebc8221fa29047752491e75132e87e1477-image.png)
+
+***
+
+### Common Model Deployment Issues and Troubleshooting Guide
+
+* **Fix for Incomplete Model Manifest and make an existing logged model deployable**
+
+  <Info>
+    -`Model framework is not supported for deployment` -`Model filename not found, please save model filename while logging the model` -`Model schema not found, please save schema while logging the model` -`Serialization format not found, please save serialization format while logging the model`
+  </Info>
+
+  Here’s an example code snippet to resolve the Incomplete Model Manifest by adding the required fields and updating the model version:
+
+  <CodeGroup>
+    ```bash bash
+    from truefoundry.ml import get_client, ModelVersionEnvironment, XGBoostFramework, xgboost_infer_schema
+    import joblib
+    import numpy as np
+
+    # Replace with your model version FQN
+    model_version_fqn = "model:truefoundry/project-classification/my-xgboost-model:1"
+
+    client = get_client()
+    model_version = client.get_model_version_by_fqn(model_version_fqn)
+    model_version.download(path=".")
+
+    # Replace with your model file path
+    model_file_path = "./xgboost-model.joblib"
+    model = joblib.load(model_file_path)
+
+    # Update the model input example as per your model
+    X = np.array([[-1, -1], [-2, -1], [1, 1], [2, 1]])
+    model_schema = xgboost_infer_schema(model_input=X, model=model)
+
+    # To make the model deployable and generate the inference script, model file, and schema(with the method name) are required.
+    model_version.framework = XGBoostFramework(
+        model_filepath="xgboost-model.joblib",
+        serialization_format="joblib",
+        model_schema=model_schema,
+    )
+    model_version.environment = ModelVersionEnvironment(
+        python_version="3.11",
+        pip_packages=[
+            "joblib==1.4.2",
+            "numpy==1.26.4",
+            "pandas==2.1.4",
+            "xgboost==2.1.3",
+        ],
+    )
+    model_version.update()
+    ```
+  </CodeGroup>
+
+***
+
+* `Python version < 3.8 and > 3.12 is not supported for Triton deployment`
+
+  The Triton deployment depends on the nvidia-pytriton library ([https://pypi.org/project/nvidia-pytriton/](https://pypi.org/project/nvidia-pytriton/)) which supports Python versions >=3.8 and \<=3.12. If you need to use a version outside this range, consider using FastAPI as an alternative framework for serving the model.
+
+***
+
+* `Numpy version must be specified for Triton deployment`,`Numpy version must be less than 2.0.0 for Triton deployment`
+
+  The nvidia-pytriton library specifies in its `pyproject.toml` file that it does not support numpy versions >=2.0. This limitation has been confirmed through practical experience. If you need to use a version outside this range, consider using FastAPI as an alternative framework for serving the model.
+
+***
+
+[Scikit Learn](/docs/scikit-learn)
+
+[Setup Gitops using Truefoundry](/docs/setup-gitops-using-truefoundry)
+
+* [Table of Contents](#)
+
+* * [Log a deployable XGBoost Model](#log-a-deployable-xgboost-model)
+  * [Deploy the model](#deploy-the-model)
+  * [Common Model Deployment Issues and Troubleshooting Guide](#common-model-deployment-issues-and-troubleshooting-guide)

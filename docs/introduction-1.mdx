@@ -1,0 +1,40 @@
+---
+title: "Overview"
+description: "LLMOps has become crucial specially when we are building LLM applications and deploying them in production. While building a demo with LLMs has been made quite easy with libraries like Langchain and LlamaIndex, getting an LLM to production still requires significant effort. If you are working with LLMs, you are probably adopting the approaches mentioned below and will have to solve atleast few of the corresponding issues."
+---
+
+**Prompt Engineering**
+
+1. Storing all prompts and maintaining versions of prompts.
+2. Implemeting retries, fallback while calling LLM provider APIs like Cohere, Anthropic.
+3. LLM Model deployment if you are hosting an open source model.
+4. Logging of all prompt response pairs for auditability and finetuning later.
+5. Response moderation from LLMs to remove hate language and or comply with brand guidelines.
+6. Monitoring of costs, api requests and latency
+7. Cache queries and responses to save costs and latency.
+
+**Retrieval Augmented Generation**
+
+1. Write logic for data loading and chunking
+2. Figure out which embedding and LLM Model to use.
+3. Deploying VectorDBs
+4. Building an feedback collection and evaluation system to evaulate your RAG accuracy.
+5. Semantic Caching of queries
+
+**LLM Finetuning**
+
+1. You might need to finetune models if you have unique set of data and you want to alter the behaviour of the LLM
+2. You want to finetune smaller LLMs to specific tasks like Classification, etc.
+
+Truefoundry assists you in your LLM application journey when you are looking to take your demo built using Langchain/LlamaIndex to production. They key areas where Truefoundry helps in LLM development are:
+
+1. **Experiment with multiple LLMs** (ChatGPT, Cohere, Anthropic, Llama and other open source LLMs) and embedding models using a single unified API in Truefoundry's [LLM Playground](doc:llm-playground). You can get hosted endpoints for most of the popular open source models and you don't need to deploy them to test them out.
+2. **Implement retries, fallbacks, caching for your API requests** to improve reliability and latency. Check out [LLM Gateway](doc:llm-gateway).
+3. **Implement logging and monitoring for all LLM requests** with an option to record feedback from the user for the requests. Check out [LLM Gateway](doc:llm-gateway).
+4. **Build a QA system over docs using RAG** - Truefoundry provides a one click RAG production deployment setup which allows you to ask questions over different set of documents, allow incremental indexing and provide the best accuracy. Check out [Building a RAG based QA system.](doc:build-qa-using-rag)
+5. **Deploying open source models on your own cloud environment** - This can be the case when you cannot send your data over an API to an external provider. Truefoundry helps you deploy the LLM models in a reliable, and cost-effective manner on AWS, GCP, Azure or other cloud providers. Check out [Deploy LLM.](doc:deploying-an-llm-model-from-the-model-catalogue)
+6. **Fine tune LLM Models** - Truefoundry can help you finetune LLMs to your own data in a reliable and cost effective way by enabling finetuning on spot instances on your own infrastructure so that data doesn't leave your environment. Check out [LLM Finetuning](doc:finetuning-a-model-from-the-model-catalogue).
+
+***
+
+[Infra Set-Up for Workflows](/docs/infra-set-up-for-workflows)

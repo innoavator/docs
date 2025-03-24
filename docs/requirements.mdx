@@ -1,0 +1,207 @@
+---
+title: "Requirements"
+description: "Requirements for Truefoundry installation on AWS"
+---
+
+Following is the list of requirements to set up compute plane in your AWS account
+
+# AWS Infra Requirements
+
+## New VPC + New Cluster
+
+These are the requirements for a fresh Truefoundry installation. If you are reusing an existing network or cluster, refer to the sections further below, in addition to this one
+
+| Requirements                                   | Description                                                                                                                                                                                                                                                                                         | Reason for Requirement                                                                                                                                                                                                                                                                                                                                           |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AWS Account                                    | Billing must be enabled for the AWS account.                                                                                                                                                                                                                                                        |                                                                                                                                                                                                                                                                                                                                                                  |
+| VPC                                            | * VPC CIDR should be atleast `/20` for the VPC
+* Min 2 availability zone and `/24` for private subnets                                                                                                                                                                                              | This is needed to ensure around 250 instances and 4096 pods can be run in the Kubernetes cluster. If we expect the scale to be higher, the subnet range should be increased.A NAT Gateway must be connected in the VPC and the route tables should allow outbound internet access for private subnets through this NAT gateway.                                  |
+| Egress access For Docker Registry              | 1. public.ecr.aws 2. quay.io 3. ghcr.iod 4. docker.io/truefoundrycloud 5. docker.io/natsio 6. nvcr.io 7. registry.k8s.io                                                                                                                                                                            | This is to download docker images for TrueFoundry, ArgoCD, NATS, GPU operator, ArgoRollouts, ArgoWorkflows, Istio, Keda.                                                                                                                                                                                                                                         |
+| DNS with SSL/TLS                               | Set of endpoints (preferably wildcard) to point to the deployments being made. Something like *.internal.example.com,*.external.example.com. An ACM certificate with the chosen domains as SAN is required in the same region                                                                       | When developers deploy their services, they will need to access the endpoints of their services to test it out or call from other services. This is why we need the DNS along with TLS on the compute plane. Its better if we can make it a wildcard since then developers can deploy services like service1.internal.example.com, service2.internal.example.com |
+| ACM Certificate                                | We need to have a certificate for the domains listed above. The certificate ARN will be passed to the Istio Ingress config.                                                                                                                                                                         | If you have a certificate from some other source, that can also work by creating a secret with the certificate in `istio-system` namespace.                                                                                                                                                                                                                      |
+| Cloud Quotas                                   | **GPU** If you are planning to use GPU machines, make sure you have quotas for:* G and VT Spot/On-demand Instances
+* P Spot/On-demand Instance Requests**Inferentia** (Optional)
+* If you are planning to use Inferentia machines, make sure you have quota for Inferentia Spot/On-demand machines. | This is to make sure that TrueFoundry can bring up the instances as requested by developers. **A request needs to be raised to AWS for increasing the limits for instances in case we don't have quotas.** You can check and increase your quotas at [AWS EC2 service quotas](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-resource-limits.html)      |
+| User / ServiceAccount to provision the cluster | 1.`sts` must be enabled for the user which is being used to create the cluster. 2. User must have the list of permissions listed [below](doc:infrastructure-requirements#vpc-tags)                                                                                                                  | See [Enabling STS in a region](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_enable-regions.html#sts-regions-activate-deactivate)                                                                                                                                                                                                         |
+
+## Existing network
+
+| Requirements | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Reason for Requirement                                                                                                                                                                                                                                                                                                          |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| VPC          | * Minimum 2 private subnets in different availability zone with min CIDR /24
+* Tags should be present on the VPC as described [below](doc:infrastructure-requirements#vpc-tags) .
+* NAT gateway for private subnets
+* Minimum 1 public subnet for a public load balancer if endpoints are to be exposed to internet. [Auto-assign IP address](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-launch-instance-wizard.html#liw-network-settings:~:text=Auto%2Dassign%20Public,IPv4%20addresses.) must be enabled. Min CIDR /28
+* [DNS support](https://docs.aws.amazon.com/glue/latest/dg/set-up-vpc-dns.html) and [DNS hostnames](https://docs.aws.amazon.com/glue/latest/dg/set-up-vpc-dns.html) must be enabled for your VPC | This is needed to ensure around 250 instances and 4096 pods can be run in the Kubernetes cluster. If we expect the scale to be higher, the subnet range should be increased.A NAT Gateway must be connected in the VPC and the route tables should allow outbound internet access for private subnets through this NAT gateway. |
+
+### VPC Tags
+
+Your subnets must have the following tags for the Truefoundry terraform code to work with them. You can skip it if you are creating a new network in which case these will automatically be created.
+
+#### Private Subnets
+
+<CodeGroup>
+  ```bash bash
+  "kubernetes.io/cluster/${clusterName}": "shared"
+  "subnet": "private"
+  "kubernetes.io/role/internal-elb": "1"
+  ```
+</CodeGroup>
+
+#### Public Subnets
+
+<CodeGroup>
+  ```bash bash
+  "kubernetes.io/cluster/${clusterName}": "shared"
+  "subnet": "public"
+  "kubernetes.io/role/elb": "1"
+  ```
+</CodeGroup>
+
+## Existing cluster
+
+| Requirements | Description                                                                                                       | Reason for Requirement |
+| ------------ | ----------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| Compute      | **CPU**- All Standard (A, C, D, H, I, M, R, T, Z) Spot/On-demand must have min 4vCPU and 8 GB RAM
+- At least TODO |                        |
+
+## Permissions required to create the infrastructure
+
+Following policy must be attached to the IAM user being used to execute terraform
+
+<CodeGroup>
+  ```bash bash
+  export REGION="" # us-east-1
+  export SHORT_REGION="" #usea1
+  export ACCOUNT_ID="" #123524493244
+  export NAME="" 
+  ```
+</CodeGroup>
+
+<CodeGroup>
+  ```bash bash
+  {
+      "Version": "2012-10-17",
+      "Statement": [
+          {
+              "Effect": "Allow",
+              "Action": [
+                  "ec2:*",
+                  "eks:*",
+                  "elasticfilesystem:*",
+                  "kms:*",
+                  "route53:AssociateVPCWithHostedZone",
+                  "sts:GetCallerIdentity",
+                  "iam:GetRole"
+              ],
+              "Resource": "*"
+          },
+          {
+              "Effect": "Allow",
+              "Action": [
+                  "dynamodb:*"
+              ],
+              "Resource": "arn:aws:dynamodb:$REGION:$ACCOUNT_ID:table/$NAME-$REGION-tfy-ocli-table"
+          },
+          {
+              "Effect": "Allow",
+              "Action": [
+                  "iam:AddRoleToInstanceProfile",
+                  "iam:CreateInstanceProfile",
+                  "iam:DeleteInstanceProfile",
+                  "iam:GetInstanceProfile",
+                  "iam:RemoveRoleFromInstanceProfile",
+                  "iam:TagInstanceProfile"
+              ],
+              "Resource": "arn:aws:iam::$ACCOUNT_ID:instance-profile/*"
+          },
+          {
+              "Effect": "Allow",
+              "Action": [
+                  "iam:CreateOpenIDConnectProvider",
+                  "iam:DeleteOpenIDConnectProvider",
+                  "iam:GetOpenIDConnectProvider",
+                  "iam:TagOpenIDConnectProvider"
+              ],
+              "Resource": "arn:aws:iam::$ACCOUNT_ID:oidc-provider/*"
+          },
+          {
+              "Effect": "Allow",
+              "Action": [
+                  "iam:CreatePolicy",
+                  "iam:DeletePolicy",
+                  "iam:GetPolicy",
+                  "iam:TagPolicy",
+                  "iam:GetPolicyVersion",
+                  "iam:ListPolicyVersions"
+              ],
+              "Resource": [
+                  "arn:aws:iam::$ACCOUNT_ID:policy/tfy-*",
+                  "arn:aws:iam::$ACCOUNT_ID:policy/AmazonEKS_Karpenter_Controller_Policy*",
+                  "arn:aws:iam::$ACCOUNT_ID:policy/AmazonEKS_CNI_Policy*"
+              ]
+          },
+          {
+              "Effect": "Allow",
+              "Action": [
+                  "iam:*"
+              ],
+              "Resource": [
+                  "arn:aws:iam::$ACCOUNT_ID:role/tfy-*",
+                  "arn:aws:iam::$ACCOUNT_ID:role/initial-*"
+              ]
+          },
+          {
+              "Effect": "Allow",
+              "Action": [
+                  "s3:*"
+              ],
+              "Resource": [
+                  "arn:aws:s3:::tfy-$SHORT_REGION-$NAME-ml*",
+                  "arn:aws:s3:::tfy-$SHORT_REGION-$NAME-ml*/*",
+                  "arn:aws:s3:::$NAME-$REGION-tfy-ocli-bucket",
+                  "arn:aws:s3:::$NAME-$REGION-tfy-ocli-bucket/*"
+              ]
+          },
+          {
+              "Effect": "Allow",
+              "Action": [
+                  "s3:ListBucket"
+              ],
+              "Resource": [
+                  "*"
+              ]
+          },
+          {
+              "Effect": "Allow",
+              "Action": [
+                  "events:*"
+              ],
+              "Resource": "arn:aws:events:$REGION:$ACCOUNT_ID:rule/tfy-$SHORT_REGION-$NAME*"
+          },
+          {
+              "Effect": "Allow",
+              "Action": [
+                  "sqs:*"
+              ],
+              "Resource": "arn:aws:sqs:$REGION:$ACCOUNT_ID:tfy-$SHORT_REGION-$NAME-karpenter"
+          }
+      ]
+  }
+  ```
+</CodeGroup>
+
+***
+
+[Architecture](/docs/infrastructure-requirements)
+
+[Setting up DNS and TLS in AWS](/docs/setting-up-dns-and-tls-in-aws)
+
+* [Table of Contents](#)
+
+* * [AWS Infra Requirements](#aws-infra-requirements)
+
+  * * [New VPC + New Cluster](#new-vpc--new-cluster)
+    * [Existing network](#existing-network)
+    * [Existing cluster](#existing-cluster)
+    * [Permissions required to create the infrastructure](#permissions-required-to-create-the-infrastructure)

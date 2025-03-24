@@ -1,0 +1,76 @@
+---
+title: "Mounting Volumes"
+description: "When we run model training jobs, the job will need to download the data from somewhere in order to be able to train the model. While doing this once is fine, but in case if we are planning to run multiple training jobs with different hyperparameters or other settings on the same set of data, it will be wasteful from a time and cost perspective for every job to download the same set of data again and again."
+---
+
+This is where volumes can help. We can download the data once to a volume and then mount it to multiple jobs. They can then pickup the data from the volume as if it was downloaded on disk at the location where the volume is mounted.
+
+## Mounting Volumes
+
+To use a persistent volume, we will first need to create one and then attach it to our deployments. You can learn how to create volumes using the [Creating a Volume](doc:creating-a-volume) guide
+
+## Attaching Volumes to a Deployment
+
+Here, we'll explore two different methods for attaching volumes to a deployment:
+
+* Through the User Interface (UI)
+* Using the Python SDK
+
+### Attaching Volumes through the User Interface (UI)
+
+### Attaching Volumes using the Python SDK
+
+The **`VolumeMount`** class is used to specify the details of the volume attachment. You need to provide the **`mount_path`** where you want to mount the volume within your Job and the **`volume_fqn`** which represents the FQN of the volume you want to attach.
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.deploy import Build, Job, DockerFileBuild, VolumeMount
+
+  service = Job(
+      name="my-job",
+      image=Build(build_spec=DockerFileBuild()),
+  +  mounts=[
+  +    VolumeMount(
+  +      mount_path="/data", #or your desired path
+  +      volume_fqn="your-volume-fqn"
+  +    )
+  +  ]
+  )
+  service.deploy(workspace_fqn="YOUR_WORKSPACE_FQN")
+  ```
+</CodeGroup>
+
+## Using mounted volumes in your deployment
+
+Once you've attached a volume to your deployment, you can use it like any other directory within your job's workflow. For instance, if you've downloaded a dataset, named `dataset.csv`, to a volume mounted at `/data`, you can directly access it from within the Job as shown in the code below:
+
+<CodeGroup>
+  ```bash bash
+  import os
+  import pandas as pd
+  ...
+
+  # Load the dataset from the mounted volume
+  data = pd.read_csv("/data/dataset.csv")
+
+  # Train the model
+  ...
+  ```
+</CodeGroup>
+
+***
+
+[Environment Variables and Secrets](/docs/environment-variables-and-secrets-jobs)
+
+[Set Retries And Timeout](/docs/retries-and-timeout)
+
+* [Table of Contents](#)
+
+* * [Mounting Volumes](#mounting-volumes)
+
+  * [Attaching Volumes to a Deployment](#attaching-volumes-to-a-deployment)
+
+  * * [Attaching Volumes through the User Interface (UI)](#attaching-volumes-through-the-user-interface-ui)
+    * [Attaching Volumes using the Python SDK](#attaching-volumes-using-the-python-sdk)
+
+  * [Using mounted volumes in your deployment](#using-mounted-volumes-in-your-deployment)

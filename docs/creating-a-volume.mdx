@@ -1,0 +1,94 @@
+---
+title: "Creating and Utilizing Volume"
+---
+
+# Creating a Volume
+
+After a brief moment, the deployment should become active, and your Volume Dashboard will transform to appear as follows:
+
+![](/images/docs/365997e-Screenshot_2023-08-24_at_10.56.38_AM.png)
+
+You can create a volume following the flow above, however, a few key things to understand in the Volume Creation form are as follows:
+
+### Workspace
+
+You can read more about workspace and how to create it [here](doc:key-concepts#creating-a-workspace).
+
+<Info>
+  This localized approach ensures that the volume's data is accessible only to the applications that are part of the same environment, enhancing security and organization.
+</Info>
+
+## Dynamically Provisioned Volumes
+
+### Storage Classes
+
+Storage classes provide a way to specify the type of storage that should be provisioned for a Volume. These storage classes differ in their characteristics, such as performance, durability, and cost. You can select the appropriate storage class for your Volume while creating it, from the Storage Class dropdown menu.
+
+![](/images/docs/d993a7f-image.png)
+
+The specific storage classes available will depend on the cloud provider you are using and what is preconfigured by the Infra team.
+
+<Info />
+
+You will usually see the following options in the storage classes based on the cloud provider:
+
+#### AWS Storage Classes
+
+| TrueFoundry Storage Name | Cloud Provider Storage Name | Storage Class   | Description                                                                                                                                                                                                           |
+| ------------------------ | --------------------------- | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| efs-sc                   | Elastic File System (EFS)   | efs.csi.aws.com | A fully managed, scalable, and highly durable elastic file system that offers high availability, automatic scaling, and cost-effective general file sharing. It's suitable for workloads with varying capacity needs. |
+
+#### GCP Storage Classes
+
+| TrueFoundry Storage Name | Cloud Provider Storage Name | Storage Class                | Description                                                                                                                                                                                                                                        |
+| ------------------------ | --------------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| standard-rwx             | Google Basic HDD Filestore  | filestore.csi.storage.gke.io | A cost-effective and scalable file storage solution ideal for general-purpose file storage and cost-sensitive workloads. It offers lower cost but also lower performance due to its HDD-based nature.                                              |
+| premium-rwx              | Google Premium Filestore    | filestore.csi.storage.gke.io | Provides higher performance and throughput compared to Basic HDD, making it suitable for I/O-intensive file operations and demanding workloads. It's SSD-based, offering higher performance at a higher cost.                                      |
+| enterprise-rwx           | Google Enterprise Filestore | filestore.csi.storage.gke.io | Delivers the highest performance, throughput, advanced features, multi-zone support, and high availability, making it ideal for mission-critical workloads and applications with strict availability requirements. It comes with the highest cost. |
+
+#### Azure
+
+| TrueFoundry Storage Name | Cloud Provider Storage Name       | Storage Class      | Description                                                                                                                                                           |
+| ------------------------ | --------------------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| azurefile                | Azure File Storage (Standard)     | file.csi.azure.com | Uses Azure Standard storage to create file shares for general file sharing across VMs or containers, including Windows apps. It offers cost-effective performance.    |
+| azurefile-premium        | Azure File Storage (Premium)      | file.csi.azure.com | Uses Azure Premium storage for higher performance, making it suitable for I/O-intensive file operations.                                                              |
+| azurefile-csi            | Azure File Storage (StandardCSI)  | file.csi.azure.com | Leverages Azure Standard storage with CSI for dynamic provisioning, potentially offering better performance and CSI features.                                         |
+| azurefile-csi-premium    | Azure File Storage (PremiumCSI)   | file.csi.azure.com | Combines Azure Premium storage with CSI for dynamic provisioning and high-performance file operations.                                                                |
+| azureblob-nfs-premium    | Azure Blob Storage (NFS Premium)  | blob.csi.azure.com | Uses Azure Premium storage with NFS v3 protocol for accessing large amounts of unstructured data and object storage, catering to demanding workloads with NFS access. |
+| azureblob-fuse-premium   | Azure Blob Storage (Fuse Premium) | blob.csi.azure.com | Uses Azure Premium storage with BlobFuse for accessing large amounts of unstructured data and object storage, suitable for workloads that require BlobFuse access.    |
+
+## Statically Provisioned Volumes
+
+Statically provisioned volume enable us to mount an already existing volume to workloads on truefoundry.
+
+To create a statically provisioned volume:
+
+* Find the PersistentVolume name you want to mount.
+* In the form choose `Statically Provisioned`
+* Enter the Persistent Volume Name and click on Submit
+
+![](/images/docs/412580d-image.png)
+
+## Copy Volume FQN (Fully Qualified Name)
+
+A volume FQN helps identify a Volume uniquely in Truefoundry. You will need it for mounting Volumes to your deployment
+
+A volume FQN looks something like: `tfy-volume://your-volume:your-workspace:your-volume-name`
+
+You can copy the Volume FQN from here:
+
+![](/images/docs/fae6abb-Screenshot_2023-11-20_at_3.42.20_AM.png)
+
+***
+
+[Introduction to Volume](/docs/introduction-to-volume)
+
+[Interacting with your Volume](/docs/adding-volume-browser)
+
+* [Table of Contents](#)
+
+* * [Creating a Volume](#creating-a-volume)
+
+  * * [Dynamically Provisioned Volumes](#dynamically-provisioned-volumes)
+    * [Statically Provisioned Volumes](#statically-provisioned-volumes)
+    * [Copy Volume FQN (Fully Qualified Name)](#copy-volume-fqn-fully-qualified-name)

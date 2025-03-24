@@ -1,0 +1,217 @@
+---
+title: "Deploy Truefoundry in an Air-gapped Environment"
+---
+
+# Overview
+
+An air-gapped environment is isolated from internet. This means all the artifacts(helm charts, container images) needed for the platform to work have to be made available locally or in an internal network without access to the internet.
+
+We do this by pushing all the images and helm charts to a dedicated OCI compatible container registry which should be accessible from the environment where the cluster is supposed to run. We have provided a list of images and a script to pull and push those images to any other registry.
+
+You will also need to provide access to an `npm` registry with [js-yaml](https://www.npmjs.com/package/js-yaml) package hosted from within the cluster.
+
+![](/images/docs/b1ff875f5782fdf385a44c28284abea98ef5e48f7019071c78a6961c6974861b-image.png)
+
+# Requirements
+
+In order to setup Truefoundry in an air-gapped environment, the following are needed
+
+1. An OCI compatible registry which should be able to serve the following (you can also reuse the Truefoundry's registry at `tfy.jfrog.io/tfy-images` for container images and `tfy.jfrog.io/tfy-helm` for helm charts instead of replicating the images locally)
+
+   1. OCI compatible images with a username password or any other authentication mechanism that is suitable
+   2. OCI compatible helm charts without authentication
+
+2. A secure environment that has access to the internet and image push access to the target registry. This is to push the images to the registry and will be required for initial setup and all upgrades
+
+3. The following should be installed in the environment to run the script
+
+   1. Python
+   2. Docker
+   3. Helm
+   4. Kubectl
+
+4. If running on AWS, karpenter needs access to certain APIs which have to be enabled on private VPC endpoints. Detailed instructions are available [here](https://karpenter.sh/docs/getting-started/getting-started-with-karpenter/#private-clusters)
+
+# Uploading artifacts to a private registry
+
+A list of images and helm charts needed by a Truefoundry installation is maintained in [infra-chart ](https://github.com/truefoundry/infra-charts)repo. Here is a list of Truefoundry Helm Charts that can be deployed depending on the environment you wish to deploy Truefoundry into
+
+* [AWS EKS (tfy-k8s-aws-eks-inframold)](https://raw.githubusercontent.com/truefoundry/infra-charts/refs/heads/main/charts/tfy-k8s-aws-eks-inframold/artifacts-manifest.json)
+* [Azure AKS (tfy-k8s-azure-aks-inframold)](https://raw.githubusercontent.com/truefoundry/infra-charts/refs/heads/main/charts/tfy-k8s-azure-aks-inframold/artifacts-manifest.json)
+* [Civo Talos (tfy-k8s-civo-talos-inframold)](https://raw.githubusercontent.com/truefoundry/infra-charts/refs/heads/main/charts/tfy-k8s-civo-talos-inframold/artifacts-manifest.json)
+* [GCP GKE Standard (tfy-k8s-gcp-gke-standard-inframold)](https://raw.githubusercontent.com/truefoundry/infra-charts/refs/heads/main/charts/tfy-k8s-gcp-gke-standard-inframold/artifacts-manifest.json)
+* [Generic Kubernetes Cluster (tfy-k8s-generic-inframold)](https://raw.githubusercontent.com/truefoundry/infra-charts/refs/heads/main/charts/tfy-k8s-generic-inframold/artifacts-manifest.json)
+
+## Push images and helm charts to the Registry
+
+1. To start download the artifacts manifest file of the helm chart from the list above and save in a local file. This file contains all the container images and helm charts needed for a Truefoundry installation
+   <CodeGroup>
+     ```bash bash
+     wget <link_to_artifacts_manifest>
+     ```
+   </CodeGroup>
+
+2. You must login to the target registry using the `docker` CLI
+   ```
+   docker login --username <username> --password <password> <target_registry>
+   ```
+
+3. To pull and push these images to your own registry, we have provided a sample python script [here](https://github.com/truefoundry/infra-charts/tree/main/scripts/upload-artifacts). Steps to prepare the environment -
+
+   1. Clone the `truefoundry/infra-charts` repo
+      <CodeGroup>
+        ```bash bash
+        git clone https://github.com/truefoundry/infra-charts.git
+        ```
+      </CodeGroup>
+   2. Create a virtual env to run the python script in
+      <CodeGroup>
+        ```bash bash
+        python3 -m venv venv
+        source venv/bin/activate
+        ```
+      </CodeGroup>
+   3. Install the `requirements.txt`
+      <CodeGroup>
+        ```bash bash
+        pip install -r infra-charts/scripts/upload-artifacts/requirements.txt
+        ```
+      </CodeGroup>
+
+4. The `upload_artifact.py` script takes in the following arguments
+
+   * `artifact_type` - this takes in the artifact type which can be either `image` or `helm`
+   * `file_path `- this is the location of the `artifacts-manifest.json` file that contains the details for all the container images and helm charts that are needed for the installation
+   * `destination_registry` - this is the registry you plan to use in your air-gapped environment
+
+5. Run script with the target container registry details
+   <CodeGroup>
+     ```bash bash
+     python infra-charts/scripts/upload-artifacts/upload_artifacts.py \
+       <artifact_type> artifacts-manifest.json \
+       <registry_url>
+     ```
+   </CodeGroup>
+
+## Deploying Inframold Charts
+
+1. Create a namespace for jspolicy
+
+<CodeGroup>
+  ```bash bash
+  kubectl create ns jspolicy
+  ```
+</CodeGroup>
+
+2. If your registry needs to be authenticated before you can pull images, then you have to authenticate the pods to pull the images. Create a secret with the registry auth information
+
+   <CodeGroup>
+     ```bash bash
+     kubectl create secret docker-registry regcred \
+     --docker-server=<registry_url> \
+     --docker-username=<username> \ 
+     --docker-password=<password> \
+     -n jspolicy
+     ```
+   </CodeGroup>
+
+3. Create a file called `jspolicy-values.yaml` with the following content
+
+   <CodeGroup>
+     ```bash bash
+     image: <registry_url>/loftsh/jspolicy:0.2.2
+     replicaCount: 2
+     env:
+     	## Needed if npmjs.org is not accessible
+       npm_config_registry: "https://tfy.jfrog.io/artifactory/api/npm/tfy-npm-registry-local"
+
+     ## only add this section if you need to authenticate against the registry
+     imagePullSecrets:
+     - regcred
+     ```
+   </CodeGroup>
+
+4. Install jspolicy helm chart
+
+<CodeGroup>
+  ```bash bash
+  helm install jspolicy \
+    <registry_url>/loft/jspolicy -n jspolicy --create-namespace -f jspolicy-values.yaml
+  ```
+</CodeGroup>
+
+5. Install the `ArgoCD` CRDs. These need to be installed first because the `JSPolicy` resources reference the `ArgoCD` CRD
+
+<CodeGroup>
+  ```bash bash
+  kubectl apply -f https://raw.githubusercontent.com/argoproj/argo-cd/master/manifests/crds/application-crd.yaml
+  ```
+</CodeGroup>
+
+6. Install `tfy-jspolicy-config` Chart to patch your images
+
+   1. Create a file called `jspolicy-config-values.yaml` with the following content. Make sure to add the registry url with proper protocol for `replaceArgoHelmRepo.registryReplacementMap`
+
+      <CodeGroup>
+        ```bash bash
+        ## @section replaceImageRegistry Configuration options for replacing the image registry
+        replaceImageRegistry:
+          ## @param replaceImageRegistry.enabled Enable or disable replacing the image registry
+          enabled: true
+          ## @param replaceImageRegistry.excludeNamespaces Namespaces to exclude from replacing the image registry
+          excludeNamespaces:
+            - kube-system
+            - kube-public
+            - kube-node-lease
+          ## @param replaceImageRegistry.includeNamespaces Namespaces to include from replacing the image registry. When non-empty, only these namespaces will be included
+          includeNamespaces: []
+          ## @param replaceImageRegistry.registryReplacementMap The image registry replacement map
+          ## registryReplacementMap:
+          ##   "docker.io": "mydocker.io"
+          ##   "*": "myjrog.io"
+          registryReplacementMap:
+            "*": <registry_url>
+
+        ## @section replaceArgoHelmRepo Configuration options for replacing the Argo Helm repository
+        replaceArgoHelmRepo:
+          ## @param replaceArgoHelmRepo.enabled Enable or disable replacing the Argo Helm repository
+          enabled: true
+          ## @param replaceArgoHelmRepo.excludeNamespaces Namespaces to exclude from replacing the argo helm repo
+          excludeNamespaces: []
+          ## @param replaceArgoHelmRepo.includeNamespaces Namespaces to include for replacing the argo helm repo. When non-empty, only these namespaces will be included
+          includeNamespaces: []
+          ## @param replaceArgoHelmRepo.registryReplacementMap The argo helm repository replacement map. Protocol is mandatory
+          ## registryReplacementMap:
+          ##   oci://myargohelm.io: "oci://tfyargohelm.io"
+          ##   http://myargohelm.io: "http://tfyargohelm.io"
+          registryReplacementMap:
+            "*": <registry_url>
+        ```
+      </CodeGroup>
+
+   2. Install the tfy-jspolicy-config chart
+
+      <CodeGroup>
+        ```bash bash
+        helm install tfy-jspolicy-config <registry_url>/infra-charts/tfy-jspolicy-config --version 0.1.5 -n jspolicy -f jspolicy-config-values.yaml
+        ```
+      </CodeGroup>
+
+7. Now the cluster is ready and you can continue with the appropriate installation steps from [here](https://docs.truefoundry.com/docs/truefoundry-architecture#compute-plane-in-your-own-cloud-environment-and-use-hosted-truefoundry-control-plane)
+
+***
+
+[SAML v2 with Azure AD](/docs/saml-v2-with-azure-ad)
+
+[Migrate Pytorch Sagemaker Endpoints to TrueFoundry Platform](/docs/migrate-pytorch-sagemaker-endpoints-to-truefoundry-platform)
+
+* [Table of Contents](#)
+
+* * [Overview](#overview)
+
+  * [Requirements](#requirements)
+
+  * [Uploading artifacts to a private registry](#uploading-artifacts-to-a-private-registry)
+
+  * * [Push images and helm charts to the Registry](#push-images-and-helm-charts-to-the-registry)
+    * [Deploying Inframold Charts](#deploying-inframold-charts)

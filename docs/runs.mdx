@@ -1,0 +1,708 @@
+---
+title: "Runs"
+---
+
+# `module` `Runs`
+
+***
+
+## `class` `MlFoundryRun`
+
+MlFoundryRun.
+
+### `property` auto\_end
+
+Tells whether automatic end for `run` is True or False
+
+***
+
+#### `property` dashboard\_link
+
+Get Mlfoundry dashboard link for a `run`
+
+***
+
+#### `property` fqn
+
+Get fqn for the current `run`
+
+***
+
+#### `property` ml\_repo
+
+Get ml\_repo name of which the current `run` is part of
+
+***
+
+#### `property` run\_id
+
+Get run\_id for the current `run`
+
+***
+
+#### `property` run\_name
+
+Get run\_name for the current `run`
+
+***
+
+#### `property` status
+
+Get status for the current `run`
+
+***
+
+### `function` `auto_log_metrics`
+
+auto\_log\_metrics.
+
+**Args:**
+
+* **`model_type`** (enums.ModelType): model\_type
+* **`data_slice`** (enums.DataSlice): data\_slice
+* **`predictions`** (Collection\[Any]): predictions
+* **`actuals`** (Optional\[Collection\[Any]]): actuals
+* **`class_names`** (Optional\[List\[str]]): class\_names prediction\_probabilities:
+
+**Returns:** ComputedMetrics:
+
+***
+
+### `function` `delete`
+
+This function permanently delete the run
+
+**Example:**
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+  client.create_ml_repo('iris-learning')
+  run = client.create_run(ml_repo="iris-learning", run_name="svm-model1")
+  run.log_params({"learning_rate": 0.001})
+  run.log_metrics({"accuracy": 0.7, "loss": 0.6})
+
+  run.delete()
+  ```
+</CodeGroup>
+
+In case we try to call or acess any other function of that run after deleting then it will through MlfoundryException
+
+**Example:**
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+  client.create_ml_repo('iris-learning')
+  run = client.create_run(ml_repo="iris-learning", run_name="svm-model1")
+  run.log_params({"learning_rate": 0.001})
+  run.log_metrics({"accuracy": 0.7, "loss": 0.6})
+
+  run.delete()
+  run.log_params({"learning_rate": 0.001})
+  ```
+</CodeGroup>
+
+***
+
+### `function` `end`
+
+End a `run`.
+
+This function marks the run as `FINISHED`.
+
+**Example:**
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+  run = client.create_run(
+       ml_repo="my-classification-project", run_name="svm-with-rbf-kernel"
+  )
+  # ...
+  # Model training code
+  # ...
+  run.end()
+  ```
+</CodeGroup>
+
+In case the run was created using the context manager approach, We do not need to call this function.
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+  with client.create_run(
+       ml_repo="my-classification-project", run_name="svm-with-rbf-kernel"
+  ) as run:
+       # ...
+       # Model training code
+       ...
+  # `run` will be automatically marked as `FINISHED` or `FAILED`.
+  ```
+</CodeGroup>
+
+***
+
+### `function` `get_metrics`
+
+Get metrics logged for the current `run` grouped by metric name.
+
+**Args:**
+
+* **`metric_names`** (Optional\[Iterable\[str]], optional): A list of metric names For which the logged metrics will be fetched. If not passed, then all metrics logged under the `run` is returned.
+
+**Returns:**
+
+* **`Dict[str, List[Metric]]`**: A dictionary containing metric name to list of metrics map.
+
+**Examples:**
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+  run = client.create_run(
+      ml_repo="my-classification-project", run_name="svm-with-rbf-kernel"
+  )
+  run.log_metrics(metric_dict={"accuracy": 0.7, "loss": 0.6}, step=0)
+  run.log_metrics(metric_dict={"accuracy": 0.8, "loss": 0.4}, step=1)
+
+  metrics = run.get_metrics()
+  for metric_name, metric_history in metrics.items():
+      print(f"logged metrics for metric {metric_name}:")
+      for metric in metric_history:
+           print(f"value: {metric.value}")
+           print(f"step: {metric.step}")
+           print(f"timestamp_ms: {metric.timestamp}")
+           print("--")
+
+  run.end()
+  ```
+</CodeGroup>
+
+***
+
+### `function` `get_params`
+
+Get all the params logged for the current `run`.
+
+**Returns:**
+
+* **`Dict[str, str]`**: A dictionary containing the parameters. The keys in the dictionary are parameter names and the values are corresponding parameter values.
+
+**Examples:**
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+  run = client.create_run(
+      ml_repo="my-classification-project"
+  )
+  run.log_params({"learning_rate": 0.01, "epochs": 10})
+  print(run.get_params())
+
+  run.end()
+  ```
+</CodeGroup>
+
+***
+
+### `function` `get_tags`
+
+Returns all the tags set for the current `run`.
+
+**Returns:**
+
+* **`Dict[str, str]`**: A dictionary containing tags. The keys in the dictionary are tag names and the values are corresponding tag values.
+
+**Examples:**
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+  run = client.create_run(
+      ml_repo="my-classification-project"
+  )
+  run.set_tags({"nlp.framework": "Spark NLP"})
+  print(run.get_tags())
+
+  run.end()
+  ```
+</CodeGroup>
+
+***
+
+### `function` `list_artifact_versions`
+
+Get all the version of a artifact from a particular run to download contents or load them in memory
+
+**Args:**
+
+* **`artifact_type`**: Type of the artifact you want
+
+**Returns:**
+
+* **`Iterator[ArtifactVersion]`**: An iterator that yields non deleted artifact-versions of a artifact under a given run sorted reverse by the version number
+
+**Examples:**
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+  run = client.create_run(ml_repo="iris-learning", run_name="svm-model1")
+  artifact_versions = run.list_artifact_versions()
+
+  for artifact_version in artifact_versions:
+       print(artifact_version)
+
+  run.end()
+  ```
+</CodeGroup>
+
+***
+
+### `function` `list_model_versions`
+
+Get all the version of a models from a particular run to download contents or load them in memory
+
+**Returns:**
+
+* **`Iterator[ModelVersion]`**: An iterator that yields non deleted model-versions under a given run sorted reverse by the version number
+
+**Examples:**
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+  run = client.get_run(run_id="<your-run-id>")
+  model_versions = run.list_model_versions()
+
+  for model_version in model_versions:
+       print(model_version)
+
+  run.end()
+  ```
+</CodeGroup>
+
+***
+
+### `function` `log_artifact`
+
+Logs an artifact for the current ML Repo.
+
+An `artifact` is a list of local files and directories. This function packs the mentioned files and directories in `artifact_paths` and uploads them to remote storage linked to the experiment
+
+**Args:**
+
+* **`name`** (str): Name of the Artifact. If an artifact with this name already exists under the current ML Repo, the logged artifact will be added as a new version under that `name`. If no artifact exist with the given `name`, the given artifact will be logged as version 1.
+* **`artifact_paths`** (List\[truefoundry.ml.ArtifactPath], optional): A list of pairs of (source path, destination path) to add files and folders to the artifact version contents. The first member of the pair should be a file or directory path and the second member should be the path inside the artifact contents to upload to.
+
+```
+         E.g. >>> run.log_artifact(
+              ...     name="xyz",
+              ...     artifact_paths=[
+                         tfm.ArtifactPath("foo.txt", "foo/bar/foo.txt"),
+                         tfm.ArtifactPath("tokenizer/", "foo/tokenizer/"),
+                         tfm.ArtifactPath('bar.text'),
+                         ('bar.txt', ),
+                         ('foo.txt', 'a/foo.txt')
+                      ]
+              ... )
+         would result in
+         .
+         └── foo/
+             ├── bar/
+             │   └── foo.txt
+             └── tokenizer/
+                 └── # contents of tokenizer/ directory will be uploaded here
+```
+
+* **`description`** (Optional\[str], optional): arbitrary text upto 1024 characters to store as description. This field can be updated at any time after logging. Defaults to `None`
+* **`metadata`** (Optional\[Dict\[str, Any]], optional): arbitrary json serializable dictionary to store metadata. For example, you can use this to store metrics, params, notes. This field can be updated at any time after logging. Defaults to `None`
+* **`step`** (int): step/iteration at which the vesion is being logged, defaults to 0.
+
+**Returns:**
+
+* **`truefoundry.ml.ArtifactVersion`**: an instance of `ArtifactVersion` that can be used to download the files, or update attributes like description, metadata.
+
+**Examples:**
+
+<CodeGroup>
+  ```bash bash
+  import os
+  import truefoundry.ml as tfm
+
+  with open("artifact.txt", "w") as f:
+      f.write("hello-world")
+
+  client = tfm.get_client()
+  run = client.create_run(
+      ml_repo="my-classification-project", run_name="svm-with-rbf-kernel"
+  )
+
+  run.log_artifact(
+      name="hello-world-file",
+      artifact_paths=[tfm.ArtifactPath('artifact.txt', 'a/b/')]
+  )
+
+  run.end()
+  ```
+</CodeGroup>
+
+***
+
+### `function` `log_images`
+
+Log images under the current `run` at the given `step`.
+
+Use this function to log images for a `run`. `PIL` package is needed to log images. To install the `PIL` package, run `pip install pillow`.
+
+**Args:**
+
+* **`images`** (Dict\[str, "truefoundry.ml.Image"]): A map of string image key to instance of `truefoundry.ml.Image` class. The image key should only contain alphanumeric, hyphens(-) or underscores(\_). For a single key and step pair, we can log only one image.
+* **`step`** (int, optional): Training step/iteration for which the `images` should be logged. Default is `0`.
+
+**Examples:**
+
+# Logging images from different sources
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+  import numpy as np
+  import PIL.Image
+
+  client = tfm.get_client()
+  run = client.create_run(
+      ml_repo="my-classification-project",
+  )
+
+  imarray = np.random.randint(low=0, high=256, size=(100, 100, 3))
+  im = PIL.Image.fromarray(imarray.astype("uint8")).convert("RGB")
+  im.save("result_image.jpeg")
+
+  images_to_log = {
+      "logged-image-array": tfm.Image(data_or_path=imarray),
+      "logged-pil-image": tfm.Image(data_or_path=im),
+      "logged-image-from-path": tfm.Image(data_or_path="result_image.jpeg"),
+  }
+
+  run.log_images(images_to_log, step=1)
+  run.end()
+  ```
+</CodeGroup>
+
+***
+
+### `function` `log_metrics`
+
+Log metrics for the current `run`.
+
+A metric is defined by a metric name (such as "training-loss") and a floating point or integral value (such as `1.2`). A metric is associated with a `step` which is the training iteration at which the metric was calculated.
+
+**Args:**
+
+* **`metric_dict`** (Dict\[str, Union\[int, float]]): A metric name to metric value map. metric value should be either `float` or `int`. This should be a non-empty dictionary.
+* **`step`** (int, optional): Training step/iteration at which the metrics present in `metric_dict` were calculated. If not passed, `0` is set as the `step`.
+
+**Examples:**
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+  run = client.create_run(
+      ml_repo="my-classification-project"
+  )
+  run.log_metrics(metric_dict={"accuracy": 0.7, "loss": 0.6}, step=0)
+  run.log_metrics(metric_dict={"accuracy": 0.8, "loss": 0.4}, step=1)
+
+  run.end()
+  ```
+</CodeGroup>
+
+***
+
+### `function` `log_model`
+
+Serialize and log a versioned model under the current ML Repo. Each logged model generates a new version associated with the given `name` and linked to the current run. Multiple versions of the model can be logged as separate versions under the same `name`.
+
+**Args:**
+
+* **`name`** (str): Name of the model. If a model with this name already exists under the current ML Repo, the logged model will be added as a new version under that `name`. If no models exist with the given `name`, the given model will be logged as version 1.
+* **`model_file_or_folder`** (str): Path to either a single file or a folder containing model files. This folder is usually created using serialization methods of libraries or frameworks e.g. `joblib.dump`, `model.save_pretrained(...)`, `torch.save(...)`, `model.save(...)`
+* **`framework`** (Union\[enums.ModelFramework, str]): Model Framework. Ex:- pytorch, sklearn, tensorflow etc. The full list of supported frameworks can be found in `truefoundry.ml.enums.ModelFramework`. Can also be `None` when `model` is `None`.
+* **`description`** (Optional\[str], optional): arbitrary text upto 1024 characters to store as description. This field can be updated at any time after logging. Defaults to `None`
+* **`metadata`** (Optional\[Dict\[str, Any]], optional): arbitrary json serializable dictionary to store metadata. For example, you can use this to store metrics, params, notes. This field can be updated at any time after logging. Defaults to `None`
+* **`step`** (int): step/iteration at which the model is being logged, defaults to 0.
+
+**Returns:**
+
+* **`truefoundry.ml.ModelVersion`**: an instance of `ModelVersion` that can be used to download the files, load the model, or update attributes like description, metadata, schema.
+
+**Examples:**
+
+* Sklearn
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+  from truefoundry.ml import ModelFramework
+
+  import joblib
+  import numpy as np
+  from sklearn.pipeline import make_pipeline
+  from sklearn.preprocessing import StandardScaler
+  from sklearn.svm import SVC
+
+  X = np.array([[-1, -1], [-2, -1], [1, 1], [2, 1]])
+  y = np.array([1, 1, 2, 2])
+  clf = make_pipeline(StandardScaler(), SVC(gamma='auto'))
+  clf.fit(X, y)
+  joblib.dump(clf, "sklearn-pipeline.joblib")
+
+  client = tfm.get_client()
+  client.create_ml_repo(  # This is only required once
+       ml_repo="my-classification-project",
+       # This controls which bucket is used.
+       # You can get this from Integrations > Blob Storage. `None` picks the default
+       storage_integration_fqn=None
+  )
+  run = client.create_run(
+       ml_repo="my-classification-project"
+  )
+  model_version = run.log_model(
+       name="my-sklearn-model",
+       model_file_or_folder="sklearn-pipeline.joblib",
+       framework=ModelFramework.SKLEARN,
+       metadata={"accuracy": 0.99, "f1": 0.80},
+       step=1,  # step number, useful when using iterative algorithms like SGD
+  )
+  print(model_version.fqn)
+      
+  ```
+</CodeGroup>
+
+* Huggingface Transformers
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+  from truefoundry.ml import ModelFramework
+
+  import torch
+  from transformers import AutoTokenizer, AutoConfig, pipeline, AutoModelForCausalLM
+  pln = pipeline(
+       "text-generation",
+       model_file_or_folder="EleutherAI/pythia-70m",
+       tokenizer="EleutherAI/pythia-70m",
+       torch_dtype=torch.float16
+  )
+  pln.model.save_pretrained("my-transformers-model")
+  pln.tokenizer.save_pretrained("my-transformers-model")
+
+  client = tfm.get_client()
+  client.create_ml_repo(  # This is only required once
+       ml_repo="my-llm-project",
+       # This controls which bucket is used.
+       # You can get this from Integrations > Blob Storage. `None` picks the default
+       storage_integration_fqn=None
+  )
+  run = client.create_run(
+       ml_repo="my-llm-project"
+  )
+  model_version = run.log_model(
+       name="my-transformers-model",
+       model_file_or_folder="my-transformers-model/",
+       framework=ModelFramework.TRANSFORMERS
+  )
+  print(model_version.fqn)
+      
+  ```
+</CodeGroup>
+
+***
+
+### `function` `log_params`
+
+Logs parameters for the run.
+
+Parameters or Hyperparameters can be thought of as configurations for a run. For example, the type of kernel used in a SVM model is a parameter. A Parameter is defined by a name and a string value. Parameters are also immutable, we cannot overwrite parameter value for a parameter name.
+
+**Args:**
+
+* **`param_dict`** (ParamsType): A parameter name to parameter value map. Parameter values are converted to `str`.
+* **`flatten_params`** (bool): Flatten hierarchical dict, e.g. `{'a': {'b': 'c'}} -> {'a.b': 'c'}`. All the keys will be converted to `str`. Defaults to False
+
+**Examples:**
+
+* Logging parameters using a `dict`.
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+  run = client.create_run(
+      ml_repo="my-classification-project"
+  )
+  run.log_params({"learning_rate": 0.01, "epochs": 10})
+
+  run.end()
+  ```
+</CodeGroup>
+
+* Logging parameters using `argparse` Namespace object
+
+<CodeGroup>
+  ```bash bash
+  import argparse
+  import truefoundry.ml as tfm
+
+  parser = argparse.ArgumentParser()
+  parser.add_argument("-batch_size", type=int, required=True)
+  args = parser.parse_args()
+
+  client = tfm.get_client()
+  run = client.create_run(
+      ml_repo="my-classification-project"
+  )
+  run.log_params(args)
+  ```
+</CodeGroup>
+
+***
+
+### `function` `log_plots`
+
+Log custom plots under the current `run` at the given `step`.
+
+Use this function to log custom matplotlib, plotly plots.
+
+**Args:** plots (Dict\[str, "matplotlib.pyplot", "matplotlib.figure.Figure", "plotly.graph\_objects.Figure", Plot]\[str, "matplotlib.pyplot", "matplotlib.figure.Figure", "plotly.graph\_objects.Figure", Plot]): A map of string plot key to the plot or figure object. The plot key should only contain alphanumeric, hyphens(-) or underscores(\_). For a single key and step pair, we can log only one image.
+
+* **`step`** (int, optional): Training step/iteration for which the `plots` should be logged. Default is `0`.
+
+**Examples:**
+
+* Logging a plotly figure
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+  import plotly.express as px
+
+  client = tfm.get_client()
+  run = client.create_run(
+      ml_repo="my-classification-project",
+  )
+
+  df = px.data.tips()
+  fig = px.histogram(
+      df,
+      x="total_bill",
+      y="tip",
+      color="sex",
+      marginal="rug",
+      hover_data=df.columns,
+  )
+
+  plots_to_log = {
+      "distribution-plot": fig,
+  }
+
+  run.log_plots(plots_to_log, step=1)
+  run.end()
+  ```
+</CodeGroup>
+
+* Logging a matplotlib plt or figure
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+  from matplotlib import pyplot as plt
+  import numpy as np
+
+  client = tfm.get_client()
+  run = client.create_run(
+      ml_repo="my-classification-project",
+  )
+
+  t = np.arange(0.0, 5.0, 0.01)
+  s = np.cos(2 * np.pi * t)
+  (line,) = plt.plot(t, s, lw=2)
+
+  plt.annotate(
+      "local max",
+      xy=(2, 1),
+      xytext=(3, 1.5),
+      arrowprops=dict(facecolor="black", shrink=0.05),
+  )
+
+  plt.ylim(-2, 2)
+
+  plots_to_log = {"cos-plot": plt, "cos-plot-using-figure": plt.gcf()}
+
+  run.log_plots(plots_to_log, step=1)
+  run.end()
+  ```
+</CodeGroup>
+
+***
+
+### `function` `set_tags`
+
+Set tags for the current `run`.
+
+Tags are "labels" for a run. A tag is represented by a tag name and value.
+
+**Args:**
+
+* **`tags`** (Dict\[str, str]): A tag name to value map. Tag name cannot start with `mlf.`, `mlf.` prefix is reserved for truefoundry. Tag values will be converted to `str`.
+
+**Examples:**
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+  run = client.create_run(
+      ml_repo="my-classification-project"
+  )
+  run.set_tags({"nlp.framework": "Spark NLP"})
+
+  run.end()
+  ```
+</CodeGroup>
+
+***
+
+[truefoundry.ml](/docs/mlfoundry)
+
+[Artifact](/docs/artifact)
+
+* [Table of Contents](#)
+
+* * [module Runs](#module-runs)
+  * * [class MlFoundryRun](#class-mlfoundryrun)
+  * [Logging images from different sources](#logging-images-from-different-sources)

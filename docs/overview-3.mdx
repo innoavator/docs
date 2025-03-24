@@ -1,0 +1,43 @@
+---
+title: "Overview"
+description: "This page provides an overview of the architecture overview, requirements and steps to setup a Truefoundry compute plane cluster on a Generic cluster"
+---
+
+Truefoundry installation can be performed from the UI using a script that can be downloaded directly from your control plane cluster page after [tenant registration](https://www.truefoundry.com/register) or from your own control plane. This script leverages terraform internally to setup your cloud for Truefoundry.
+
+# Scenarios
+
+Following scenario is supported in the provided terraform code. You can find the requirements for the scenario [here](https://docs.truefoundry.com/docs/requirements-azure#/):
+
+* Existing Network + Existing cluster - In this setup, the Truefoundry terraform code reuses the cluster created by you to setup all the integrations needed for the platform to work. Do make sure to adhere to the existing network and existing cluster related requirements mentioned here
+
+# Steps
+
+1. Go to the clusters page on the control plane and click on `Attach Existing Cluster`
+
+   ![](/images/docs/0244ac4bfccffcb2180ba5676ef4ccfec144e9eeeff1a3787e440fad43a8ec6c-image.png)
+
+2. You will see the requirements needed to be setup in order to execute the following steps. Click on `Continue`
+
+3. A form will be presented with the details for the cluster to be onboarded. Fill in with your cluster details. Click `Submit` when done
+
+   1. Disable the addons which are already present in your cluster
+
+      ![](/images/docs/36ae3c2da4c64ef482a47194dba621a4612744101f91888a6444ec968bc69bc7-image.png)
+
+4. You will be presented with a `curl` command to download and execute the script. The script will take care of installing the pre-requisites, downloading terraform code and running it on your local machine to set things up for Truefoundry.
+
+5. Once you are done with the installation, you can setup DNS and TLS for deploying workloads to your cluster by following [here](https://docs.truefoundry.com/docs/add-certificate-for-tls#/add-tls-using-certificate-key-files)
+
+6. Now you are ready to start deploying workloads on your cluster. You can start by going [here](https://docs.truefoundry.com/docs/deploy-service-from-a-public-github-repository)
+
+***
+
+[Setting up DNS and TLS in AKS](/docs/setting-up-dns-and-tls-in-aks)
+
+[Deploy Control Plane Only](/docs/deploy-control-and-compute-plane)
+
+* [Table of Contents](#)
+
+* * [Scenarios](#scenarios)
+  * [Steps](#steps)

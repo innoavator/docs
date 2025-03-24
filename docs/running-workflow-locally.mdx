@@ -1,0 +1,24 @@
+---
+title: "Running workflow locally"
+description: "You can run workflow locally by simply running your worklow python file, you can do:"
+---
+
+<CodeGroup>
+  ```bash bash
+  python3 workflow.py
+  ```
+</CodeGroup>
+
+### Important points to remember:
+
+* Only your code logic is tested while running the workflow but the environment in which worklow runs can be different from your local environment and there can be difference in execution speed or time taken for workflow to complete.
+* If you are running workflow locally let's say in Windows and then when the workflow runs in Linux environment, then there are chances of code not working properly if any of the library you are using is only compatible with windows or behaves differently in linux.
+
+***
+
+[Adding retries and handling failures](/docs/adding-retries-and-handling-failures)
+
+[Infra Set-Up for Workflows](/docs/infra-set-up-for-workflows)
+
+* [Table of Contents](#)
+* * [Important points to remember:](#important-points-to-remember)

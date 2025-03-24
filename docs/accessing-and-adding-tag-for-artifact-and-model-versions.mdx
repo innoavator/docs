@@ -1,0 +1,42 @@
+---
+title: "Accessing and Adding version alias for Artifact and Model Versions"
+description: "Now you can add a version alias for each artifact or model version, this alias will act as a unique identifier to access the model or artifact."
+---
+
+In this guide, we will see how to add a version alias for the artifact or model, but before that, there are a few things to consider.
+
+* The version alias must be unique across artifacts, so you cannot have the same version alias for two different artifacts or model versions within the same parent artifact or model.
+* Alias will not replace the version but they will be accessible with the version, you can still access the artifact version by version number.
+
+## Adding version alias via Python SDK
+
+* You can add a version alias via Python SDK by following the way
+* The version alias should start with 'v' followed by alphanumeric and it can include '.' and '-' in between (e.g. v1.0.0, v1-prod, v3-dev, etc)
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.ml import get_client
+
+  client = get_client()
+
+  artifact_version = client.log_artifact(ml_repo="", name="", artifact_paths=[])
+  artifact_version.version_alias = "v0.0.1" #It should start with 'v'
+
+  artifact_version.update()
+  ```
+</CodeGroup>
+
+## Adding version alias via UI
+
+Follow this tutorial to add a version alias for an artifact version via UI
+
+***
+
+[Artifact and Model Version Files Structure Migration Notice](/docs/artifacts-and-model-files-structure-migration-notice)
+
+[API Reference](/docs/api-reference-1)
+
+* [Table of Contents](#)
+
+* * [Adding version alias via Python SDK](#adding-version-alias-via-python-sdk)
+  * [Adding version alias via UI](#adding-version-alias-via-ui)

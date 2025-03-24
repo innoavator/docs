@@ -1,0 +1,53 @@
+---
+title: "SAML v2 with Azure AD"
+---
+
+# Configure SAML v2 for Azure AD/Microsoft Entra ID
+
+This documentation will guide you in configuring SAML v2 IdP for Azure AD/Microsoft Entra ID. In this case, TrueFoundry will act as Service Provider (SP) to Azure AD (IdP). Functionally, the result will allow you to display a “Login with Azure AD” button on your TrueFoundry login page and connect via SAML to Azure AD users/applications.
+
+![](/images/docs/f33d20d6c06da13f7a2d824b545714ea2f3ed4275763c806df274f4b7d32cf30-image.png)
+
+# Create an Application in Azure
+
+If you have already configured an Azure AD Enterprise application, skip this section. If you have not, please follow the brief steps outlined below:
+
+1. From the [Azure account portal](https://portal.azure.com/#home) navigate to `Enterprise Applications`.
+2. At the top of the screen click on `New application`.
+3. Click on `Create your own application`.
+4. Name the application
+5. Select the third option - `Integrate any other application you don't find in the gallery (Non-gallery)`.
+6. Click `Create`
+
+![](/images/docs/3a2c02f08494bbcf16bfbcb922d1f359542d17170e6fa7034ee8fc604bcabe16-tf-create-app.png)
+
+# Configure Your Azure Application
+
+From your application home screen, click on Single sign-on. Select the SAML option.
+
+![](/images/docs/32983e8d642d7a12242a1f479d34b41e23b62d13ca3a7c0c3eac489dd8559a39-tf-saml.png)
+
+# Integrate with TrueFoundry
+
+To integrate Azure AD with TrueFoundry, provide the following configuration to truefoundry team via email:
+
+* **Login URL**: This value can be obtained from your Azure AD Application as demonstrated below. You will want to copy the Login URL value from Azure AD into this field.
+
+* ![](/images/docs/f1cb5d6b42e2984de1746be8c4b5b306053136a8aebd77b4dbd67dba73bf3e54-image.png)
+
+  **Verification key**: From the overview of your SAML application in Azure AD, under step three, you should find a Certificate (Base64) to download.
+
+  ![](/images/docs/41cd3621730f73a0ff070207fad73c2956a4ff6d0a9c6e1a53e9548c1fb26be7-image.png)
+
+***
+
+[OpenID Connect with Okta](/docs/openid-connect-with-okta)
+
+[Deploy Truefoundry in an Air-gapped Environment](/docs/deploy-truefoundry-in-an-air-gapped-environment)
+
+* [Table of Contents](#)
+
+* * [Configure SAML v2 for Azure AD/Microsoft Entra ID](#configure-saml-v2-for-azure-admicrosoft-entra-id)
+  * [Create an Application in Azure](#create-an-application-in-azure)
+  * [Configure Your Azure Application](#configure-your-azure-application)
+  * [Integrate with TrueFoundry](#integrate-with-truefoundry)

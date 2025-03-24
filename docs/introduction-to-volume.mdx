@@ -1,0 +1,54 @@
+---
+title: "Overview"
+description: "Volumes are used to provide persistent storage to containers within pods so that read and write data to a central disk across multiple pods. They are especially useful in the context of machine learning when you need to store and access data, models, and other artifacts required for training, serving, and inference tasks."
+---
+
+A few usecases where volumes turn out to be very useful:
+
+1. **Share training data:** Its possible multiple datascientists are training on the same data or we are running multiple experiments in parallel on the same dataset. The naive way will be to duplicate the data for multiple data scientists - however this will end up costing us much more. A more efficient way here will be to store the training data in a volume and mount the volume to the notebooks of different datascientists.
+2. **Model Storage**: If we are hosting models as realtime APIs, there will be multiple replicas of the api server to handle traffic. Here, every replica will need to download the model from the model registry (let's say S3) to local disk. If every replica does this repeatedly, it will take more time for starting up and also incur more S3 access cost. By using volumes, you can store your trained models externally and mount them onto the inference server. There is no need to download the model and the api server can just find the model on disk at the mounted path.
+3. **Artifact Sharing**: We might have a usecase wherein the output of one stage of a pipeline needs to be consumed by the next stage. For e.g, after finetuning a model, we might need to host it as an API just for experimentation. While we can write the model to S3 and then download it back again from S3, it will take a lot of time just for the model upload/download process. Instead for faster experimentation, the finetuning job can just write the model to a volume and the inference service can then mount the volume with the model.
+4. **Checkpointing**: During the training of machine learning models, it's common to save checkpoints periodically to resume training in case of failure or to fine-tune models. Volumes can be used to store these checkpoint files, ensuring that training progress is not lost when a job restarts from failure. This also enables you to run training on spot instances, hence saving a lot of cost.
+
+### When to use Volume vs Blob storage like S3 / GCS / Azure Container?
+
+The choice of when to choose a blob storage like S3 vs volume is important from a performance, reliability and cost perspective.
+
+**Performance:**
+
+In most cases, reading data from S3 will be slower than reading data directly from a volume. So if the speed of loading is important for you, volume is the right choice. A good example for this is downloading and loading the model at inference time in multiple replicas of the service. A volume is a better choice since you don't incur the time of downloading the model repeatedly, and can load the model in memory from volume much faster.
+
+**Reliability**
+
+Blob storages like S3/GCS/ACS will in general be more reliable compared to volumes. So you should ideally always have the raw data backed in one of the blob storages and use volumes only for intermediate data. You should also always save a copy of the models in S3.
+
+**Cost**
+
+Access to volumes like EFS is a bit cheaper than using S3 - so if you are doing reading for the same data quite frequently - it might be useful to store it in a volume. If you are reading or writing very infrequently, then S3 should be just fine.
+
+**Access Constraints**
+
+Data in volumes should ideally only be accessed among workloads within the same region and cluster. S3 is meant to be accessed globally and also across cloud environments. So volumes is not a great choice if you want to access the data in a different region or cloud provider.
+
+### Volume Provisioning Modes
+
+When deploying a volume on truefoundry, there can be two modes of provisioning:
+
+1. **Dynamic:** These are volumes which are created dynamically and provisioned as you deploy a volume on truefoundry. E.g. EBS, EFS in AWS, AzureFiles in Azure can be dynamically provisioned on Truefoundry.
+2. **Static:** These are volumes for which a storage volume already exists and we want to mount the data in that storage volume to our service/job. Examples of this include mounting S3 buckets, GCS buckets on the workloads deployed on platform.
+
+### Things to be careful of when using Volumes
+
+The volumes you create in Truefoundry can be mounted to multiple replicas - and hence you can read and write from multiple replicas to the volume. However, **we should be very careful about not writing to the volume at the same path from multiple replicas since it can cause data corruption.**
+
+***
+
+[Launch a SSH Server](/docs/launch-an-ssh-server)
+
+[Creating and Utilizing Volume](/docs/creating-a-volume)
+
+* [Table of Contents](#)
+
+* * [When to use Volume vs Blob storage like S3 / GCS / Azure Container?](#when-to-use-volume-vs-blob-storage-like-s3--gcs--azure-container)
+  * [Volume Provisioning Modes](#volume-provisioning-modes)
+  * [Things to be careful of when using Volumes](#things-to-be-careful-of-when-using-volumes)

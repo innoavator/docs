@@ -1,0 +1,123 @@
+---
+title: "Installation with Helm"
+description: "Installing Control Plane using Helm Chart"
+---
+
+## Installation steps
+
+1. Create `truefoundry` namespace
+
+   ```
+   kubectl create ns truefoundry
+   ```
+
+2. Create an imagePullSecret for the Truefoundry images in the `truefoundry` namespace
+
+   ```
+   cat <<EOF | kubectl apply -f -
+   apiVersion: v1
+   kind: Secret
+   metadata:
+     name: truefoundry-image-pull-secret
+     namespace: truefoundry
+   data:
+     .dockerconfigjson: <image pull secret provided by truefoundry team>
+   type: kubernetes.io/dockerconfigjson
+   EOF
+   ```
+
+3. The helm charts to use for the three cloud providers are as follows -
+
+   * AWS - [tfy-k8s-aws-eks-inframold](https://artifacthub.io/packages/helm/truefoundry/tfy-k8s-aws-eks-inframold)
+
+   * GCP -
+
+     * Standard - [tfy-k8s-gcp-gke-standard-inframold](https://artifacthub.io/packages/helm/truefoundry/tfy-k8s-gcp-gke-standard-inframold)
+     * Autopilot - [tfy-k8s-gcp-gke-autopilot-inframold](https://artifacthub.io/packages/helm/truefoundry/tfy-k8s-gcp-gke-autopilot-inframold)
+
+   * Azure - [tfy-k8s-azure-aks-inframold](https://artifacthub.io/packages/helm/truefoundry/tfy-k8s-azure-aks-inframold)
+
+4. Add the truefoundry helm repo
+
+   ```
+     helm repo add truefoundry https://truefoundry.github.io/infra-charts/
+   ```
+
+5. Create a values.yaml and fill in the values
+
+   ```
+   ## @section Global Parameters
+   ## @param tenantName Parameters for tenantName
+   ## Tenant Name - This is same as the name of the organization used to sign up 
+   ## on Truefoundry
+   ##
+   tenantName: <tenant_name>
+
+   ## @param controlPlaneURL Parameters for controlPlaneURL
+   ## URL of the control plane - Same as the URL of the Truefoundry dashboard
+   ##
+   controlPlaneURL: <control_plane_url>
+
+   ## @param clusterName Name of the cluster
+   ## Name of the cluster that you have created on AWS/GCP/Azure
+   ##
+   clusterName: <cluster_name>
+     
+   ## @section Parameters for argocd
+   ## @param argocd.enabled Flag to enable ArgoCD
+   ## ArgoCD is mandatory for Truefoundry to work. You can make it false if ArgoCD is
+   ## already installed in your cluster. Please make sure that the configuration of 
+   ## existing ArgoCD is same as the ArgoCD configuration required by Truefoundry.
+   argocd:
+     enabled: true
+
+   ## @section Parameters for argoWorkflows
+   ## @param argoWorkflows.enabled Flag to enable Argo Workflows
+   ##
+   argoWorkflows:
+     enabled: true
+
+   ## @section Parameters for truefoundry
+   ## @param truefoundry.enabled Flag to enable TrueFoundry
+   ## This installs the Truefoundry control plane helm chart. You can make it true
+   ## if you want to install Truefoundry control plane.
+   ##
+   truefoundry:
+     enabled: true
+   	truefoundryBootstrap:
+   		enabled: true
+   		database:
+   			host: <host>
+   			name: <name>
+   			username: <username>
+   			password: <password>
+   		sfyApiKey: <sfy_api_key>
+     dev: false
+
+   ## @section Parameters for loki
+   ## @param loki.enabled Flag to enable Loki. This is needed to show build logs
+   ##
+   loki:
+     enabled: true
+
+   ## @section Parameters for tfyAgent
+   ## @param tfyAgent.enabled Flag to enable Tfy Agent
+   ##
+   tfyAgent:
+     enabled: false
+   ```
+
+6. Apply the helm chart with the values.yaml. Replace the `chart_name` with the correct one from step 3
+
+   ```
+   helm install inframold truefoundry/<chart_name> --version 0.0.8 -f values.yaml
+   ```
+
+***
+
+[Azure](/docs/azure-control-plane)
+
+[Dev Mode installation](/docs/dev-mode-installation)
+
+* [Table of Contents](#)
+* * [Installation steps](#installation-steps)

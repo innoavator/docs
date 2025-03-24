@@ -1,0 +1,23 @@
+---
+title: "Architecture"
+description: "This guide describes the architecture diagram and access policies in a typical Truefoundry installation"
+---
+
+## Azure Architecture Diagram
+
+![](/images/docs/2d7af49-Azure_1.png)
+
+#### Access Policies
+
+* ACR - We use admin username and password. This is for the platform to be able to push and pull from ACR.
+* Blob storage - We use connection string to get access. The blob storage is used to store model artifacts.
+* Cluster Diagnostic Setting - We use the "Monitoring Reader" role to access the cluster autoscaler logs in Log Analytics.
+
+***
+
+[Overview](/docs/overview-2)
+
+[Requirements](/docs/requirements-azure)
+
+* [Table of Contents](#)
+* * [Azure Architecture Diagram](#azure-architecture-diagram)

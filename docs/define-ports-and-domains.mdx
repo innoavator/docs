@@ -1,0 +1,546 @@
+---
+title: "Define Ports and Domains"
+description: "When you create a Service, you need to specify the ports that the Service will listen on. You can decide to expose a port in which case you will have to attach a domain to the service."
+---
+
+### Not exposing the port
+
+If you do not expose a service, you get a URL of the form `servicename-workspacename.svc.cluster.local:port` which can only be called from services within the cluster.
+
+### Exposing the port
+
+This will enable the service to be called from anywhere using the endpoint - other users or services living outside your cluster will also be able to access it. In this case, you will need to map a domain URL to your service. TrueFoundry supports both host-based routing and path-based routing.
+
+If you use host-based routing, two services s1 and s2 will have URLs of the form `s1.yourdomain.com` and `s2.yourdomain.com`.
+
+In the case of path-based routing, the URLs will be of the form `yourdomain.com/s1` and `yourdomain.com/s2`. If you decide to enable path-based routing, please ensure the application that you have deployed supports path-based routing.
+
+Domains are configured in the cluster. You can view which domains are accessible to you from [here](doc:define-ports-and-domains#identifying-available-domains).
+
+**Host-based routing will be preferred especially if you are deploying some UI-based applications.**
+
+## Configuring the Port for your Service
+
+### Via the User Interface (UI)
+
+### Via the Python SDK
+
+The `Service` class has a `ports` argument where you can pass a list of `Port` objects. Each `Port` object represents a port that the service will listen on. In the `Port` field you can specify the **`Port Number`**, host for your **`Endpoint`** and **`Path`** (Optional)
+
+<Info>
+  Providing a host value depends on the base domain urls configured in the cluster settings, you can learn how to find the base domain urls available to you [here](doc:define-ports-and-domains#identifying-available-domains)
+
+  For e.g. If your base domain url is `*.truefoundry.your-org.com` then a valid value can be `fastapi-your-workspace-8000.truefoundry.your-org.com`.
+
+  Alternatively if you have a non wildcard based domain url e.g. `truefoundry.your-org.com`, then a valid value can be `truefoundry.your-org.com/fastapi-your-workspace-8000`
+</Info>
+
+<CodeGroup>
+  ```bash bash
+  import logging
+
+  from truefoundry.deploy import Build, Service, DockerFileBuild, Port
+
+  logging.basicConfig(level=logging.INFO)
+  service = Service(
+      name="your-service",
+      image=Build(build_spec=DockerFileBuild()),
+  +   ports=[
+  +       Port(
+  +           port=8080,
+  +           # Uses subdomain based routing
+  +           host="fastapi-your-workspace-8080.your-organization.com",
+  +           # Alternatively we can use path based routing - E.g.
+  +           # host="your-site.your-organization.com",
+  +           path="/fastapi/v1/"
+  +       )
+  +   ]
+  )
+  service.deploy(workspace_fqn="YOUR_WORKSPACE_FQN")
+  ```
+</CodeGroup>
+
+## What if you don't know which port to use?
+
+Usually, most of the commonly used applications will come with a way to define the port. We have listed it for some of the most commonly used frameworks in ML.
+
+**FastAPI (Uvicorn)** - Default port is 8000. This can be overridden using the command `uvicorn main:app --port 8001`
+
+**Gradio App** - Launch your Gradio app as follows and enter the port number 8080.
+
+<CodeGroup>
+  ```bash bash
+  gradio.app.launch(server_name="0.0.0.0", port=8080)
+  ```
+</CodeGroup>
+
+Now you need to specify the same port number in the service configuration. In this case `8080`
+
+**Streamlit** - Default port is 8501.
+
+## Adding Basic authentication to Service
+
+Ideally when deploying a `Service` it is a good idea to protect publicly exposed ports using some form of authentication. You can add a username password based authentication to your endpoints or JWT-based authentication to your services.
+
+### Via the User Interface (UI)
+
+### Via the Python SDK
+
+We can add basic (username and password) authentication to a **Port** of the **Service** in the Python definition using `truefoundry.deploy.BasicAuthCreds` )
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.deploy import Build, Service, Port, BasicAuthCreds, DockerFileBuild
+
+  service = Service(
+      name="your-service",
+      image=Build(build_spec=DockerFileBuild()),
+      ports=[
+          Port(
+              port=8080,
+              host="fastapi-my-workspace-8080.truefoundry.my-org.com",
+  +           auth=BasicAuthCreds(
+  +                username="hello",
+  +                password="pass"
+  +           )
+          )
+      ]
+  )
+  service.deploy(workspace_fqn="YOUR_WORKSPACE_FQN")
+  ```
+</CodeGroup>
+
+## Sending request to your Authenticated Endpoint
+
+Upon deploying the service, the endpoint will now display a padlock 🔒 icon, indicating that authentication is required for access.
+
+![](/images/docs/76d8e16-protected-endpoint.png)
+
+### Browser Access
+
+When attempting to access the endpoint from a web browser, you will be prompted to enter your credentials.
+
+![](/images/docs/465deac-browser-access.png)
+
+### Python Access
+
+When using Python, you can pass the credentials in the following manner:
+
+```
+import requests
+
+endpoint = 'https://fastapi-my-workspace-8080.truefoundry.my-org.com/'
+
+response = requests.get(endpoint, auth=('hello', 'pass'))
+```
+
+### Curl Access
+
+When using cURL, you'll need to include the credentials as part of the command:
+
+<CodeGroup>
+  ```bash bash
+  curl -v -X GET --user hello:pass https://fastapi-my-workspace-8080.truefoundry.my-org.com/
+  ```
+</CodeGroup>
+
+## Adding JWT Authentication to Your Service
+
+You can configure JWT-based authentication for your services hosted on TrueFoundry to ensure that only authenticated traffic can access your endpoints.
+
+The JWT token is sent as part of HTTP requests, and your service verifies it using a public key from the Identity Provider’s (IDP) JSON Web Key Set (JWKS). This ensures the token is valid and untampered, allowing authentication based on its claims.
+
+### Integrating Third-Party Identity Providers
+
+Identity providers like Amazon Cognito or Azure AD manage user authentication and issue JWTs. To validate these tokens, you need to configure a **Custom JWT Auth** integration that specifies:
+
+* **Issuer URL** – The trusted identity provider.
+* **JWKS URI** – The endpoint for fetching public keys used in token validation.
+
+### Creating a Custom JWT Auth Integration
+
+1. **Go to the Integrations Page** and add a new **Custom JWT Auth** integration.
+
+2. **Provide the following details:**
+
+   * **Issuer**
+   * **JWKS URI**
+
+3. *(Optional)* If you want to enable OAuth2-based login for services using this integration:
+
+   * Select **OAuth2 Client Configuration**.
+
+   * Fill in the following fields from your OAuth2 provider:
+
+     * **Client ID**
+     * **Client Secret**
+     * **Authorization URL**
+     * **Token URL**
+     * **Scopes** (e.g., `openid`, `email`, etc.)
+
+Once configured, your service will authenticate incoming requests based on JWT claims, ensuring secure and verified access.
+
+***
+
+### Setting Up Authentication Providers
+
+To integrate JWT authentication, you need to configure an identity provider such as **Amazon Cognito, Okta, Google OAuth2, or Microsoft Entra ID**. Each provider has a slightly different setup, but the key steps remain the same:
+
+* Create or use an existing application within the provider.
+* Retrieve the **Client ID, Client Secret**, and **OpenID configuration**.
+* Configure the **Issuer, JWKS URI, Authorization URL, and Token URL** in TrueFoundry.
+* Set up **scopes** required for authentication.
+
+Below are detailed steps for specific providers.
+
+***
+
+### Amazon Cognito Setup
+
+Follow the [AWS Cognito guide](https://docs.aws.amazon.com/cognito/latest/developerguide/getting-started-user-pools-application.html) to create a Cognito application or use an existing one.
+
+#### Steps
+
+1. **Create a Cognito User Pool** (if not already available).
+
+2. **Create an Application:**
+
+   * Choose **"Traditional Web Application"** as the **Application Type**.
+   * **Skip adding the return URL** for now; it can be added later after deploying the TrueFoundry service.
+
+3. **Save the following details:**
+
+   * **Client ID**
+   * **Client Secret**
+
+4. **Open the OpenID Configuration:**
+
+   * Example:
+     ```
+     https://cognito-idp.us-east-1.amazonaws.com/us-east-1_GOoTGBS6e/.well-known/openid-configuration
+     ```
+
+   * This contains required fields like:
+
+     * **Issuer**
+     * **JWKS URI**
+     * **Authorization URL**
+     * **Token URL**
+     * **Supported Scopes**
+
+#### Integration with TrueFoundry
+
+* Use the values from the OpenID configuration in the integration.
+
+* For **Client Secret**, you can:
+
+  * Create a **TrueFoundry Secret**, or
+  * Directly add the value.
+
+* **Include appropriate scopes** as required for your integration (e.g., `openid`, `email`, etc.).
+
+* **Retain JWT Source** as **Access Token** (no changes needed).
+
+**Example configuration**
+
+<Frame caption="Sample Custom JWT Auth integration for Amazon Cognito">
+  <img src="/images/docs/c0b6f400a4551110ea793b56288634cac0485f3b76e8833d5173c70db4ad6092-Screenshot_2025-03-10_at_9.54.28_AM.png" />
+</Frame>
+
+***
+
+### Google OAuth 2.0 Setup
+
+Follow the [Google OAuth 2.0 guide](https://developers.google.com/identity/protocols/oauth2) to create a Google application or use an existing one.
+
+#### Steps
+
+1. **Create a Google Cloud Project** (if not already available) at [Google Cloud Console](https://console.cloud.google.com/).
+
+2. **Enable the OAuth 2.0 API:**
+
+   * Go to **APIs & Services > Credentials**.
+   * Click **"Create Credentials"** and select **OAuth Client ID**.
+
+3. **Create an OAuth 2.0 Application:**
+
+   * Choose **"Web Application"** as the **Application Type**.
+   * **Skip adding the Authorized Redirect URI** for now; it can be added later after deploying the TrueFoundry service.
+
+4. **Save the following details:**
+
+   * **Client ID**
+   * **Client Secret**
+
+5. **Open the OpenID Configuration:**
+
+   * Example:
+     ```
+     https://accounts.google.com/.well-known/openid-configuration
+     ```
+
+   * This contains required fields like:
+
+     * **Issuer**
+     * **JWKS URI**
+     * **Authorization URL**
+     * **Token URL**
+     * **Supported Scopes**
+
+#### Integration with TrueFoundry
+
+* Use the values from the OpenID configuration in the integration.
+
+* For **Client Secret**, you can:
+
+  * Create a **TrueFoundry Secret**, or
+  * Directly add the value.
+
+* **Include the mandatory`openid` scope**, along with other required scopes (e.g., `email` etc.).
+
+* **Set JWT Source to`ID Token`** instead of Access Token.
+
+**Example configuration**
+
+<Frame caption="Custom JWT Auth integration for Google OAuth2">
+  <img src="/images/docs/6f95a5881fd9d038fed95474f31b89a460eb5066dff6641e9fae28e483757037-Screenshot_2025-03-17_at_10.53.58_AM.png" />
+</Frame>
+
+***
+
+### Microsoft Entra ID (Azure AD) Setup
+
+Follow the [Microsoft Entra ID guide](https://learn.microsoft.com/en-us/azure/active-directory/develop/quickstart-register-app) to create an application or use an existing one.
+
+***
+
+#### Steps to Configure the Application
+
+1. **Save the following details:**
+
+   * **Client ID**
+   * **Client Secret**
+   * **Tenant ID**
+
+2. **Open the OpenID Configuration:**
+
+   * OpenID Configuration URL:
+     ```
+     https://login.microsoftonline.com/{tenant_id}/.well-known/openid-configuration
+     ```
+
+   * This contains required fields like:
+
+     * **Issuer**
+     * **JWKS URI**
+     * **Authorization URL**
+     * **Token URL**
+     * **Supported Scopes**
+
+3. **Redirect URI:**
+
+   * **Skip adding the Redirect URI initially**.
+   * This can be added later once the TrueFoundry service deployment is created.
+
+#### Integration with TrueFoundry
+
+* Use the values from the OpenID configuration in the integration.
+
+* For **Client Secret**, you can:
+
+  * Create a **TrueFoundry Secret**, or
+  * Directly add the value.
+
+* **Include the mandatory`openid` scope**, along with other required scopes (e.g., `email`, `profile`, etc.).
+
+* **Set JWT Source to`ID Token`**.
+
+**Example configuration**
+
+<Frame caption="Custom JWT Auth integration for Azure AD/Microsoft Entra ID">
+  <img src="/images/docs/41bac5460fea6e32af287b5e547ee15b5c88cccbbf8c9cb8ef1e26c9cb4e0824-Screenshot_2025-03-17_at_10.48.15_AM.png" />
+</Frame>
+
+***
+
+### Okta Setup
+
+Follow the [Okta developer guide](https://developer.okta.com/docs/guides/sign-into-web-app/) to create an Okta application or use an existing one.
+
+#### Steps
+
+1. **Create an Okta Developer Account** (if not already available) at [https://developer.okta.com/signup/](https://developer.okta.com/signup/).
+
+2. **Create an Application:**
+
+   * Choose **"Web Application"** as the **Application Type**.
+   * **Skip adding the Sign-in redirect URI** for now; it can be added later after deploying the TrueFoundry service.
+
+3. **Save the following details:**
+
+   * **Client ID**
+   * **Client Secret**
+   * **Okta Domain** (e.g., `https://dev-123456.okta.com`)
+
+4. **Open the OpenID Configuration:**
+
+   * Example:
+     ```
+     https://dev-123456.okta.com/.well-known/openid-configuration
+     ```
+
+   * This contains required fields like:
+
+     * **Issuer**
+     * **JWKS URI**
+     * **Authorization URL**
+     * **Token URL**
+     * **Supported Scopes**
+
+#### Integration with TrueFoundry
+
+* Use the values from the OpenID configuration in the integration.
+
+* For **Client Secret**, you can:
+
+  * Create a **TrueFoundry Secret**, or
+  * Directly add the value.
+
+* **Include appropriate scopes** as required for your integration (e.g., `offline_access`, `openid`, `email`, etc.).
+
+* **Retain JWT Source** as **Access Token** (no changes needed).
+
+**Example configuration**
+
+<Frame caption="Custom JWT Auth integration for Okta">
+  <img src="/images/docs/6efe55259b54fa2de5c073753107808d37ae60ff25d4ae860df4a1fda6a33ad1-Screenshot_2025-03-18_at_10.24.34_AM.png" />
+</Frame>
+
+***
+
+### Enabling JWT Authentication in Your Service
+
+Once you have set up the **Custom JWT Auth** integration, you can enable authentication in your service deployment.
+
+#### Steps:
+
+1. **Enable Custom Security Rule:**
+
+   * Navigate to the **Security** settings of your service.
+   * Select **Custom Security Rule** and choose the JWT authentication integration from the dropdown.
+
+2. **Enable Login (if required):**
+
+   * If your service requires **OAuth2-based login** (typically for frontend applications), enable the **"Enable Login"** option.
+   * This allows users to log in using the OAuth2 provider configured in the integration.
+
+3. **Verify Token Claims (Optional):**
+
+   * You can enforce additional security by verifying claims in the token.
+   * Define **accepted values per key** to ensure only valid tokens are allowed.
+   * **Example:** Restrict access to users with emails from `truefoundry.com`:
+     ```
+     "email": "*@truefoundry.com"
+     ```
+
+<Frame caption="Sample JWT Auth Config while deploying a service">
+  <img src="/images/docs/cb15aaa163ed15b5782b04443f13a4ff591b596d8f6e92942a1070b8a8bcf85b-Screenshot_2025-03-10_at_5.41.50_AM.png" />
+</Frame>
+
+If **OAuth2-based login** is enabled, you must configure the **Redirect URL** in your OAuth2 provider settings.
+
+* After deploying the service, the **Redirect URL** will be displayed on the deployment page.
+* Copy this URL and add it to your OAuth2 provider’s **redirect URIs** section.
+
+<Frame caption="redirect URL for OAuth2">
+  <img src="/images/docs/2c858a61683f0c5a7954d727935866eb9d565b1228005d85923fb3e8b6300f09-Screenshot_2025-03-11_at_10.30.10_AM.png" />
+</Frame>
+
+### Sending request to your Authenticated Endpoint
+
+While sending request to the authenticated, you need to provide the token in the `Authorization`header. This header carries the token, allowing your service to verify and authenticate the request based on the credentials and claims present in the JWT.
+
+Here is an example of how to send a request using curl, a common command-line tool used for making HTTP requests:
+
+<CodeGroup>
+  ```bash bash
+  curl -X GET "https://your-service-endpoint.truefoundry.cloud/api/data" \
+       -H "Authorization: Bearer YOUR_JWT_HERE"
+  ```
+</CodeGroup>
+
+Unauthenticated requests would return `403`.
+
+## Specifying Host
+
+When we deploy services, we often want to put them behind a well-defined recognizable URL instead of load balancer URLs or IP addresses. E.g.`https://app.your-organization.com` or `https://your-site.your-organization.com/app/v1/`. There are two steps involved in this:
+
+1. If your organization owns domains, integrate them before proceeding. For instructions, please refer to the following [guide](doc:setting-up-domain)
+2. Construct endpoint URLs on top of your domains.
+
+### Identifying Available Domains
+
+Before specifying the host for your service URL, determine which domains are available to you. This helps in choosing the appropriate endpoint structure.
+
+You will see that there are two possible domain types:
+
+* Wildcard Domain: `*.your-organization.com`
+* Standard Domain: `your-organization.com`
+
+The approach to constructing the URL will differ based on what type of domain we are using.
+
+### Constructing the URL
+
+**a) Wildcard Domain**:
+
+For wildcard domains, specify the unique identifier before the `.your-organization.com` part. For example, `your-site-name.your-organization.com`.
+
+**b) Standard Domain**:
+
+For standard domains, specify the unique identifier after the `your-organization.com` part. For example, `your-organization.com/your-site-name`.
+
+***
+
+[Dockerize your code](/docs/define-code)
+
+[Define Resources](/docs/resources)
+
+* [Table of Contents](#)
+
+* * * [Not exposing the port](#not-exposing-the-port)
+    * [Exposing the port](#exposing-the-port)
+
+  * [Configuring the Port for your Service](#configuring-the-port-for-your-service)
+
+  * * [Via the User Interface (UI)](#via-the-user-interface-ui)
+    * [Via the Python SDK](#via-the-python-sdk)
+
+  * [What if you don't know which port to use?](#what-if-you-dont-know-which-port-to-use)
+
+  * [Adding Basic authentication to Service](#adding-basic-authentication-to-service)
+
+  * * [Via the User Interface (UI)](#via-the-user-interface-ui-1)
+    * [Via the Python SDK](#via-the-python-sdk-1)
+
+  * [Sending request to your Authenticated Endpoint](#sending-request-to-your-authenticated-endpoint)
+
+  * * [Browser Access](#browser-access)
+    * [Python Access](#python-access)
+    * [Curl Access](#curl-access)
+
+  * [Adding JWT Authentication to Your Service](#adding-jwt-authentication-to-your-service)
+
+  * * [Integrating Third-Party Identity Providers](#integrating-third-party-identity-providers)
+    * [Creating a Custom JWT Auth Integration](#creating-a-custom-jwt-auth-integration)
+    * [Setting Up Authentication Providers](#setting-up-authentication-providers)
+    * [Amazon Cognito Setup](#amazon-cognito-setup)
+    * [Google OAuth 2.0 Setup](#google-oauth-20-setup)
+    * [Microsoft Entra ID (Azure AD) Setup](#microsoft-entra-id-azure-ad-setup)
+    * [Okta Setup](#okta-setup)
+    * [Enabling JWT Authentication in Your Service](#enabling-jwt-authentication-in-your-service)
+    * [Sending request to your Authenticated Endpoint](#sending-request-to-your-authenticated-endpoint-1)
+
+  * [Specifying Host](#specifying-host)
+
+  * * [Identifying Available Domains](#identifying-available-domains)
+    * [Constructing the URL](#constructing-the-url)

@@ -1,0 +1,230 @@
+---
+title: "Creating Statically Provisioned Volumes"
+description: "This section covers how to create statically provisioned volumes. First, you need to create a  object in the cluster. Once this object is created you can use this persistent volume object to create a \"Volume\" on TrueFoundry."
+---
+
+In this section, we will cover how to use the following a volume:
+
+* GCS Bucket
+* S3 bucket
+* Existing EFS
+* Any general volume on Kubernetes
+
+# Mount a GCS bucket as volume
+
+To mount a GCS bucket as a volume on truefoundry, you need to follow the following steps. You can refer to this [document](https://cloud.google.com/kubernetes-engine/docs/how-to/persistent-volumes/cloud-storage-fuse-csi-driver) for more details:
+
+### Create a GCS bucket
+
+Create a GCS bucket and ensure the following:
+
+* Should be single region ( multi-region will work but speed will be slower and costs will be higher )
+* Region should be the same as that of your Kubernetes Cluster
+
+### Create Serviceaccount and Grant relevant permissions
+
+You need to run the following script. This does the following:
+
+* Enables GCS Fuse Driver on the cluster
+* Create IAM Policy to access your bucket
+* Create K8s service-account and add policy to this service-account
+* Enables role-binding of service account to the desired K8s namespace.
+
+<CodeGroup>
+  ```bash bash
+  #!/bin/bash
+
+  PROJECT=<Enter your Project Name>
+  CLUSTER_NAME=<Enter your Cluster Name>
+  REGION=<Region of your Cluster>
+  BUCKET_NAME=<Name of GCS Bucket>
+  TARGET_NAMESPACE=<Namespace where you want to mount your GCS bucket>
+
+  # Clip bucket name to 20 characters
+  CLIPPED_BUCKET_NAME="${BUCKET_NAME:0:20}"
+
+  K8S_SA_NAME="$CLIPPED_BUCKET_NAME-bucket-sa"
+  GCP_SA_NAME="$CLIPPED_BUCKET_NAME-gcp-sa"
+
+  GCP_SA_ID="$GCP_SA_NAME@$PROJECT.iam.gserviceaccount.com"
+
+  gcloud container clusters update $CLUSTER_NAME \
+      --update-addons GcsFuseCsiDriver=ENABLED \
+      --region=$REGION \
+      --project=$PROJECT
+  gcloud iam service-accounts create $GCP_SA_NAME  --project=$PROJECT
+  gcloud storage buckets add-iam-policy-binding gs://$BUCKET_NAME \
+      --member "serviceAccount:$GCP_SA_ID" \
+      --role "roles/storage.objectAdmin" \
+      --project $PROJECT
+
+  gcloud iam service-accounts add-iam-policy-binding $GCP_SA_ID \
+      --role roles/iam.workloadIdentityUser \
+      --member "serviceAccount:$PROJECT.svc.id.goog[$TARGET_NAMESPACE/$K8S_SA_NAME]" \
+      --project $PROJECT
+  ```
+</CodeGroup>
+
+### Create Service-Account in the Namespace
+
+We now need to create a serviceaccount on truefoundry in the same namespace with name: `TARGET_NAMESPACE`and the serviceaccount must have the name `K8S_SA_NAME`.
+
+```
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: <Enter K8S_SA_NAME same from above step>
+  namespace: <NAMESPACE>
+  annotations:
+    iam.gke.io/gcp-service-account: <Enter GCP IAM Principal Here>
+```
+
+<Info>
+  The service account name and workspace should be exactly same as the previous step.
+</Info>
+
+### Create a PersistentVolume object as shown below:
+
+Create a persistent volume object with the following step. (by doing a `kubectl apply`)
+
+<CodeGroup>
+  ```bash bash
+  apiVersion: v1
+  kind: PersistentVolume
+  metadata:
+    name: <Enter a unique PV name here>
+  spec:
+    capacity:
+      storage: 30Gi
+    csi:
+      driver: gcsfuse.csi.storage.gke.io
+      volumeHandle: <Enter your Bucket Name here>
+    accessModes:
+      - ReadWriteMany
+    persistentVolumeReclaimPolicy: Retain
+    storageClassName: np-fuse-test
+    mountOptions:
+      - implicit-dirs
+    volumeMode: Filesystem
+  ```
+</CodeGroup>
+
+### Create a Volume on TrueFoundry:
+
+Please follow this [section](https://docs.truefoundry.com/docs/creating-a-volume#statically-provisioned-volumes) to create volume on TrueFoundry
+
+# Mount an S3 bucket as a Volume
+
+To mount an S3 bucket as a volume on Truefoundry, you need to follow the following steps:
+
+### Setting up IAM Policies and Relevant Roles
+
+Please follow this [document](https://docs.aws.amazon.com/eks/latest/userguide/s3-csi.html) of AWS to set up mount point of S3 in an EKS cluster.
+
+This will guide you to do the following things:
+
+* Create an IAM policy to give permissions for mount point to access the s3 bucket
+* Create an IAM role.
+* Install the mountpoint for Amazon S3 CSI driver and attach the role that was created above.
+
+### Creating a Persistent Volume on the Kubernetes Cluster
+
+Create a PV with the following spec (by doing a `kubectl apply`):
+
+<CodeGroup>
+  ```bash bash
+  apiVersion: v1
+  kind: PersistentVolume
+  metadata:
+    name: <Enter persistent volume name here>
+  spec:
+    capacity:
+      storage: 100Gi
+    csi:
+      driver: s3.csi.aws.com
+      volumeHandle: s3-csi-driver-volume # must be unique
+      volumeAttributes:
+        bucketName: <Enter s3 bucket name here>
+    accessModes:
+      - ReadWriteMany
+    persistentVolumeReclaimPolicy: Retain
+    storageClassName: s3-test # put any value here
+    mountOptions:
+      - allow-delete
+      - region <enter aws region here>
+      - allow-other
+      - uid=1000
+    volumeMode: Filesystem
+   
+  ```
+</CodeGroup>
+
+### Create a Volume on TrueFoundry:
+
+Please follow this [section](https://docs.truefoundry.com/docs/creating-a-volume#statically-provisioned-volumes) to create volume on TrueFoundry
+
+# Mount an Existing EFS as a Volume
+
+To mount a S3 bucket as a volume on truefoundry, you need to follow the following steps:
+
+### Install EFS CSI driver on your cluster
+
+* To install EFS CSI driver on your cluster, go to Truefoundry UI -> `Clusters`-> `Installed Applications`-> `Manage`
+
+  ![](/images/docs/d9cb5b9-image.png)
+
+* From the `Volumes`section click on install AWS EFS CSI driver and click on Install.
+
+![](/images/docs/2151783-image.png)
+
+### Create an Access Point for your EFS
+
+* Locate your EFS in the AWS console and open it. Ensure that the EFS and the K8S cluster are in the same VPC. Click on "Create access point"
+
+  ![](/images/docs/76befc7-image.png)
+
+* Enter details like name, `Root directory path`(please make sure you fill the `Root directory creation permissions`section, can fill in with UID:1000, GID:1000 if you want to attach it to notebook)
+
+  ![](/images/docs/a1020b7-image.png)
+
+* Click on create.
+
+### Create a PersistentVolume on the cluster
+
+Create a PV with the following spec (by doing a `kubectl apply`):
+
+<CodeGroup>
+  ```bash bash
+  apiVersion: v1
+  kind: PersistentVolume
+  metadata:
+    name: <Enter your PV name here>
+  spec:
+    capacity:
+      storage: 5Gi # this number doesn't matter for EFS, any number will work
+    csi:
+      driver: efs.csi.aws.com
+      volumeHandle: <file_system_id>::<access_point_id> # e.g. fs-036e93cbb1fabcdef::fsap-0923ac354cqwerty
+    accessModes:
+      - ReadWriteMany
+    persistentVolumeReclaimPolicy: Retain
+    storageClassName: efs-sc
+    volumeMode: Filesystem
+  ```
+</CodeGroup>
+
+### Create a Volume on TrueFoundry:
+
+Please follow this [section](https://docs.truefoundry.com/docs/creating-a-volume#statically-provisioned-volumes) to create volume on TrueFoundry
+
+***
+
+[Interacting with your Volume](/docs/adding-volume-browser)
+
+[Introduction to Async Service](/docs/introduction-to-async-service)
+
+* [Table of Contents](#)
+
+* * [Mount a GCS bucket as volume](#mount-a-gcs-bucket-as-volume)
+  * [Mount an S3 bucket as a Volume](#mount-an-s3-bucket-as-a-volume)
+  * [Mount an Existing EFS as a Volume](#mount-an-existing-efs-as-a-volume)

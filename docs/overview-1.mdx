@@ -1,0 +1,47 @@
+---
+title: "Overview"
+description: "This page provides an overview of the architecture overview, requirements and steps to setup a Truefoundry compute plane cluster on GCP"
+---
+
+Truefoundry installation can be performed from the UI using a script that can be downloaded directly from your control plane cluster page after [tenant registration](https://www.truefoundry.com/register) or from your own control plane. This script leverages terraform internally to setup your cloud for Truefoundry.
+
+You can find an architectural overview for a Truefoundry enabled GKE cluster [here](https://docs.truefoundry.com/docs/infrastructure-requirements-gcp#/)
+
+# Scenarios
+
+Following scenarios are supported in the provided terraform code. You can find the requirements for each scenario [here](https://docs.truefoundry.com/docs/requirements):
+
+* New VPC + New GKE cluster - This is the simplest setup. The Truefoundry terraform code takes care of spinning up and setting up everything. Make sure your cloud account is ready with the requirements mentioned [here](https://docs.truefoundry.com/docs/gcp-requirements#/)
+* Existing VPC + New GKE cluster - In this setup, you come with your own VPC and truefoundry terraform code takes care of creating the cluster in the same VPC. Do make sure to adhere to the existing VPC related requirements mentioned [here](https://docs.truefoundry.com/docs/gcp-requirements#/)
+* Existing GKE cluster - In this setup, the Truefoundry terraform code reuses the cluster created by you to setup all the integrations needed for the platform to work. Do make sure to adhere to the existing VPC and existing cluster related requirements mentioned [here](https://docs.truefoundry.com/docs/gcp-requirements#/)
+
+# Steps
+
+1. Go to the clusters page on the control plane and click on `Create New Cluster` or `Attach Existing Cluster` for GCP GKE depending on your use case
+
+   ![](/images/docs/df0079c0aa7fef7477e26aaea87db5f33ff17a02f9c6427c479c7c1f20b5209a-image.png)
+
+2. You will see the requirements needed to be setup in order to execute the following steps. Click on `Continue`
+
+3. A form will be presented with the details for the new cluster to be created. Fill in with your cluster details. Click `Submit` when done
+
+   1. (For existing cluster) Disable the addons that are already installed on your cluster so that truefoundry installation does not interfere with your existing workloads
+
+      ![](/images/docs/8207d3d50b536beebe441d63fa4dfb5b086cf7e4323d965d92bb132334b3acde-image.png)
+
+4. You will be presented with a `curl` command to download and execute the script. The script will take care of installing the pre-requisites, downloading terraform code and running it on your local machine to set things up for Truefoundry.
+
+5. Once you are done with the installation, you can setup DNS and TLS for deploying workloads to your cluster by following [here](https://docs.truefoundry.com/docs/setting-up-dns-and-tls-in-gcp)
+
+6. Now you are ready to start deploying workloads on your cluster. You can start by going [here](https://docs.truefoundry.com/docs/deploy-service-from-a-public-github-repository)
+
+***
+
+[Setting up DNS and TLS in AWS](/docs/setting-up-dns-and-tls-in-aws)
+
+[Architecture](/docs/infrastructure-requirements-gcp)
+
+* [Table of Contents](#)
+
+* * [Scenarios](#scenarios)
+  * [Steps](#steps)

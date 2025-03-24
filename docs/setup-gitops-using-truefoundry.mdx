@@ -1,0 +1,63 @@
+---
+title: "Setup Gitops using Truefoundry"
+description: "Store deployment configuration in Git and implement a approval process for changes"
+---
+
+GitOps is a method of managing and deploying software applications using a version control system like Git. Think of it as a way to automate and streamline the process of updating and maintaining your applications. The key advantages of using Gitops - specially for production environments are the following:
+
+1. **Source of Truth**: In GitOps, Git repositories serve as the single source of truth for your infrastructure and application configurations. Everything needed to run your app is stored as code in these repositories.
+2. **Version Control**: Since everything is in Git, you have a complete history of changes. This makes it easy to track who made changes, revert to previous versions if needed, and collaborate with others.
+3. **Automation**: GitOps uses automation tools to continuously monitor your Git repositories. When changes are detected, these tools automatically update your applications and infrastructure to match the new configuration. This ensures that what you have in your Git repository is exactly what is running in your environment.
+4. **Consistency and Reliability**: By using Git as the source of truth and automating deployments, GitOps ensures that your environments are consistent and reduces the chance of human error, making deployments more reliable.
+5. **Collaboration**: Teams can collaborate more effectively since they can propose changes through pull requests, review code, and discuss potential impacts before deploying.
+
+Truefoundry provides first-class support for implementing Gitops and also provides a ready-to-use template using which you can implement Gitops using Github actions in your organization under 10 mins. **This repository:[https://github.com/truefoundry/truefoundry-gitops-sample-repository](https://github.com/truefoundry/truefoundry-gitops-sample-repository) contains the entire template**. It primarily comprises of the following:
+
+### Folder structure for placing your YAML configuration
+
+The folder structure is as follows:
+
+```
+clusters/
+├── cluster1/
+│   ├── cluster1.yaml
+│   └── workspaces/
+│       └── workspace1/
+│           ├── workspace1.yaml
+│           └── applications/
+│               └── app1.yaml
+└── cluster2/
+    ├── cluster2.yaml
+    └── workspaces/
+        └── workspace1/
+            ├── workspace1.yaml
+            └── applications/
+                └── sample-app.yaml
+```
+
+The spec for the cluster / workspace / application can be copied from the UI by clicking on Edit -> Spec.
+
+![](/images/docs/2f4ffcf38955a4350545321af80134d8746fd5dc9727938eb6ae3d021ee913cc-image.png)
+
+### Github actions for validating and applying the configuration
+
+The github actions files are present in .github/workflows: [https://github.com/truefoundry/truefoundry-gitops-sample-repository/tree/main/.github/workflows](https://github.com/truefoundry/truefoundry-gitops-sample-repository/tree/main/.github/workflows). The template primarily implements two things:
+
+1. **dry\_run\_on\_pr.yaml** - This file runs on creation or updating of any pull request. It validates the spec for all the yaml files changed in the PR. For validation, it performs the following checks:
+
+   1. Check if the changed file is a valid yaml file
+   2. Check if the changed file name is same as the name field in the yaml file
+   3. Check the spec if valid using `tfy apply --dry-run`
+
+2. **apply\_on\_merge.yaml** - This file runs `tfy apply` on all the files that have changed in the PR. It also runs delete on the files that have been deleted.
+
+***
+
+[XGBoost](/docs/xgboost)
+
+[Using Images from NVIDIA NGC Container Registry](/docs/using-images-from-ngc-container-registry)
+
+* [Table of Contents](#)
+
+* * [Folder structure for placing your YAML configuration](#folder-structure-for-placing-your-yaml-configuration)
+  * [Github actions for validating and applying the configuration](#github-actions-for-validating-and-applying-the-configuration)

@@ -1,0 +1,110 @@
+---
+title: "Workflow Concepts"
+---
+
+## Workflow
+
+**Definition**: A workflow is a composition of tasks, arranged in a specific order, that defines the execution logic. Workflows can include conditional logic, loops, and parallel execution.
+
+* Right now only static workflows are supported.
+* There can be only one Workflow in an application.
+* Workflow can be defined by wrapping a function with the @workflow decorator.
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.workflow import task, workflow
+
+  @task(...)
+  def say_hello() -> str:
+      return "Hello, World!"
+
+  @workflow
+  def hello_world_wf() -> str:
+      res = say_hello()
+      return res
+  ```
+</CodeGroup>
+
+## Task
+
+**Definition**: Task is the smallest unit of execution. It represent a single operation or function, such as a data transformation, model training step, or data retrieval, etc.
+
+* Types of Tasks:
+
+  * **Python Tasks:** :Regular Python functions decorated with @task and are called in the workflow function.
+  * **Container Tasks**: A Container Task is a task that runs a Docker container as part of the workflow execution. This allows you to encapsulate any piece of logic or computation within a Docker container and execute it within the workflow.
+
+Each task takes a `task_config` as a parameter to learn more about task config click [here](https://docs.truefoundry.com/docs/task-config).
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.workflow import task, workflow, PythonTaskConfig, TaskDockerFileBuild,  ContainerTaskConfig, ContainerTask
+  from truefoundry.deploy import Resources, Image
+
+  #Python task config
+  task_config = PythonTaskConfig(
+      ...
+  )
+  @task(task_config=task_config)
+  def python_task() -> str:
+      ...
+    
+  #Container task with task config
+  container_task = ContainerTask(
+      name="container_task",
+      task_config=ContainerTaskConfig(...),
+  )
+  ```
+</CodeGroup>
+
+## Map Task
+
+A map task is a specialized task that enables the parallel execution of a single task across multiple inputs, this task is used to speed up the execution and it is used when the input is too large or the function is a heavy task and requires a huge amount of resources and time.
+
+![](/images/docs/14367b896e57ca3c2addf615d778b1145a9a2ac1a4fdfe267e9902947416dc8e-image.png)
+
+To learn more about Map task and its usage, refer to [Creating a Map Task](https://docs.truefoundry.com/docs/creating-a-map-task) guide.
+
+## Conditional Task
+
+A conditional task allows you to decide the execution path of the workflow based on the condition defined. It his used when you have different execution paths that are dependent on the input or output of the previous task.
+
+![](/images/docs/b453d17c08115f3e1e020fd936884a3ae94b4e84ab108e30a55e86a7b6a24227-image.png)
+
+To learn more about Conditional task and its usage, refer to [Creating a Conditional Task](https://docs.truefoundry.com/docs/conditional-task) guide.
+
+## Cron Workflow
+
+* A cron workflow is a type of workflow that is scheduled to run at specific intervals, similar to how cron jobs work in Unix-like systems. It allows you to automate the execution of workflows based on a predefined schedule, which can be expressed using cron syntax. Cron jobs are always scheduled in UTC timezone.
+* Each workflow takes an optional execution config as parameter in which you can define the schedule or interval at which you want to run the workflow.
+* The cron Workflow can be scheduled be passing the `execution_configs` in the workflow decorator
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.workflow import workflow, ExecutionConfig
+
+  @workflow(
+      execution_configs=[
+          ExecutionConfig(
+              schedule="*/10 * * * *",
+          )
+      ]
+  )
+  def your_workflow():
+      ...
+  ```
+</CodeGroup>
+
+***
+
+[Interacting with workflow](/docs/interacting-with-workflow)
+
+[Guides](/docs/guides)
+
+* [Table of Contents](#)
+
+* * [Workflow](#workflow)
+  * [Task](#task)
+  * [Map Task](#map-task)
+  * [Conditional Task](#conditional-task)
+  * [Cron Workflow](#cron-workflow)

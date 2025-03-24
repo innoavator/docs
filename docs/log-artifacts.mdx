@@ -1,0 +1,189 @@
+---
+title: "Log and Get Artifacts"
+description: "Upload, Download and Version Artifacts"
+---
+
+An Artifact on Truefoundry is a bunch of files and folders stored on remote storage (cloud buckets like S3, GCS, Azure Blob) along with optional metadata fields. Additionally, artifacts are versioned automatically i.e. Each artifact once created has an associated version number and is immutable (contents cannot be changed). These artifacts can be retrieved later in any context and used in downstream applications.
+
+## How artifacts are organized
+
+In an organization, you can create multiple [ML Repo](doc:creating-ml-repo-via-ui). You can log one or more artifacts in each of these ML Repo. Under an ML Repo, an artifact is primarily identified by its name. Every time an artifact is created with the same under the same ML Repo, a new version is automatically created for that artifact.
+
+The following diagram explains the hierarchy:
+
+<Frame caption="How Artifact Versions are organized">
+  <img src="/images/docs/ce31dc7-image.png" />
+</Frame>
+
+This hierarchy is also reflected in the Fully Qualified Name of any Artifact Version
+
+<Frame caption="Artifact Version FQN parts">
+  <img src="/images/docs/5eef292-image.png" />
+</Frame>
+
+<Info>
+  Keep in mind that when you log an artifact with some name, you get back an artifact version under the same name. Therefore, when we refer to an artifact, we are almost always referring to a specific version of that artifact instead of the artifact itself (which represents all versions under it).
+</Info>
+
+### Relationship between Artifacts and Runs
+
+In the above diagram, we can also see some dotted lines between artifacts and runs under the ML Repo. This is because a logged artifact version can have an associated source run denoting where it came from. Such a relationship is established when an artifact version is created using a [Truefoundry Run](doc:create-run) instead of direct logging.
+
+Logging an artifact via a run can be useful, say, when we are performing an ML experiment and we have hyperparameters, metrics, images, and plots along with some files and folders. We can create a run to log hyperparameters, metrics, images, and plots and use the same run to log files and folders as an artifact. This way we can trace back useful metadata from the created artifact version.
+
+On the other hand, you might have some dataset that might be used across multiple runs in the same ML Repo. In such a case, it might not make sense to associate logging of the dataset itself with some Run.
+
+## Logging an Artifact
+
+You can log an artifact via two methods
+
+1. Python SDK
+2. User Interface
+
+### Python SDK
+
+To log an artifact you need
+
+* `ml_repo` - Name of the ML Repo
+* `name` - Name for the artifact
+* `artifact_paths` - A list of tuples of `(<local file or directory path>, <remote file or directory path>)` indicating which file or folder to copy where relative to the root of the artifact.
+
+Please see [`log_artifact`](doc:mlfoundry#kbdfunctionkbd-log_artifact) for complete reference.
+
+<CodeGroup>
+  ```bash bash
+  import os
+  from truefoundry.ml import get_client, ArtifactPath
+
+  client = get_client()
+  os.makedirs("my-folder", exist_ok=True)
+  with open("my-folder/file-inside-folder.txt", "w") as f:
+      f.write("Hello!")
+
+  with open("just-a-file.txt", "w") as f:
+      f.write("Hello from file!")
+
+  artifact_version = client.log_artifact(
+      ml_repo="my-ml-repo-1",
+      name="my-artifact",
+      artifact_paths=[
+          # Add files and folders here, `ArtifactPath` takes source and destination
+          # source can be single file path or folder path
+          # destination can be file path or folder path
+          # Note: When source is a folder path, destination is always interpreted as folder path
+          ArtifactPath(src="just-a-file.txt"),
+          ArtifactPath(src="my-folder/", dest="cool-dir"),
+          ArtifactPath(src="just-a-file.txt", dest="cool-dir/copied-file.txt")
+      ],
+      description="This is a sample artifact",
+      metadata={"created_by": "my-username"}
+  )
+  print(artifact_version.fqn)
+  ```
+
+  ```bash bash
+  import os
+  import truefoundry.ml as tfm
+  from truefoundry.ml import ArtifactPath
+
+  client = tfm.get_client()
+  client.create_ml_repo(ml_repo="my-ml-repo-1")
+
+  os.makedirs("my-folder", exist_ok=True)
+  with open("my-folder/file-inside-folder.txt", "w") as f:
+      f.write("Hello!")
+
+  with open("just-a-file.txt", "w") as f:
+      f.write("Hello from file!")
+      
+  run = client.create_run(ml_repo="my-ml-repo-1", run_name="my-run-name")
+
+  artifact_version = run.log_artifact(
+      name="my-artifact",
+      artifact_paths=[
+          # Add files and folders here, `ArtifactPath` takes source and destination
+          # source can be single file path or folder path
+          # destination can be file path or folder path
+          # Note: When source is a folder path, destination is always interpreted as folder path
+          ArtifactPath(src="just-a-file.txt"),
+          ArtifactPath(src="my-folder/", dest="cool-dir"),
+          ArtifactPath(src="just-a-file.txt", dest="cool-dir/copied-file.txt")
+      ],
+      description="This is a sample artifact",
+      metadata={"created_by": "my-username"}
+  )
+  print(artifact_version.fqn)
+  run.end()
+  ```
+</CodeGroup>
+
+This is what it looks like on the dashboard. You can find the Artifact Version under ML Repos > Your ML Repo Name > Artifacts > Your Artifact Name
+
+![](/images/docs/17922e9-image.png)
+
+### UI
+
+1. On the platform's dashboard, click on the "ML Repos" tab in the left panel.
+2. Select an ML Repo from the list or Create a new ML Repo and then select it.
+3. Go to the "Other Artifacts" tab at the top.
+4. Create a new Artifact by clicking on the "Create Artifact" Button.
+5. Configure the artifact by providing the following details
+   1. Artifact Name: Give a descriptive name to your Artifact for easy identification.
+6. After filling in the details, click on the "Create" button to create the new Artifact.
+
+![](/images/docs/6ad3ddc-Screenshot_2023-07-28_at_3.15.10_PM.png)
+
+7. The new Artifact should now be listed among the other Artifacts in your ML Repo. Click on the Artifact Name
+
+8. The Artifact should be empty. On the Artifact page, locate and click the "New Artifact Version" button.
+
+9. In the modal that appears,
+
+   1. Upload the necessary files or models that you want to include as part of this Artifact version.
+   2. Optionally, you can also add any relevant Artifact metadata to provide additional information about this version.
+
+10. After filling in the details, click on the "Create" button
+
+![](/images/docs/7d9867d-Screenshot_2023-07-28_at_4.46.04_PM.png)
+
+Congratulations! You have successfully uploaded the new Artifact version, which includes the files and resources you added.
+
+## Get the Artifact Version And Download Contents
+
+You can use the [`get_artifact_version_by_fqn` ](doc:mlfoundry#kbdfunctionkbd-get_artifact_version_by_fqn)method. It takes in `fqn` as an argument. FQN can be obtained from the UI dashboard or saved from the `fqn` property on [`ArtifactVersion`](doc:artifact#kbdclasskbd-artifactversion) returned by [`log_artifact`](doc:mlfoundry#kbdfunctionkbd-log_artifact)
+
+<Info>
+  The user or service account accessing this artifact version should have at least `Viewer` permission on the ML Repo of the artifact version.
+</Info>
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.ml import get_client
+
+  client = get_client()
+  artifact_version = client.get_artifact_version_by_fqn(fqn="<your artifact fqn>") # E.g. "artifact:truefoundry/user/my-classification-project/sklearn-artifact:1"
+
+  # download the artifact contents to disk
+  download_info = artifact_version.download(path="path/to/your/location")
+  print(download_info)
+  ```
+</CodeGroup>
+
+***
+
+[Log and Get Metrics](/docs/log-metrics)
+
+[Log and Get Models](/docs/log-models)
+
+* [Table of Contents](#)
+
+* * [How artifacts are organized](#how-artifacts-are-organized)
+
+  * * [Relationship between Artifacts and Runs](#relationship-between-artifacts-and-runs)
+
+  * [Logging an Artifact](#logging-an-artifact)
+
+  * * [Python SDK](#python-sdk)
+    * [UI](#ui)
+
+  * [Get the Artifact Version And Download Contents](#get-the-artifact-version-and-download-contents)

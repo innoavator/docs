@@ -1,0 +1,81 @@
+---
+title: "Customize build workflow"
+description: "This guide covers adding a custom workflow in the build workflow."
+---
+
+## Writing your custom build workflow script
+
+We support adding custom bash scripts to our build workflow. For example, one may want to scan the source code before building and pushing the image to their docker registry.
+
+<CodeGroup>
+  ```bash bash
+  #!/bin/bash
+
+  # Example to scan source code using sonarqube, ref: https://docs.sonarsource.com/sonarqube-server/latest/analyzing-source-code/scanners/sonarscanner/#running-from-zip-file
+  sonar-scanner $SOURCE_CODE_DOWNLOAD_PATH -Dsonar.token=$SONARQUBE_AUTH_TOKEN
+  ```
+</CodeGroup>
+
+## Create config map
+
+Create the config map for your custom script to be able to mount that in our build workflow. You can either write a YAML spec and apply it or create it using `kubectl` command as follows:
+
+<CodeGroup>
+  ```bash bash
+  kubectl create configmap <configmap-name> --from-file=<script-file-name> -n truefoundry
+  ```
+</CodeGroup>
+
+## Add to Truefoundry build workflow
+
+To add the above custom scrip to our build workflow, we need to first attach the config map as volume and then execute the script in the desired step. Please make the following changes in the values of the `truefoundry` helm chart
+
+<CodeGroup>
+  ```bash bash
+  tfyBuild:
+    truefoundryWorkflows:
+      extraVolumes:
+        - name: custom-script
+          configMap:
+            name: <config-map-name>
+            defaultMode: 511
+      extraVolumeMounts:
+        - name: custom-script
+          mountPath: /custom-scripts
+      sfyBuilder: 
+        script: |
+          download-code.sh
+          
+          # eg: excute before build and push
+          # /custom-scripts/<your-custom-script-file-name>
+          
+          registry-login.sh
+          wait-for-builder.sh
+          build-and-push.sh
+          
+          # eg: excute after build and push
+          # /custom-scripts/<your-custom-script-file-name>
+         
+          update-build.sh '{"status":"SUCCEEDED"}'
+  ```
+</CodeGroup>
+
+Notes:
+
+* Please **DO NOT** remove any existing step as it may cause issues in existing workflow
+* While mounting the configmap, make sure to keep the `defaultMode` to `511` to make the file executable.
+* Always execute the custom script using the absolute path as the working directory is set to `/scripts` by default.
+* If you need to set any environment variables to use inside your custom script, you can add those at `tfyBuild.truefoundryWorkflows.extraEnvs`.
+* Make sure you don't overwrite `SOURCE_CODE_DOWNLOAD_PATH, DOCKER_REGISTRY_URL, DOCKER_REGISTRY_USERNAME , DOCKER_REGISTRY_PASSWORD, DOCKER_REPO, DOCKER_TAG, CALLBACK_URL` environment variables' as these are reserved for internal usage. You may use them in your workflow if necessary.
+
+***
+
+[LLM Gateway](/docs/tfy-llm-gateway-installation)
+
+[Azure node pools](/docs/azure-node-pools)
+
+* [Table of Contents](#)
+
+* * [Writing your custom build workflow script](#writing-your-custom-build-workflow-script)
+  * [Create config map](#create-config-map)
+  * [Add to Truefoundry build workflow](#add-to-truefoundry-build-workflow)

@@ -1,0 +1,65 @@
+---
+title: "Google Vertex"
+---
+
+# Overview
+
+## Adding Models
+
+**To add Google Vertex AI models to TrueFoundry LLM Gateway:**
+
+1. From TrueFoundry dashboard, go to Integrations > Add Provider Integration and choose Google
+2. Add Authentication details by providing Service Account JSON. More details on permission required below.
+3. Click on Vertex Model and fill in model ID, region and other fields to add model integrations. Read below for more information on how to obtain the model ID from Vertex.
+
+<Frame caption="Adding Vertex Models to LLM Gateway">
+  <img src="/images/docs/297afa6f3a6e4afb3bea71b357cc869be808ac25ec40f11eb70eef6cb6fb0726-Screenshot_2025-01-30_at_11.00.58_AM.png" />
+</Frame>
+
+# Authentication
+
+To authenticate Google Vertex model you need to provide:
+
+1. Project ID - Project ID can be found from the top right corner in your console.
+   1. ![](/images/docs/b3f40abdc4b83512a66eecc762ce07a9d8af5ff88efb7570b55684fe30ee7437-Screenshot_2025-01-30_at_11.24.27_AM.png)
+2. Service Account JSON - You can generate a service account JSON using the steps mentioned [here](https://cloud.google.com/iam/docs/keys-create-delete).
+3. The corresponding service account needs to have an IAM role with the following permission:
+   1. ```
+      [
+        "aiplatform.endpoints.predict"
+      ]
+      ```
+
+# Supported Models
+
+Currently TrueFoundry LLM Gateway supports text and embedding models from Vertex AI.
+
+Some of these models support function calling and sending files like images or documents attached to their messages and TrueFoundry LLM Gateway also supports the same. Support for Vertex AI models like image generation, audio are coming soon on TrueFoundry LLM Gateway.
+
+## Model ID
+
+While adding models to LLM Gateway, you need to provide the Vertex Model ID. This can be obtained from the models page on Vertex.
+
+![](/images/docs/ce958f64be249cf6a9a1cfc3a10ba22412b8a1b17ffdc1d46edfafc1a692b4a6-Screenshot_2025-02-03_at_9.58.14_AM.png)
+
+While adding Google models like Gemini or Gemma, you can simply provide the model ID in the form. For example, you'd fill `gemini-1.5-flash` for Gemini 1.5 Flash model.
+
+While adding models from other Vertex partners like Anthropic or Mistral, you need to provide the model ID in the `<partner>/<vertex-model-id`. For example, `anthropic/claude-3-5-sonnet-v2@20241022`.
+
+<Frame caption="Adding an anthropic model">
+  <img src="/images/docs/0d11f4746b8f2b1941acfd4ce5c69b561df1b0a8d77eedb6d5c8c81051243597-Screenshot_2025-02-03_at_9.50.54_AM.png" />
+</Frame>
+
+***
+
+[AWS Bedrock](/docs/aws-bedrock)
+
+[Azure OpenAI](/docs/azure-openai)
+
+* [Table of Contents](#)
+
+* * [Overview](#overview)
+  * * [Adding Models](#adding-models)
+  * [Authentication](#authentication)
+  * [Supported Models](#supported-models)
+  * * [Model ID](#model-id)

@@ -1,0 +1,88 @@
+---
+title: "Deploy Compute Plane"
+description: "Connect Kubernetes Cluster in your cloud account to Truefoundry Control Plane"
+---
+
+In this mode, we will be connecting a Kubernetes cluster to the Truefoundry control plane. The steps will vary slightly according based on your cloud provider - AWS, GCP or Azure. The key outline of the steps that need to be done are mentioned below. The entire setup process takes between 30 mins to 1 hour if you are using our onboarding cli script.
+
+### 1. Connect your Kubernetes Cluster
+
+You can choose to either create or onboard an existing cluster to Truefoundry platform. You can follow the guides for AWS, GCP or Azure to connect your cluster.
+
+### 2. Connect your Docker Registry
+
+You need to integrate your docker registry so that the control plane can push the docker images to your registry after building the source code. TrueFoundry providers integrations for all the major docker registries. Follow the guides below to integrate your docker registry.
+
+1. AWS ECR
+2. Google Artifact Registry
+3. Azure Container Registry
+4. DockerHub
+5. Quay
+
+If you are using the Truefoundry generated terraform code, docker registry for all the major cloud providers will be created by default. You just need to check the output of the terraform run to connect the docker registry for AWS, GCP and Azure.
+
+### 3. Connect your Blob Storage (AWS S3 / GCS Bucket / Azure Container)
+
+We need to integrate with atleast one blob storage bucket to store the ML models and artifacts. You can integrate multiple blob storage buckets to segregate development and production environments. If you are using Truefoundry generated terraform code then a bucket in the respective cloud provider is created by default. To access these buckets a role is also created which can access it.
+
+### 4. Connect Your Secret Store (OPTIONAL)
+
+You can integrate your secret store with Truefoundry so that developers can save the secrets and use them in their applications. If a secret store is integrated, all secrets are stored in your actual Secret Store and Truefoundry only store the link to the secret in its own databases. This makes sure that your secrets are not stored in the ControlPlane. Follow the guides below to integrate with the following secret store:
+
+1. AWS SSM
+2. Google Secrets Manager
+3. Azure Vault
+
+If you are using Truefoundry generated terraform code then access to SSM is created through a role which can access it.
+
+### 5. Connect Git Repository (OPTIONAL)
+
+Integrating with the Git repository allows developers to deploy directly from their Git repository by specifying the repository name, branch and commit SHA. Follow the guides below to integrate with the following Git repositories.
+
+### Install Application Components
+
+Truefoundry requires some open-source components to be installed on the cluster to be able to deploy services and models. If you are using the Truefoundry generated terraform code, it will automatically setup all the components for you.
+
+You can install the applications or view the installed applications on each of the cluster in Truefoundry.
+
+The set of mandatory dependencies are:
+
+1. [ArgoCD](https://argo-cd.readthedocs.io/en/stable/), [Argo Rollout](https://argoproj.github.io/argo-rollouts/) : TrueFoundry relies on [ArgoCD](https://argo-cd.readthedocs.io/en/stable/) Application object to deploy the applications inside a Kubernetes cluster. The infra applications are deployed in the default project in argocd while the user deployed applications are deployed in tfy-apps project. ArgoRollouts is used to power the rollout process of deployments - enabling blue-green, canary and different rollout strategies.
+2. [Argo Workflows](https://argo-workflows.readthedocs.io/en/latest/) : Truefoundry uses ArgoRollouts to run the jobs deployed on the platform.
+3. [Istio](https://istio.io/) : Istio is used as the Ingress controller and also to power functionalities of Oauth authentication for Notebooks and traffic shaping abilities. Truefoundry doesn't impose the sidecar inject by default - its only done if we try to do request count based autoscaling or are trying to mirror or intercept traffic.
+
+The rest of the dependencies are more use-case based and optional depending on if you are using that feature.
+
+1. [Keda for workload Autoscaling](https://keda.sh/): Truefoundry uses Keda to autoscale your workloads based on time, requests count, CPU or queue length.
+2. [Prometheus for Metrics](https://prometheus.io/): Prometheus powers the metrics dashboard in Truefoundry. Prometheus also helps provide some of the metrics for autoscaling.
+3. [Loki for Logs](https://grafana.com/oss/loki/): The logs feature in Truefoundry is powered via Loki. This is optional and you can choose to provide your own logging solution.
+4. [GPU operator](https://artifacthub.io/packages/helm/truefoundry/tfy-gpu-operator/0.1.11) : This is Truefoundry provided helm chart for brining up GPU nodes in different clouds. Its based on Nvidia's GPU operator.
+5. [Grafana](https://grafana.com/) : You can install the Truefoundry [grafana helm chart](https://artifacthub.io/packages/helm/truefoundry/tfy-grafana/0.1.4) that comes with a lot of inbuilt dashboards for cluster monitoring.
+
+### AWS Specific Components:
+
+1. [Metrics-Server](https://github.com/kubernetes-sigs/metrics-server): This is required on AWS EKS cluster for metrics collection.
+2. [AWS Ebs CSI Driver](https://docs.aws.amazon.com/eks/latest/userguide/ebs-csi.html) : This is required for supporting EBS volumes on EKS cluster.
+3. [AWS Efs CSI Driver](https://docs.aws.amazon.com/eks/latest/userguide/efs-csi.html) : Required for supporting EFS volumes for EFS cluster.
+4. [TFY Inferentia operator](https://artifacthub.io/packages/helm/truefoundry/tfy-inferentia-operator) : This is required for supporting Inferentia machines on EKS.
+
+### Azure Specific Components:
+
+1. [Cert-Manager](https://cert-manager.io/) : This is needed for provisioning certificates on Azure AKS cluster.
+
+***
+
+[Modes of Deployment](/docs/truefoundry-architecture)
+
+[AWS](/docs/aws-1)
+
+* [Table of Contents](#)
+
+* * [1. Connect your Kubernetes Cluster](#1-connect-your-kubernetes-cluster)
+  * [2. Connect your Docker Registry](#2-connect-your-docker-registry)
+  * [3. Connect your Blob Storage (AWS S3 / GCS Bucket / Azure Container)](#3-connect-your-blob-storage-aws-s3--gcs-bucket--azure-container)
+  * [4. Connect Your Secret Store (OPTIONAL)](#4-connect-your-secret-store-optional)
+  * [5. Connect Git Repository (OPTIONAL)](#5-connect-git-repository-optional)
+  * [Install Application Components](#install-application-components)
+  * [AWS Specific Components:](#aws-specific-components)
+  * [Azure Specific Components:](#azure-specific-components)

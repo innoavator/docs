@@ -1,0 +1,40 @@
+---
+title: "Azure OpenAI"
+---
+
+# Overview
+
+## Adding Models
+
+To add Bedrock model to Gateway:
+
+1. From TrueFoundry dashboard, go to `Integrations` > `Add Provider Integration` and choose `Azure`
+2. Click on `Add Integration` and choose `Azure OpenAI Model` to add an Azure OpenAI model.
+3. Fill in the information including the API Key
+
+# Supported Models
+
+Azure OpenAI integration supports all kinds of OpenAI models. To start using OpenAI models through Azure:
+
+1. Deploy Azure OpenAI resource and deploy a model. The instructions are available [here](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/create-resource?pivots=web-portal).
+2. Once deployed, the model names can be found in the `Deployments` tab under Azure OpenAI Service in Azure AI Foundry. You can use the name from this list as Model ID on while filling TrueFoundry Integrations form.
+
+<Frame caption="Listing of OpenAI models in Azure OpenAI Service">
+  <img src="/images/docs/956b58837d4ea6b4a76dbb0da5003d5cecaa64d2988482dca907e5faecb949b2-Screenshot_2025-02-03_at_10.20.09_AM.png" />
+</Frame>
+
+<Frame caption="Adding a model to TrueFoundry as an integration">
+  <img src="/images/docs/3ed08e43c563dc839930a575e35c58c7415b3d25ef01385efc3c835729577575-Screenshot_2025-02-03_at_10.29.01_AM.png" />
+</Frame>
+
+***
+
+[Google Vertex](/docs/google-vertex)
+
+[Interacting with LLM Gateway](/docs/unified-api-and-code-generation)
+
+* [Table of Contents](#)
+
+* * [Overview](#overview)
+  * * [Adding Models](#adding-models)
+  * [Supported Models](#supported-models)

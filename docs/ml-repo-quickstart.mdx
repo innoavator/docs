@@ -1,0 +1,95 @@
+---
+title: "Quick Start"
+description: "To get started, we need to have the mlfoundry library installed. You can install it following the instructions in the  docs."
+---
+
+### Create a ML Repo
+
+<Info>
+  Before you can create an ML Repo, you'd need to connect one or more Blob Storages (S3, GCS, Azure Blob, MinIO, etc) to store artifacts and models associated with a ML Repo. If this one time setup is already done, you can skip to next section
+
+  You can refer to one of the following pages to connect your blob storage to TrueFoundry
+
+  * [AWS S3](doc:integration-provider-aws)
+  * [Google Cloud Storage](doc:integration-provider-gcp)
+  * [Azure Blob Storage](doc:integration-provider-azure)
+  * Any S3 API Compatible Storage
+</Info>
+
+You can then create an ML Repo from the ML Repo's tab in the Platform.
+
+### Create a run and start tracking
+
+Initialize a new run. This run will now appear on the TrueFoundry dashboard under ML Repos Tab.
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.ml import get_client
+
+  client = get_client()
+  run = client.create_run(ml_repo="iris-demo", run_name="svm-model")
+  ```
+</CodeGroup>
+
+![](/images/docs/9cd8988-Screenshot_134.png) ![](/images/docs/befcc7a-Screenshot_135.png)
+
+### Track parameters
+
+Save hyperparameters for your experiment.
+
+<CodeGroup>
+  ```bash bash
+  run.log_params({"learning_rate": 0.001})
+  ```
+</CodeGroup>
+
+### Track metrics
+
+Save metrics for your model.
+
+<CodeGroup>
+  ```bash bash
+  run.log_metrics({"accuracy": 0.7, "loss": 0.6})
+  ```
+</CodeGroup>
+
+### End a run and stop tracking
+
+After completion of your experiment, you can end a run. This function marks the run as “finished” and stops tracking system metrics.
+
+<CodeGroup>
+  ```bash bash
+  run.end()
+  ```
+</CodeGroup>
+
+![](/images/docs/930ce79-Screenshot_136.png)
+
+Congratulations! You have successfully created a new ML repository. It is now ready for use, and you can start populating it with your data, code, models, and other related resources.
+
+## Login without manual interaction ( Non-Interactive Mode )
+
+TrueFoundry offers a convenient option to automate login through the command-line interface (CLI) for integration within your scripts. This non-interactive approach utilizes environment variables, eliminating the need for manual input (approving through clicking the Approve button in the browser that opens)
+
+In non-interactive mode, you can set environment variables to automate the login process. To do this, set the following environment variables:
+
+* `TFY_API_KEY`: Your TrueFoundry API key. You can obtain your API key by referring to the [API Key Generation Documentation](doc:generate-api-key).
+* `TFY_HOST`: The host URL of your MLFoundry instance, e.g., [https://your-domain.truefoundry.com](https://your-domain.truefoundry.com).
+
+***
+
+What’s Next
+
+* [Monitor Jobs](/docs/job-monitoring)
+* [Deploy a Cron Job](/docs/cron-job)
+* [Advanced Options](/docs/job-advanced)
+
+* [Table of Contents](#)
+
+* * * [Create a ML Repo](#create-a-ml-repo)
+    * [Create a run and start tracking](#create-a-run-and-start-tracking)
+    * [Track parameters](#track-parameters)
+    * [Track metrics](#track-metrics)
+    * [End a run and stop tracking](#end-a-run-and-stop-tracking)
+
+  * [Login without manual interaction ( Non-Interactive Mode )](#login-without-manual-interaction--non-interactive-mode-)

@@ -1,0 +1,54 @@
+---
+title: "Support self signed CA certificates"
+description: "For organisations that enforce using self-signed certificates to connect to external services or other services, Truefoundry platform will have to be configured accordingly."
+---
+
+We will use kyverno to enable automated CA cert injection on pods selectively.
+
+# Steps
+
+1. Install kyverno
+   <CodeGroup>
+     ```bash bash
+     $ kubectl create namespace kyverno
+     $ helm repo add kyverno https://kyverno.github.io/kyverno/
+     $ helm install kyverno kyverno/kyverno --version 3.2.5 -n kyverno
+     ```
+   </CodeGroup>
+2. We will use `tfy-kyverno-config` helm chart to enable cert injection [link](https://artifacthub.io/packages/helm/truefoundry/tfy-kyverno-config). Create a `values.yaml` and fill in the values.
+   <CodeGroup>
+     ```bash bash
+     addCaCertificateVolume:
+       enabled: true
+       sourceNamespace: <source_namespace>
+       sourceConfigMap:
+         name: <name of the source configmap>
+         subPath: <configmap data subpath>
+       destinationConfigMap:
+         name: <name of the cloned configmap to create in each namespace>
+       envs: []
+       injectionConfigs:
+       - label:
+           key: <"app.kubernetes.io/instance">
+           value: <"truefoundry">
+         mountPaths:
+         - </etc/pki/tls/certs>
+     ```
+   </CodeGroup>
+3. Install the helm chart
+   ```
+   $ helm install kyverno kyverno/kyverno --version 3.2.5 -n kyverno -f values.yaml
+   ```
+
+This will install a Kyverno `ClusterPolicy` which will inject the ca certificates in the pods getting created along with env variables if needed.
+
+You can also add more `addCaCertificateVolume.injectionConfigs` with custom labels for workloads that need the CA certificate injected. The per-service labels can be configured from the truefoundry UI
+
+***
+
+[TFY Agent](/docs/tfy-agent)
+
+[Enabling Git Integrations](/docs/enabling-git-integrations)
+
+* [Table of Contents](#)
+* * [Steps](#steps)

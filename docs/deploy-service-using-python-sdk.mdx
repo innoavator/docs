@@ -1,0 +1,189 @@
+---
+title: "Deploy Service using Python SDK"
+description: "In this guide, we'll deploy a FastAPI service for solving the Iris classification problem. This problem involves predicting the species of an iris flower based on its sepal length, sepal width, petal length, and petal width. There are three species: Iris setosa, Iris versicolor, and Iris virginica."
+---
+
+![](/images/docs/373bdd9-iris-machinelearning.png)
+
+## Project Setup
+
+We've already created a FastAPI service for the Iris classification problem, and you can find the code in our GitHub repository: [GitHub Repository](https://github.com/truefoundry/getting-started-examples/tree/main/deploy-ml-model).
+
+Clone the GitHub repository with the following command:
+
+<CodeGroup>
+  ```bash bash
+  git clone https://github.com/truefoundry/getting-started-examples.git
+  ```
+</CodeGroup>
+
+Navigate to the project directory:
+
+<CodeGroup>
+  ```bash bash
+  cd deploy-ml-model
+  ```
+</CodeGroup>
+
+Please review the service code to become familiar with the code you'll deploy.
+
+#### Project Structure
+
+The project files are organized as follows:
+
+```
+.
+├── app.py - Contains FastAPI code for inference.
+├── iris_classifier.joblib - The model file.
+└── requirements.txt - Lists dependencies.
+```
+
+All these files are located in the same directory.
+
+## Prerequisties
+
+Before you proceed with the guide, make sure you have the following:
+
+* **Truefoundry CLI**: Set up and configure the TrueFoundry CLI tool on your local machine by following the [Setup for CLI](doc:setup) guide.
+* **Workspace**: To deploy your service, you'll need a workspace. If you don't have one, you can create it using this guide: [Creating a Workspace](doc:key-concepts#creating-a-workspace) or seek assistance from your cluster administrator. Also, copy the Workspace FQN as this will be required later.
+
+## Deploying the Service
+
+Create a `deploy.py` file in the same directory as your Service code (`app.py`). This file will contain the necessary configuration for your Service.
+
+Your directory structure will then appear as follows:
+
+**File Structure**
+
+<CodeGroup>
+  ```bash bash
+  .
+  ├── iris_classifier.joblib
+  ├── app.py
+  ├── deploy.py
+  └── requirements.txt
+  ```
+</CodeGroup>
+
+### **`deploy.py`**
+
+<Info>
+  Providing a host value depends on the base domain urls configured in the cluster settings, you can learn how to find the base domain urls available to you [here](doc:define-ports-and-domains)
+
+  For e.g. If your base domain url is `*.truefoundry.your-org.com` then a valid value can be `fastapi-your-workspace-8000.truefoundry.your-org.com`.
+
+  Alternatively if you have a non wildcard based domain url e.g. `truefoundry.your-org.com`, then a valid value can be `truefoundry.your-org.com/fastapi-your-workspace-8000`
+</Info>
+
+<CodeGroup>
+  ```bash bash
+  import logging
+  from truefoundry.deploy import Build, PythonBuild, Service, Resources, Port
+
+  # Set up logging to display informational messages
+  logging.basicConfig(level=logging.INFO)
+
+  # Create a TrueFoundry **Service** object to configure your service
+  service = Service(
+    	# Specify the name of the service
+      name="your-service",  
+      # Define how to build your code into a Docker image
+    	image=Build(
+          # `PythonBuild` helps specify the details of your Python Code.
+        	# These details will be used to templatize a DockerFile to build your Docker Image
+          build_spec=PythonBuild(
+            	# Define the command to run the application
+              command="uvicorn app:app --port 8000 --host 0.0.0.0",  
+     		      # Specify the path to requirements file
+              requirements_path="requirements.txt",  
+          )
+      ),
+    	# Set the ports your server will listen on
+      ports=[
+          Port(
+              port=8000,
+            	# Define the host for the service, to learn how to set this view the above callout
+              host="your-service-your-workspace-8000.your-organization.ai",
+          )
+      ],
+    	# Define the resource constraints.
+      #
+      # Requests are the minimum amount of resources that a container needs to run.
+      # Limits are the maximum amount of resources that a container can use.
+      #
+      # If a container tries to use more resources than its limits, it will be throttled or killed.
+      resources=Resources(
+        # CPU is specified as a number. 1 CPU unit is equivalent to 1 physical CPU core, or 1 virtual core.
+        cpu_request=0.2,
+        cpu_limit=0.5,
+
+        # Memory is defined as an integer and the unit is Megabytes.
+        memory_request=200,
+        memory_limit=500,
+
+        # Ephemeral storage is defined as an integer and the unit is Megabytes.
+        ephemeral_storage_request=1000,
+        ephemeral_storage_limit=2000,
+      ),
+    	# Define environment variables that your Service will have access to
+      env={  	
+          "UVICORN_WEB_CONCURRENCY": "1", 
+          "ENVIRONMENT": "dev"  
+      }
+  )
+
+  # Deploy the service to the specified workspace, copy workspace FQN using the following guide
+  # https://docs.truefoundry.com/docs/key-concepts#creating-a-workspace
+  service.deploy(workspace_fqn="your-workspace-fqn")
+  ```
+</CodeGroup>
+
+To understand the code, you can click the following recipe:
+
+To deploy using Python SDK use:
+
+<CodeGroup>
+  ```bash bash
+  python deploy.py
+  ```
+</CodeGroup>
+
+> Run the above command from the same directory containing the `app.py` and `requirements.txt` files.
+
+<Info>
+  To exclude specific files from being built and deployed, create a .tfyignore file in the directory containing your deployment script (`deploy.py`). The `.tfyignore` file follows the same rules as the `.gitignore` file.
+
+  If your repository already has a `.gitignore` file, you don't need to create a `.tfyignore` file. Service Foundry will automatically detect the files to ignore.
+
+  Place the `.tfyignore` file in the project's root directory, alongside deploy.py.
+</Info>
+
+After running the command mentioned above, wait for the deployment process to complete. Monitor the status until it shows **`DEPLOY_SUCCESS:`**, indicating a successful deployment.
+
+![](/images/docs/08dd25d-Screenshot_2023-11-03_at_2.13.16_PM.png)
+
+Once deployed, you'll receive a dashboard access link in the output, typically mentioned as **`You can find the application on the dashboard:`**. Click this link to access the deployment dashboard.
+
+## View your deployed service
+
+Your deployment will be successful in a few seconds, and your service will be displayed as active (green), indicating that it's up and running.
+
+![](/images/docs/3b01214-Screenshot_2023-11-03_at_1.26.04_PM.png)
+
+Congratulations! You've successfully deployed your FastAPI service.
+
+To learn how to use your service-specific dashboard and send requests to your service, check out this guide: [Interacting with your Service](doc:interacting-with-your-service)
+
+***
+
+[Deploy Service from a public Github repository](/docs/deploy-service-from-a-public-github-repository)
+
+[Interacting with your Service](/docs/interacting-with-your-service)
+
+* [Table of Contents](#)
+
+* * [Project Setup](#project-setup)
+  * [Prerequisties](#prerequisties)
+  * [Deploying the Service](#deploying-the-service)
+  * * [deploy.py](#deploypy)
+  * [View your deployed service](#view-your-deployed-service)

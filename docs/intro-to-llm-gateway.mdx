@@ -1,0 +1,96 @@
+---
+title: "Overview"
+description: "LLM Gateway provides a unified interface to manage your organization's LLM usage. Below are the key features that enhance functionality and security:"
+---
+
+* **Unified API**: Access multiple LLM providers through a single OpenAI compatible interface, requiring no code changes.
+
+* **API Key Security**: Secure and centralized management of credentials.
+
+* **Governance & Control**: Set limits, enforce access controls, and apply content filtering to manage how LLMs are used within your organization.
+
+* **Rate Limiting**: Implement measures to prevent abuse and ensure fair usage across users.
+
+* **Observability**: Track and analyse usage, costs, latency, and overall performance.
+
+* **Cost Management**: Monitor spending and configure budget alerts to keep expenses under control.
+
+* **Audit Trails**: Maintain logs of all interactions with LLMs to support compliance and auditing requirements.
+
+## LLM Playground
+
+The LLM Playground is a UI for the LLM Gateway where you can tryout different models you've added from across providers like OpenAI, Mistral, Cohere etc. Below is an overview of the features:
+
+1. Support for **multiple model types**
+
+   1. Chat Models
+   2. Completion Models
+   3. Embedding Models
+
+2. **Image Upload**: Upload images for image captioning or visual question answering. This is only available for models that support images such as GPT-4o.
+
+3. **Model Comparison**: Compare responses from different completion models to evaluate their performance.
+
+4. **System Prompts:** Use predefined system prompts to guide model behaviour. System prompt inform how the model should respond. Sample system prompt - *Be clear, concise, and polite in your responses. Avoid sharing any sensitive or personal information.*
+
+## Benchmarking Results (LLM Gateway is Blazing Fast!)
+
+* **Near-Zero Overhead:** TrueFoundry LLM Gateway adds only extra 3 ms in latency upto 250 RPS and 4 ms at RPS > 300.
+* **Scalability:** LLM Gateway can scale without any degradation in performance until about 350 RPS with 1 vCPU & 1 GB machine before the CPU utilisation reaches 100% and latencies start to get affected. With more CPU or more replicas, the LLM Gateway can scale to tens of thousands of requests per second.
+* **High Capacity:** A t2.2xlarge AWS instance (43$ per month on spot) machine can scale upto \~3000 RPS with no issues.
+* **Edge Ready:** Deploy close to your apps
+
+<Frame caption="Gateway can be deployed on the edge, close to your applications">
+  <img src="/images/docs/686a04943a81ee773a3a94dcddff05647776f82f7a2f32d4155d4df0f61f0032-image.png" />
+</Frame>
+
+<Info />
+
+## Unified API
+
+The Unified API in the TrueFoundry LLM Gateway provides a standardised interface for accessing and interacting with different language models from various providers. This means you can seamlessly switch between models and providers without changing your application's code structure. By abstracting the underlying complexities, the Unified API simplifies the process of integrating multiple models and ensures consistency in how they are accessed and utilised.
+
+## Key Features of the Unified API
+
+1. **Standardisation**: The Unified API standardises requests and responses across different models, making it easier to manage and integrate multiple models.
+2. **Flexibility**: Easily switch between different models and providers without altering the core application code.
+3. **Efficiency**: Streamline the development process by using a single API to interact with various models, reducing the need for multiple integrations and bespoke handling.
+4. **Compatibility**: By adhering to the OpenAI request-response format, the Unified API ensures seamless integration with Python libraries like OpenAI and LangChain.
+
+## Supported Providers
+
+Below is a comprehensive list of popular LLM providers that is supported by TrueFoundry LLM Gateway.
+
+|                                                                                                                  | Provider                              | Streaming Supported | How to add models from this provider?                                                                                                                                                                        |
+| ---------------------------------------------------------------------------------------------------------------- | ------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ![GCP Logo](/images/docs/852cf2ae041019e3322649a2731ef87fe038bb09ce2271e7114f4fb2ed9da415-file.png)              | **GCP**                               | ✅                   | [https://docs.truefoundry.com/docs/integration-provider-gcp#google-vertex-model-integration](https://docs.truefoundry.com/docs/integration-provider-gcp#google-vertex-model-integration)                     |
+| ![AWS Logo](/images/docs/3d9a209788691caf01ac023fd388edcb5eb0bebddc7a6cbcfdfe5749d7167efa-file_1.png)            | **AWS**                               | ✅                   | [https://docs.truefoundry.com/docs/integration-provider-aws#policies-required-for-bedrock-integration](https://docs.truefoundry.com/docs/integration-provider-aws#policies-required-for-bedrock-integration) |
+| ![Azure Logo](/images/docs/3e375f637423c83621df291e00c7fcd27ed05a0d3a5b90794e6a85d4702662a1-file_3.jpg)          | **Azure OpenAI**                      | ✅                   | By using provider API Key in TrueFoundry Integrations                                                                                                                                                        |
+| ![TrueFoundry Logo](/images/docs/8a3ed4c8b3f169fe09dd826d5078d199bd81d50cb7657b41fa6904014a2fe7e0-file_1.jpg)    | **Self Hosted Models on TrueFoundry** | ✅                   | [https://docs.truefoundry.com/docs/add-self-hosted-model-to-gateway](https://docs.truefoundry.com/docs/add-self-hosted-model-to-gateway)                                                                     |
+| ![OpenAI Logo](/images/docs/89598b0f5a65b24a53d4e81077408fb7201ec861bfd2aace4665afc6a7e46d24-file_14.png)        | **OpenAI**                            | ✅                   | By using provider API Key in TrueFoundry Integrations                                                                                                                                                        |
+| ![Cohere Logo](/images/docs/fe5113cbdecff51ea30fd7a2f9de3dabc76a656274bdb5cf789bb0829dc1226f-file_2.png)         | **Cohere**                            | ✅                   | By using provider API Key in TrueFoundry Integrations                                                                                                                                                        |
+| ![AI21 Logo](/images/docs/27551f097d32d959f0c4c61a42ba6bf529ce637f85658742edce85f0d5347d29-file_5.png)           | **AI21**                              | ✅                   | By using provider API Key in TrueFoundry Integrations                                                                                                                                                        |
+| ![Anthropic Logo](/images/docs/d876ed2262e9a83e2e08daaf7386c2d47fca02d2ac74d15166d5163c0f8cf386-file_6.png)      | **Anthropic**                         | ✅                   | By using provider API Key in TrueFoundry Integrations                                                                                                                                                        |
+| ![Anyscale Logo](/images/docs/523fa5149bacbb69daa07712ebdcd2250d441d3b34c18f6a24580d86e30ef7d2-file_2.jpg)       | **Anyscale**                          | ✅                   | By using provider API Key in TrueFoundry Integrations                                                                                                                                                        |
+| ![Together AI Logo](/images/docs/a4374539855336dc486639bd82d7440b841c19f537d15e65e0195d5ab4c912a4-file_13.png)   | **Together AI**                       | ✅                   | By using provider API Key in TrueFoundry Integrations                                                                                                                                                        |
+| ![DeepInfra Logo](/images/docs/636bf9baad4503876e179f1047874d50dccb083a8c4e8c385e76d7c360c2f1e6-file_3.png)      | **DeepInfra**                         | ✅                   | By using provider API Key in TrueFoundry Integrations                                                                                                                                                        |
+| ![Ollama Logo](/images/docs/83459cbbeabc7de61156ddc338d9f588b3c52528bb4cc7f2caf58f798c321a71-file_10.png)        | **Ollama**                            | ✅                   | By using provider API Key in TrueFoundry Integrations                                                                                                                                                        |
+| ![Palm Logo](/images/docs/6af92436ad7303aa10a17db079ad5ec4ddc43cc34e0f14388134d088edfb59a7-file_11.png)          | **Palm**                              | ✅                   | By using provider API Key in TrueFoundry Integrations                                                                                                                                                        |
+| ![Perplexity AI Logo](/images/docs/9e235c1c05e84fed849a0c378f60c9a9ed408d950c2c4fd016ca74c4b7ef2fd1-file_12.png) | **Perplexity AI**                     | ✅                   | By using provider API Key in TrueFoundry Integrations                                                                                                                                                        |
+| ![Mistral AI Logo](/images/docs/2f6ad398a7cae8352f0ac97224304abfb07789c9405369e68f07494a259d6340-file_7.png)     | **Mistral AI**                        | ✅                   | By using provider API Key in TrueFoundry Integrations                                                                                                                                                        |
+| ![Groq Logo](/images/docs/91692a7eb9b4b5670fd7bb682b0870a098663889cafa4475df06496d3f8073ac-file_4.png)           | **Groq**                              | ✅                   | By using provider API Key in TrueFoundry Integrations                                                                                                                                                        |
+| ![Nomic Logo](/images/docs/e33658a1e93990aa75d1061703c5a3ddc4577497d98aef6c67247328d03c8bd6-file_8.png)          | **Nomic**                             | ✅                   | By using provider API Key in TrueFoundry Integrations                                                                                                                                                        |
+
+***
+
+[Finetuning LLMs](/docs/finetuning-a-model-from-the-model-catalogue)
+
+[Adding Models to LLM Gateway](/docs/adding-models-to-llm-gateway)
+
+* [Table of Contents](#)
+
+* * [LLM Playground](#llm-playground)
+  * [Benchmarking Results (LLM Gateway is Blazing Fast!)](#benchmarking-results-llm-gateway-is-blazing-fast)
+  * [Unified API](#unified-api)
+  * [Key Features of the Unified API](#key-features-of-the-unified-api)
+  * [Supported Providers](#supported-providers)

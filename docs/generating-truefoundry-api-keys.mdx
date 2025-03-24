@@ -1,0 +1,38 @@
+---
+title: "Generating TrueFoundry API Keys"
+description: "Personal Access Tokens and Virtual Accounts"
+---
+
+TrueFoundry API Keys allow you to programmatically interact and perform actions on the TrueFoundry platform either using the [CLI / Python SDK](doc:setup) or [HTTP API](https://docs.truefoundry.com/reference) . Additionally they also allow you to access models via the [AI Gateway](doc:ai-gateway).
+
+> This API Key can be provided to CLI / Python SDK via the `TFY_API_KEY` environment variable
+
+There are two types of API Keys
+
+* Personal Access Tokens
+* Virtual Accounts
+
+## Personal Access Tokens
+
+Personal Access Tokens have the same exact set of permissions that your current logged in user has.
+
+<Info>
+  Personal Access Tokens mirror the exact same set of permissions of your current user. Thus it might be too permissive in a production environment
+</Info>
+
+## Virtual Accounts
+
+Virtual Accounts allow creating API Keys with limited permissions and expiration date, thus making them ideal for production settings or using them in C/I Actions
+
+<Info />
+
+***
+
+[Setup for CLI](/docs/setup)
+
+[Introduction to a Service](/docs/introduction-to-a-service)
+
+* [Table of Contents](#)
+
+* * [Personal Access Tokens](#personal-access-tokens)
+  * [Virtual Accounts](#virtual-accounts)

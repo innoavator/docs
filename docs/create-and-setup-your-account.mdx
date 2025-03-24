@@ -1,0 +1,53 @@
+---
+title: "Create and Setup your account"
+---
+
+## Register on TrueFoundry
+
+#### Step 1. Fill out the registration form
+
+1. To register for a TrueFoundry account please navigate to the ["Create your account"](https://www.truefoundry.com/register) page.
+2. In the “Create your account” form, specify your company name, work email, username, and password, and click the “Create Account” button.
+
+**Please note:** The value you enter in the company name field will be used to create a unique URL that you will use to access your TrueFoundry account. For example, if you enter “chat-io” then your access URL will be “chat-io.truefoundry.cloud”
+
+![](/images/docs/9274bb7fc8f93dbdcf85ef9d1724e542af33177b1f5d317239d192e315f77e66-Screenshot_2025-02-26_at_1.55.45_PM.png)
+
+#### Step 2: Activate your account & login
+
+1. Once you fill out the form and submit it. You will receive an email to activate your account. Please open that email and click on the link. This is a mandatory step, only after activation you will be able to log in.
+2. After successful activation of your account, you will be redirected to the login page. Please enter your credentials and log in to the app.
+
+## Create new or connect an existing Kubernetes cluster
+
+TrueFoundry offers support for the three major cloud providers: AWS EKS, GCP GKE, and Azure AKS, as well as Generic Kubernetes clusters.
+
+For the complete range of platform features, it is recommended to use one of the three major cloud providers. Please note that Generic clusters may not support all the platform features, such as service exposure, autoscaling, GPUs, and more.
+
+You can refer to these guides to connect your cluster based on the cloud you are using:
+
+1. Connect an [AWS EKS](doc:docs/overview) cluster to TrueFoundry
+2. Connect an [Azure AKS](doc:docs/overview-2) cluster to TrueFoundry
+3. Connect a [GCP GKE](doc:overview-1) cluster to TrueFoundry
+
+## Additional setup (Optional)
+
+1. **Environments:** You can use the environments feature to tag your cluster with different environments like dev, staging, or prod. You can set up environments under the “Environment tab in Settings”. Once an environment is created you can click on edit cluster, select the environments, and hit the save button. [Setup Environments](https://docs.truefoundry.com/docs/environments)
+2. **Docker Registry Integration**: TrueFoundry needs to access your Docker registry to save images built for deploying code or repositories and to deploy images from the registry to one of your connected workspaces. [Integrate Docker Registry](doc:integrations-docker-registry)
+3. **Git Integration:** TrueFoundry needs to be able to access your Git repository to deploy source code from private git repositories to TrueFoundry. [Integrate Git](doc:integrations-git)
+4. **Blob Storage Integration**: TrueFoundry needs to be able to access your blob storage to store the generated artifacts, logs, and metrics. [Integrate Blob Storage](doc:integrations-blob-storage)
+5. **Install applications:** You can install additional applications on a cluster to enable new functionalities like Notebooks, Volumes, Autoscaling, Metrics, Logs, etc. On the cluster card, click on "Manage" next to "Installed Applications" to install new applications on your cluster.
+6. **Add collaborators:** You can [invite users](doc:collaboration#users) and [create teams](doc:collaboration#teams) on TrueFoundry. These users and teams can be assigned different roles to access and perform different operations on the cluster. On the cluster card, click on the menu and then click on "Manage collaborators" to add/remove access of users and teams from your cluster.
+7. **Secret Store Integration**: TrueFoundry needs to be able to access your secret store to Store secrets securely. [Integrate Secret Store](doc:integrations-secret-store)
+
+***
+
+[About TrueFoundry](/docs/introduction)
+
+[TrueFoundry Key Concepts](/docs/key-concepts)
+
+* [Table of Contents](#)
+
+* * [Register on TrueFoundry](#register-on-truefoundry)
+  * [Create new or connect an existing Kubernetes cluster](#create-new-or-connect-an-existing-kubernetes-cluster)
+  * [Additional setup (Optional)](#additional-setup-optional)

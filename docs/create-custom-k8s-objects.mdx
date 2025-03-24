@@ -1,0 +1,37 @@
+---
+title: "Create custom K8s objects"
+description: "This guide covers creating custom k8s objects like service accounts, secrets, config maps, etc. in your workspace."
+---
+
+1. Open `New Deployment` Form. Select `Helm`from the left navbar and then select your `workspace`
+
+   ![](/images/docs/4646bf53d86a0d68dfd93751bcb8b9589f57505340eec895afb48be834c79d40-image.png)
+
+2. Fill out the form with the following input:
+
+* Name: a readable name for the group of objects
+
+* Helm repository URL: [https://truefoundry.github.io/infra-charts/](https://truefoundry.github.io/infra-charts/)
+
+* Chart name: tfy-manifests-template
+
+* Version: 0.2.0
+
+  ![](/images/docs/0b0ed8f4bedc3f6b3d2dfae4e8b894de97449a77e88b10bcd429d71ec540decc-image.png)
+
+3. Add the objects in values as an array of manifests. E.g.
+
+```
+manifests:
+  - kind: ServiceAccount
+    apiVersion: v1
+    metadata:
+      name: test-sa
+      namespace: workspace-2
+```
+
+Note: the k8s resource can be created in any namespace by overwriting in the spec of the k8s object. If not mentioned, it will use the selected workspace by default.
+
+***
+
+[Migrate Pytorch Sagemaker Endpoints to TrueFoundry Platform](/docs/migrate-pytorch-sagemaker-endpoints-to-truefoundry-platform)

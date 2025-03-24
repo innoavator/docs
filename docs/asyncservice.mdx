@@ -1,0 +1,274 @@
+---
+title: "AsyncService"
+---
+
+<Info>
+  While using TrueFoundry python SDK `type` is not a required field in any of the imported classes
+</Info>
+
+# AsyncService
+
+### Description
+
+Describes the configuration for the async-service
+
+### Schema
+
+<CodeGroup>
+  ```bash bash
+  {
+    "type": "string",
+    "replicas": 1,
+    "rollout_strategy": {
+      "type": "string",
+      "max_unavailable_percentage": 25,
+      "max_surge_percentage": 0
+    },
+    "worker_config": {
+      "input_config": {
+        "type": "string",
+        "queue_url": "string",
+        "region_name": "string",
+        "visibility_timeout": 0,
+        "wait_time_seconds": 19,
+        "auth": {
+          "aws_access_key_id": "string",
+          "aws_secret_access_key": "string",
+          "aws_session_token": "string"
+        }
+      },
+      "output_config": {
+        "type": "string",
+        "queue_url": "string",
+        "region_name": "string",
+        "auth": {
+          "aws_access_key_id": "string",
+          "aws_secret_access_key": "string",
+          "aws_session_token": "string"
+        }
+      }
+    }
+  }
+  ```
+</CodeGroup>
+
+### Properties
+
+| Name              | Type             | Required | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ----------------- | ---------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| type              | string           | false    | +value=async-service                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| replicas          | any              | false    | Replicas of service you want to run                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| rollout\_strategy | [Rolling]()      | false    | This strategy updates the pods in a rolling fashion such that a subset of thetotal pods are replaced with new version at one time.A commonly used strategy can be to have maxUnavailablePercentage close to 0 so that thereis no downtime and keep the maxSurgePercentage to around 25%. If you are anyways runninga large number of pods, the service can often tolerate a few pods going down - so youmax maxUnavailablePercentage = 10 and maxSurgePercentage=0. You can read about it more[here](https://spot.io/resources/kubernetes-autoscaling/5-kubernetes-deployment-strategies-roll-out-like-the-pros/) |
+| worker\_config    | [WorkerConfig]() | false    | Describes the configuration for the Worker Config                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+
+# AsyncServiceAutoscaling
+
+### Description
+
+Describes an Async Service Autoscaling configuration
+
+### Schema
+
+<CodeGroup>
+  ```bash bash
+  {
+    "metrics": {
+      "type": "string",
+      "queue_length": 0
+    }
+  }
+  ```
+</CodeGroup>
+
+### Properties
+
+| Name    | Type                     | Required | Description                                |
+| ------- | ------------------------ | -------- | ------------------------------------------ |
+| metrics | [SQSQueueMetricConfig]() | false    | Describes a SQS Queue Metric Configuration |
+
+***
+
+# Worker-Config
+
+## WorkerConfig
+
+### Description
+
+Describes the configuration for the Worker Config
+
+### Schema
+
+<CodeGroup>
+  ```bash bash
+  {
+    "input_config": {
+      "type": "string",
+      "queue_url": "string",
+      "region_name": "string",
+      "visibility_timeout": 0,
+      "wait_time_seconds": 19,
+      "auth": {
+        "aws_access_key_id": "string",
+        "aws_secret_access_key": "string",
+        "aws_session_token": "string"
+      }
+    },
+    "output_config": {
+      "type": "string",
+      "queue_url": "string",
+      "region_name": "string",
+      "auth": {
+        "aws_access_key_id": "string",
+        "aws_secret_access_key": "string",
+        "aws_session_token": "string"
+      }
+    }
+  }
+  ```
+</CodeGroup>
+
+### Properties
+
+| Name           | Type                | Required | Description                                           |
+| -------------- | ------------------- | -------- | ----------------------------------------------------- |
+| input\_config  | [SQSInputConfig]()  | true     | Describes the configuration for the input SQS worker  |
+| output\_config | [SQSOutputConfig]() | true     | Describes the configuration for the output SQS worker |
+
+## SQSInputConfig
+
+### Description
+
+Describes the configuration for the input SQS worker
+
+### Schema
+
+<CodeGroup>
+  ```bash bash
+  {
+    "type": "string",
+    "queue_url": "string",
+    "region_name": "string",
+    "visibility_timeout": 0,
+    "wait_time_seconds": 19,
+    "auth": {
+      "aws_access_key_id": "string",
+      "aws_secret_access_key": "string",
+      "aws_session_token": "string"
+    }
+  }
+  ```
+</CodeGroup>
+
+### Properties
+
+| Name                | Type                 | Required | Description                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ------------------- | -------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| type                | string               | true     | +value=sqs                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| queue\_url          | string               | true     | AWS SQS Queue URL of Subscriber                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| region\_name        | string               | true     | AWS Region Name                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| visibility\_timeout | integer              | true     | A period during which Amazon SQS prevents all consumers from receiving and processing the message. If one message takes 5 seconds to process, you can set this number to 7 or any number higher than 5. This will ensure that while the message is being processed, it will not be available to other replicas. For more information, see[here](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-visibility-timeout.html) |
+| wait\_time\_seconds | integer              | true     | Wait timeout for long polling. For more information, see[here](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-short-and-long-polling.html)                                                                                                                                                                                                                                                                              |
+| auth                | [AWSAccessKeyAuth]() | true     | AWS Access Key based Authentication for Basic Service Authentication                                                                                                                                                                                                                                                                                                                                                                                    |
+
+## SQSOutputConfig
+
+### Description
+
+Describes the configuration for the output SQS worker
+
+### Schema
+
+<CodeGroup>
+  ```bash bash
+  {
+    "type": "string",
+    "queue_url": "string",
+    "region_name": "string",
+    "auth": {
+      "aws_access_key_id": "string",
+      "aws_secret_access_key": "string",
+      "aws_session_token": "string"
+    }
+  }
+  ```
+</CodeGroup>
+
+### Properties
+
+| Name         | Type                 | Required | Description                                                          |
+| ------------ | -------------------- | -------- | -------------------------------------------------------------------- |
+| type         | string               | true     | +value=sqs                                                           |
+| queue\_url   | string               | true     | AWS SQS Queue URL of Publisher                                       |
+| region\_name | string               | true     | AWS Region Name                                                      |
+| auth         | [AWSAccessKeyAuth]() | true     | AWS Access Key based Authentication for Basic Service Authentication |
+
+## SQSQueueMetricConfig
+
+### Description
+
+Describes a SQS Queue Metric Configuration
+
+### Schema
+
+<CodeGroup>
+  ```bash bash
+  {
+    "type": "string",
+    "queue_length": 0
+  }
+  ```
+</CodeGroup>
+
+### Properties
+
+| Name          | Type    | Required | Description                                                                                                                                                                                                                             |
+| ------------- | ------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| type          | string  | true     | +value=sqs                                                                                                                                                                                                                              |
+| queue\_length | integer | true     | Upper limit of the number of backlog messages the auto-scaler will try to maintain per replica. If you set this number to 10 and have 30 messages in the queue and one replica, the auto-scaler will scale the number of replicas to 3. |
+
+# AWSAccessKeyAuth
+
+### Description
+
+AWS Access Key based Authentication for Basic Service Authentication
+
+### Schema
+
+<CodeGroup>
+  ```bash bash
+  {
+    "aws_access_key_id": "string",
+    "aws_secret_access_key": "string",
+    "aws_session_token": "string"
+  }
+  ```
+</CodeGroup>
+
+### Properties
+
+| Name                     | Type   | Required | Description                                                       |
+| ------------------------ | ------ | -------- | ----------------------------------------------------------------- |
+| aws\_access\_key\_id     | string | true     | AWS Access Key ID                                                 |
+| aws\_secret\_access\_key | string | true     | AWS Secret Access Key for the user to authenticate with           |
+| aws\_session\_token      | string | false    | AWS Session Token, only required when using temporary credentials |
+
+***
+
+[Job](/docs/job)
+
+[Helm](/docs/helm)
+
+* [Table of Contents](#)
+
+* * [AsyncService](#asyncservice)
+
+  * [AsyncServiceAutoscaling](#asyncserviceautoscaling)
+
+  * [Worker-Config](#worker-config)
+
+  * * [WorkerConfig](#workerconfig)
+    * [SQSInputConfig](#sqsinputconfig)
+    * [SQSOutputConfig](#sqsoutputconfig)
+    * [SQSQueueMetricConfig](#sqsqueuemetricconfig)
+
+  * [AWSAccessKeyAuth](#awsaccesskeyauth)

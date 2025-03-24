@@ -1,0 +1,182 @@
+---
+title: "Creating a run"
+---
+
+# Runs
+
+A run represents a single experiment which in the context of Machine Learning is one specific model (say Logistic Regression), with a fixed set of hyper-parameters. Metrics, and parameters (details below) are all logged under a specific run.
+
+# Creating Runs in Truefoundry
+
+A run is an entity that represents a single experiment. Create a run at the beginning of your script or notebook to start capturing system metrics.
+
+<Info>
+  If you don't have a ML Repo already, you'd need to create the ML Repo either from the [Creating a ML Repo](doc:key-concepts#creating-an-ml-repo) or with [`create_ml_repo` ](https://docs.truefoundry.com/docs/mlfoundry#kbdfunctionkbd-create_ml_repo)function
+</Info>
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.ml import get_client
+
+  client = get_client()
+  run = client.create_run(ml_repo="iris-demo", run_name="svm-model")
+  # Your code here.
+  run.end()
+  ```
+</CodeGroup>
+
+You can organize multiple runs under a single ml\_repo. For example, the run `svm-model` will be created under the ml\_repo `iris-sklearn-example`.
+
+You can view these runs in the TrueFoundry dashboard.
+
+<Frame caption="TrueFoundry Dashboard">
+  <img src="/images/docs/7fa8afc-mlfoundry_dashboard.png" />
+</Frame>
+
+# Accessing Runs in TrueFoundry
+
+To interact with runs in Truefoundry, you can use the provided methods in the TrueFoundryClient class. Here are the different possibilities to access runs:
+
+### Get a Run by ID
+
+To retrieve an existing run by its ID, use the[ `get_run_by_id`](https://docs.truefoundry.com/docs/mlfoundry#kbdfunctionkbd-get_run_by_id) method:
+
+<CodeGroup>
+  ```bash bash
+  client = TrueFoundryClient()  
+  run = client.get_run_by_id("run_id_here")
+  ```
+</CodeGroup>
+
+### Get a Run by Fully Qualified Name (FQN)
+
+If you have the fully qualified name (FQN) of a run, which follows the pattern tenant\_name/ml\_repo/run\_name, you can use the `get_run_by_fqn` method:
+
+<CodeGroup>
+  ```bash bash
+  client = TrueFoundryClient()  
+  run = client.get_run_by_fqn("tenant_name/ml_repo/run_name")
+  ```
+</CodeGroup>
+
+### Get All Runs for a Project
+
+To retrieve all the runs' names and IDs for a project, use the [`get_all_runs`](https://docs.truefoundry.com/docs/mlfoundry#kbdfunctionkbd-get_all_runs) method:
+
+<CodeGroup>
+  ```bash bash
+  client = TrueFoundryClient()  
+  runs_df = client.get_all_runs(ml_repo="project_name_here")
+  ```
+</CodeGroup>
+
+### Search Runs
+
+You can search for runs that match specific criteria using the [`search_runs`](https://docs.truefoundry.com/docs/mlfoundry#kbdfunctionkbd-search_runs) method:
+
+<CodeGroup>
+  ```bash bash
+  client = TrueFoundryClient()  
+  runs = client.search_runs(  
+      ml_repo="project_name_here",  
+      filter_string="metrics.accuracy > 0.75",  
+      order_by=["metric.accuracy DESC"],  
+  )
+  for run in runs:  
+      print(run)
+  ```
+</CodeGroup>
+
+# FAQs
+
+#### What is a ml\_repo?
+
+A ml\_repo embodies the high-level goal of the experiments, like "predicting the sentiment of product reviews". To reach the goal, you can experiment with different machine learning algorithms with different parameters. A single run represents a single experiment. TrueFoundry helps you organize these runs and find the best-performing ones under a ml\_repo.
+
+#### How can I create a ml\_repo?
+
+A ml\_repo is automatically created when you call the `create_run` method. A ml\_repo is identified by it's owner and name.
+
+#### Can anyone create a run under my ml\_repo?
+
+No. TrueFoundry provides ml\_repo-level authorization. If someone in your team wants to view or create a run under your ml\_repo, you need to add them as a collaborator to your ml\_repo.
+
+#### How can I create a run under a ml\_repo owned by someone else?
+
+You can pass the ml\_repo argument in the the create run. You should at least have `WRITE` permission for the ml\_repo. If you don't have write access to the ml\_repo, the admin needs to provide you atleast `WRITE` permission to the ml\_repo.
+
+<CodeGroup>
+  ```bash bash
+
+  client.create_ml_repo("iris-demo")
+
+  run = client.create_run(
+      ml_repo="iris-demo",
+      run_name="svm-model",
+  )
+  # Your code here.
+  run.end()
+  ```
+</CodeGroup>
+
+#### Can I use runs as a context manager?
+
+Yes, we can use runs as a context manager. A run will be automatically ended after the execution exits the `with` block.
+
+<CodeGroup>
+  ```bash bash
+  client.create_ml_repo("iris-demo")
+
+  run = client.create_run(ml_repo="iris-demo", run_name="svm-model")
+  with run:
+      # Your code here.
+      ...
+
+  # No need to call run.end()
+  ```
+</CodeGroup>
+
+#### Are run names unique?
+
+Yes. run names under a ml\_repo are unique. If a run name already exists, we add a suffix to make it unique. If you do not pass a run name while creating a run, we generate a random name.
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.ml import get_client
+
+  client = get_client()
+  run = client.create_run(ml_repo="iris-demo")
+
+  print(run.run_name)
+  run.end()
+  ```
+</CodeGroup>
+
+#### How runs are identified?
+
+Runs are identified by by their `id`.
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.ml import get_client
+
+  client = get_client()
+  run = client.create_run(ml_repo="iris-demo")
+
+  print(run.run_id)
+  run.end()
+  ```
+</CodeGroup>
+
+***
+
+[Creating a ML Repo](/docs/creating-a-ml-repo)
+
+[Log and Get Parameters](/docs/log-params)
+
+* [Table of Contents](#)
+
+* * [Runs](#runs)
+  * [Creating Runs in Truefoundry](#creating-runs-in-truefoundry)
+  * [Accessing Runs in TrueFoundry](#accessing-runs-in-truefoundry)
+  * [FAQs](#faqs)

@@ -1,0 +1,44 @@
+---
+title: "Overview"
+description: "TrueFoundry jobs enable you to run task-oriented workloads which are meant to run for a certain duration to complete a task, then terminate and release the resources."
+---
+
+Here are some scenarios where Jobs are particularly well-suited:
+
+* **Model Training**: Train machine learning models on large datasets, where the resource gets freed up once the training is complete.
+* **Maintenance and Cleanup**: Schedule routine maintenance tasks, such as data backups, model retraining, report generation etc.
+* **Batch Inference**: Perform large-scale batch inference tasks, such as processing large volumes of data using trained models, leveraging Job's ability to handle parallel workloads efficiently.
+
+## Key considerations when building a Job
+
+We need to consider the following things while deploying jobs:
+
+1. Dockerize the code to be deployed.
+2. [Schedule Job](doc:deploy-a-cron-job) to specify when the Job should run.
+3. Define the resources requirements for your service - [Define Resources](doc:resources) - While the documentation is specific for services, its the same as what is required for jobs.
+4. [Parameterize a job](doc:deploy-a-job-with-additional-parameters) to enable ease of changing argument values.
+5. \[Optional] Defining environment variables and secrets to be injected into the code - [Environment Variables and Secrets](doc:environment-variables-and-secrets-jobs).
+6. [Set retries and timeout](doc:retries-and-timeout) for your jobs in case the job gets stuck or fails for some reason.
+7. \[Optional] [Set Concurrency Limit](doc:concurrency-limits) to specify how many instances of a Job can run at once.
+8. \[Optional] Mount files or volumes to your job - [Mount File or Volumes](doc:mounting-volumes-job).
+9. [Access data from S3 or other clouds](doc:access-data-from-s3-or-other-clouds-services)
+10. [Update, Rollback, Promote your Job](doc:update-rollback-promote-your-service): While the documentation is specifically for Services, the Update, Rollback, and Promote process follows a similar flow for Jobs.
+11. [Setting up CI/CD for your Job](doc:setting-up-cicd-for-your-service): While the documentation is specifically for Services, the CI/CD setup process follows a similar flow for Jobs.
+
+## Running your First Job:
+
+To run your first job, choose one of the following guides based on the location of your job code:
+
+* [Code on github repository](doc:deploy-job-from-a-public-github-repository)
+* [Code on local machine](doc:deploy-job-using-python-sdk)
+
+***
+
+[Log & Monitor Custom Metrics](/docs/log-monitor-custom-metrics)
+
+[Running your first Job](/docs/deploy-via-python-sdk-copy)
+
+* [Table of Contents](#)
+
+* * [Key considerations when building a Job](#key-considerations-when-building-a-job)
+  * [Running your First Job:](#running-your-first-job)

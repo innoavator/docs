@@ -1,0 +1,102 @@
+---
+title: "Log Plots"
+description: "Mlfoundry allows you to log custom plots under the current  at the given  using thefunction. You can use this function to log custom matplotlib, plotly plots as shown in examples below:"
+---
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.ml import get_client
+  from sklearn.metrics import ConfusionMatrixDisplay
+  import matplotlib.pyplot as plt
+
+  client = get_client()
+  run = client.create_run(
+      ml_repo="my-classification-project",
+  )
+
+  ConfusionMatrixDisplay.from_predictions(["spam", "ham"], ["ham", "ham"])
+
+  run.log_plots({"confusion_matrix": plt}, step=1)
+  ```
+</CodeGroup>
+
+You can visualize the logged plots in the Truefoundry Dashboard.
+
+<Frame caption="Visualizing the logged plots">
+  <img src="/images/docs/e5f529e-Visualizing_the_logged_plots.png" />
+</Frame>
+
+### Logging a seaborn plot
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.ml import get_client
+  from matplotlib import pyplot as plt
+  import seaborn as sns
+
+  # create a run in mlfoundry
+  client = get_client()
+  run = client.create_run(
+      ml_repo="my-classification-project",
+  )
+
+  sns.set_theme(style="ticks", palette="pastel")
+
+  # Load the example tips dataset
+  tips = sns.load_dataset("tips")
+
+  # Draw a nested boxplot to show bills by day and time
+  sns.boxplot(x="day", y="total_bill", hue="smoker", palette=["m", "g"], data=tips)
+  sns.despine(offset=10, trim=True)
+
+  run.log_plots({"seaborn": plt})
+
+  run.end()
+  ```
+</CodeGroup>
+
+### Logging a plotly figure
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.ml import get_client
+  import plotly.express as px
+
+  client = get_client()
+  run = client.create_run(ml_repo="my-classification-project")
+
+  df = px.data.tips()
+  fig = px.histogram(
+      df,
+      x="total_bill",
+      y="tip",
+      color="sex",
+      marginal="rug",
+      hover_data=df.columns,
+  )
+
+  plots_to_log = {
+      "distribution-plot": fig,
+  }
+
+  run.log_plots(plots_to_log, step=1)
+  run.end()
+  ```
+</CodeGroup>
+
+You can find this logged image in the dashboard.
+
+<Frame caption="Plotly Image">
+  <img src="/images/docs/b1b24bb-Plotly_Image.png" />
+</Frame>
+
+***
+
+[Log Images](/docs/log-image)
+
+[Add Artifacts via UI](/docs/add-artifacts-via-ui)
+
+* [Table of Contents](#)
+
+* * [Logging a seaborn plot](#logging-a-seaborn-plot)
+  * [Logging a plotly figure](#logging-a-plotly-figure)

@@ -1,0 +1,107 @@
+---
+title: "Setup for CLI"
+---
+
+# TrueFoundry CLI Library
+
+TrueFoundry CLI library to help you interact with the platform programmatically by
+
+* Interacting with the deployments side of TrueFoundry, enabling you to manage workspaces, deployments, applications, and view logs.
+* Providing experiment tracking capabilities, allowing you to track ML experiments and interact with ML repositories within TrueFoundry.
+
+# Setup for CLI
+
+## Installation
+
+<Info>
+  * Python >= 3.8
+</Info>
+
+To install the **`Truefoundry CLI`** to enable both deployment and models functionality, run the following command:
+
+<CodeGroup>
+  ```bash bash
+  pip install -U "truefoundry"
+  ```
+</CodeGroup>
+
+<Info>
+  By default just installing `truefoundry` does not include support to work with [Workflows](doc:workflow-concepts). To include support for Workflows install the `workflow` extra like so
+
+  Shell
+
+  ```
+  pip install -U "truefoundry[workflow]"
+  ```
+</Info>
+
+## Login
+
+### Login by entering a Device Code
+
+You can log in to TrueFoundry using Truefoundry CLI.
+
+To log in to **TrueFoundry**, run the following command:
+
+<CodeGroup>
+  ```bash bash
+  tfy login --host <your-truefoundry-host> # e.g. host: https://myorg.truefoundry.cloud
+  ```
+</CodeGroup>
+
+This will prompt you to open a URL and enter the displayed code
+
+<Info>
+  The value for `--host` is the first part of the url when you open the platform. This domain might be subdomain of your organization. The below example shows `https://myorg.truefoundry.cloud`
+
+  ![](/images/docs/768377df9c43a945e1fcf682bb0c146021cbe5f776fec459e1b4247116e2da65-image.png)
+</Info>
+
+### Login using API Key (Non-Interactive Mode)
+
+For scenarios where code interacts with Truefoundry APIs or where opening a browser is not feasible, you can log in using the Truefoundry API Key.
+
+To begin, [Generate a TrueFoundry API Key](doc:generating-truefoundry-api-keys). Once you have the API key, you can authenticate in these ways:
+
+#### Option 1: Setting environment variables
+
+Set the `TFY_API_KEY` and `TFY_HOST` environment variables.
+
+* Set `TFY_HOST` to your Truefoundry host URL. e.g. `https://your-domain.truefoundry.com`
+* Set `TFY_API_KEY` to your API key.
+
+#### Option 2: Using the `login` command on CLI
+
+When using the CLI, you can provide the API key directly within the command:
+
+<CodeGroup>
+  ```bash bash
+  tfy login --host <your-truefoundry-host> --api-key <your-api-key>
+  ```
+</CodeGroup>
+
+## Generate TrueFoundry API Key
+
+TrueFoundry API comes in handy when you want to interact with the Platform programmatically. You can generate the API key by following the instructions below:
+
+<Info />
+
+<Info>
+  Your API Key is a sensitive piece of information, so handle it with care. **Never** share it with unauthorized individuals.
+</Info>
+
+***
+
+[Create Your First Deployment](/docs/create-your-first-deployment)
+
+[Generating TrueFoundry API Keys](/docs/generating-truefoundry-api-keys)
+
+* [Table of Contents](#)
+
+* * [TrueFoundry CLI Library](#truefoundry-cli-library)
+
+  * [Setup for CLI](#setup-for-cli)
+
+  * * [Installation](#installation)
+    * [Login](#login)
+    * [Generate TrueFoundry API Key](#generate-truefoundry-api-key)

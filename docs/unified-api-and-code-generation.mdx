@@ -1,0 +1,131 @@
+---
+title: "Interacting with LLM Gateway"
+---
+
+## Request Logging & Metrics
+
+Gateway provides you with the feature to log requests/response and metrics like tokens consumed with each request.
+
+### Programatically Access Request Logs
+
+<CodeGroup>
+  ```bash bash
+  import requests
+  import json
+
+  try:
+      response = requests.post(
+          "https://internal.devtest.truefoundry.tech/api/svc/v1/llm-gateway/requests",
+          headers = {
+              "Authorization": "Bearer <Paste your API key here. You can generate it from the Settings Page>"
+          },
+          json =  {
+    "filter": {
+      "created_at": [
+        {
+          "key": "created_at",
+          "value": 1731577557568,
+          "operator": "LT"
+        },
+        {
+          "key": "created_at",
+          "value": 1731566757568,
+          "operator": "GTE"
+        }
+      ]
+    },
+    "sort": [
+      {
+        "key": "created_at",
+        "order": "DESC"
+      }
+    ],
+    "limit": 25,
+    "offset": 0
+  }
+      )
+      response.raise_for_status()
+      print(response.status_code)
+      print(response.json())
+  except requests.exceptions.HTTPError as http_error:
+      print("HTTP error occurred:", http_error)
+    
+  ```
+
+  ```bash bash
+  curl -X 'POST' \
+    'https://internal.devtest.truefoundry.tech/api/svc/v1/llm-gateway/requests' \
+    -H 'accept: */*' \
+    -H 'Authorization: Bearer <Paste your API key here. You can generate it from the Settings Page>' \
+    -H 'Content-Type: application/json' \
+    -d '{
+    "filter": {
+      "created_at": [
+        {
+          "key": "created_at",
+          "value": 1731577557568,
+          "operator": "LT"
+        },
+        {
+          "key": "created_at",
+          "value": 1731566757568,
+          "operator": "GTE"
+        }
+      ]
+    },
+    "sort": [
+      {
+        "key": "created_at",
+        "order": "DESC"
+      }
+    ],
+    "limit": 25,
+    "offset": 0
+  }'
+  ```
+</CodeGroup>
+
+### Visual and Tabular Metrics
+
+You can filter by model and user for a specified period on the Metrics Page to view various metrics, including input tokens, output tokens, total requests, and tokens cost. This can be useful in model and user activity analysis as well as cost management.
+
+These metrics are accessible in both graphical and tabular formats for easy analysis and interpretation.
+
+*Visual representation*
+
+![](/images/docs/a58530230c5cd1afdd8c567e42069c59e02d9c076bea9fa061e83d29d72e2901-Screenshot_2024-11-14_at_3.15.18_PM.png)
+
+*Tabular representation*
+
+![](/images/docs/9fdeb5826e93d89dd679b27ab7d18885c7ad3060afb1e217d37c077753aa0985-Screenshot_2024-11-14_at_3.22.36_PM.png)
+
+## Unified API Code Generation
+
+You can use the Gateway to get the code to call the unified API using various languages and libraries. Code generation in TrueFoundry LLM Gateway refers to the automated creation of boilerplate code necessary for integrating language models into your applications.
+
+The demo below demonstrates how to call any model from any provider using a standardized code through the Gateway.
+
+This feature significantly speeds up development by providing ready-to-use code snippets tailored to your specific needs and the models you are using.
+
+## Tool Calling
+
+Tool calling in TrueFoundry LLM Gateway enables language models to simulate interactions with external functions, enhancing their versatility and practical application.
+
+Although the gateway does not directly execute calls to external tools, it allows you to describe the tool and simulate the call within the response. This simulation provides a detailed representation of the request and expected response, allowing developers to understand how the language model would interact with external systems.
+
+***
+
+[Azure OpenAI](/docs/azure-openai)
+
+[Configure Gateway](/docs/configure-gateway)
+
+* [Table of Contents](#)
+
+* * [Request Logging & Metrics](#request-logging--metrics)
+
+  * * [Programatically Access Request Logs](#programatically-access-request-logs)
+    * [Visual and Tabular Metrics](#visual-and-tabular-metrics)
+
+  * [Unified API Code Generation](#unified-api-code-generation)
+
+  * [Tool Calling](#tool-calling)

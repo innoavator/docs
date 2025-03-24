@@ -1,0 +1,101 @@
+---
+title: "Overview"
+---
+
+## Provisioning the queue
+
+Creating an AWS Simple Queue Service (SQS) queue is a straightforward process that can be accomplished using the AWS Management Console or AWS Command Line Interface (CLI). Here's a step-by-step guide for creating an AWS SQS queue through the AWS Management Console:
+
+<Warning>
+  The visibility timeout has a significant impact on the behavior of asynchronous services.
+
+  It determines how long a message remains hidden from consumers after it's fetched from the queue, playing a vital role in preventing multiple consumers from processing the same message concurrently.
+
+  For example, if your worker process typically takes around 5 seconds to complete a task, it's advisable to set the Visibility Timeout to at least twice that duration, which in this case would be 10 seconds.
+
+  If the Visibility Timeout is set too low, there's a risk of multiple consumers attempting to process the same message simultaneously, potentially leading to conflicts and errors in your system. It's essential to strike the right balance to ensure efficient and orderly message processing.
+</Warning>
+
+Once you click on **Create queue**, you'll receive a confirmation message indicating the successful creation of the queue.
+
+![](/images/docs/23e8a38-Screenshot_2023-10-20_at_17.54.10.png)
+
+## Configuring Truefoundry Async Service with AWS SQS
+
+You will have to specify these configurations for AWS SQS Input Worker:
+
+## Configuring Autoscaling for AWS SQS Queue
+
+![](/images/docs/9823d30-Screenshot_2023-12-05_at_10.43.06_AM.png)
+
+**AWS SQS Average Backlog** is defined as the AWS SQS pending queue length averaged over all replicas that the autoscale is designed to maintain.
+
+The **pending queue length** refers to the number of messages that are currently in the queue but have not yet been processed. These are messages waiting to be consumed and processed by the relevant workers or services.
+
+The **average backlog** is the average or mean value of the pending queue length across multiple replicas. In a distributed and auto-scaling system, there can be multiple instances or replicas of your service, each with its queue. The average backlog provides a way to measure the workload across all replicas.
+
+This **Average Backlog** is a valuable metric for determining how to scale your application efficiently.
+
+<Info>
+  This metric is only available in case you are using AWS SQS for your input queue
+</Info>
+
+## Parameters for SQS Average Backlog
+
+* **Queue lag threshold**: This is the maximum number of messages each replica should handle. If there are more messages than the threshold, the auto-scaler adds replicas to share the workload.
+
+## Configuring AWS SQS Average Backlog
+
+### Through the User Interface (UI)
+
+### Via the Python SDK
+
+In your Service deployment code **`deploy.py`**, include the following:
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.deploy import AsynceService, Build, DockerFileBuild, Port, AsyncServiceAutoscaling,SQSQueueMetricConfig 
+
+  service = AsyncService(
+      name="my-async-service",
+      image=Build(build_spec=DockerFileBuild()),
+      ports=[
+        Port(
+          host="your_host",
+          port=8501
+        )
+      ]
+  +    replicas = AsyncServiceAutoscaling(
+  +        min_replicas=1,
+  +        max_replicas=3,
+  +        metrics=SQSQueueMetricConfig(
+  +            queue_length=30
+  +        ),
+  +        cooldown_period=300,
+  +        polling_interval=30
+  +    )
+  )
+  service.deploy(workspace_fqn="YOUR_WORKSPACE_FQN")
+  ```
+</CodeGroup>
+
+***
+
+[Configure Sidecar](/docs/configure-sidecar)
+
+[Monitor your Async Service](/docs/monitoring-your-async-service)
+
+* [Table of Contents](#)
+
+* * [Provisioning the queue](#provisioning-the-queue)
+
+  * [Configuring Truefoundry Async Service with AWS SQS](#configuring-truefoundry-async-service-with-aws-sqs)
+
+  * [Configuring Autoscaling for AWS SQS Queue](#configuring-autoscaling-for-aws-sqs-queue)
+
+  * [Parameters for SQS Average Backlog](#parameters-for-sqs-average-backlog)
+
+  * [Configuring AWS SQS Average Backlog](#configuring-aws-sqs-average-backlog)
+
+  * * [Through the User Interface (UI)](#through-the-user-interface-ui)
+    * [Via the Python SDK](#via-the-python-sdk)

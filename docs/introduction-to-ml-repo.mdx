@@ -1,0 +1,32 @@
+---
+title: "Overview"
+description: "ML Repositories play a crucial role in managing, organizing, and tracking machine learning experiments and models. In this guide, we'll explore the key concepts and entities that make up ML Repositories within MLFoundry."
+---
+
+# Concepts
+
+The entities defined in MLFoundry can be understood from the diagram below.
+
+<Frame caption="Concepts">
+  <img src="/images/docs/80d57f4-image_9.png" />
+</Frame>
+
+* **ML-Repo** : An ML Repository is a collection of runs, models and artifacts which represents a high-level Machine Learning use-case. All access controls can be configured on the level of ml-repo. You can think of them as equivalent to Git repos - except for Machine learning artifacts.
+* **Runs** : A run represents a single experiment which in the context of Machine Learning is one specific model (say Logistic Regression), with a fixed set of hyper-parameters. Metrics, and parameters (details below) are all logged under a specific run.
+* **Models**: Model comprises of model file and some metadata. Each Model can have multiple versions.
+* **Artifacts**: Artifact is a collection of files. Each Artifact can have multiple versions.
+
+**With each run user can log metadata with the help of following :**
+
+* **Parameters**: Parameters or HyperParameters that define your experiment and Machine Learning model. For example, `learning_rate, cache_size`.
+* **Metric**: Metrics are values that help you to evaluate and compare different runs. For example, `accuracy, f1 score`.
+* **Tags**: Tags are labels for a run. A tag is represented by a string tag name and value. For example, `env`.
+
+***
+
+[Add Alerts to your Job](/docs/add-alerts-to-your-job)
+
+[Quick Start](/docs/ml-repo-quickstart)
+
+* [Table of Contents](#)
+* * [Concepts](#concepts)

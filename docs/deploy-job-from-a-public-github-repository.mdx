@@ -1,0 +1,72 @@
+---
+title: "Overview"
+description: "In this guide, we'll deploy a Job to train a machine learning model. The model will learn to predict the species of an iris flower based on its sepal length, sepal width, petal length, and petal width. There are three species: Iris setosa, Iris versicolor, and Iris virginica."
+---
+
+![](/images/docs/373bdd9-iris-machinelearning.png)
+
+## Project Setup
+
+We've already prepared the training script that trains a model on the Iris dataset, and you can find the code in our [GitHub Repository](https://github.com/truefoundry/getting-started-examples/blob/main/train-model/).
+
+Please visit the repository to familiarise yourself with the code you'll be deploying.
+
+#### Project Structure
+
+The project files are organised as follows:
+
+<CodeGroup>
+  ```bash bash
+  .
+  ├── train.py - Contains the training script code.
+  └── requirements.txt - Contains the list of all dependencies.
+  ```
+</CodeGroup>
+
+All these files are located in the same directory.
+
+## Prerequisites
+
+Before you proceed with the guide, please ensure that you have setup a **Workspace**. To deploy your job, you'll need a workspace. If you don't have one, you can create it using this guide: [Creating a Workspace](doc:key-concepts#creating-a-workspace) or seek assistance from your cluster administrator.
+
+## Initiating Deployment via UI
+
+Use these configs for the deployment form:
+
+* **Repo URL**: [https://github.com/truefoundry/getting-started-examples](https://github.com/truefoundry/getting-started-examples)
+* **Path to build context**: ./train-model/
+* **Command**: python train.py
+
+<Info>
+  In the example above, we only had Python code and a requirements.txt file. The source code is in a Github repo and we don't have a prewritten docker file or a DockerImage - so we chose the **Python Code** option. Once we submit the form, TrueFoundry templatised a Dockerfile from the details provided and build the Docker image for us.
+
+  In the Build context field we specified the directory(`./train-model/`) where our job code resides in the GitHub repository. We also specified the command(`python train.py`) that we need to use to run our training script.
+</Info>
+
+## View your deployed job
+
+After you click **`Submit`**, your job will be deployed in a few seconds. On successful deployment your Job will be displayed as Suspended (yellow) indicating that your Job has been deployed but it will not run automatically.
+
+![](/images/docs/d793326-Screenshot_2023-11-13_at_7.54.15_AM.png)
+
+## Run your job
+
+To run your Job you will have to trigger it manually.
+
+Congratulations! You have successfully deployed and run your training Job.
+
+To learn how to interact with your job check out this guide: [Interacting with your Job](doc:interacting-with-your-job)
+
+***
+
+[Introduction to a Job](/docs/introduction-to-a-job)
+
+[Deploy and Run Job using Python SDK](/docs/deploy-job-using-python-sdk)
+
+* [Table of Contents](#)
+
+* * [Project Setup](#project-setup)
+  * [Prerequisites](#prerequisites)
+  * [Initiating Deployment via UI](#initiating-deployment-via-ui)
+  * [View your deployed job](#view-your-deployed-job)
+  * [Run your job](#run-your-job)

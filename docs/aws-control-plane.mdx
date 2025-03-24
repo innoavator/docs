@@ -1,0 +1,704 @@
+---
+title: "AWS"
+description: "Provisioning Control Plane Infrastructure on AWS"
+---
+
+<Warning />
+
+Setting up Truefoundry control plane on your own cloud involves creating the infrastructure to support the platform and then installing the platform itself.
+
+# Setting up Infrastructure
+
+## Requirements
+
+These are the infrastructure components required to set up a production grade Truefoundry control plane.
+
+<Info />
+
+| Requirements                                        | Description                                                                                                                                                                                                                                                                                                                                                   | Reason for Requirement                                                                               |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Kubernetes Cluster                                  | Any Kubernetes cluster will work here - we can also choose the compute-plane cluster itself to install Truefoundry helm chart                                                                                                                                                                                                                                 | The Truefoundry helm chart will be installed here.                                                   |
+| Postgres RDS                                        | Postgres >= 13                                                                                                                                                                                                                                                                                                                                                | The database is used by Truefoundry control plane to store all its metadata.                         |
+| S3 bucket                                           | Any S3 bucket reachable from control-plane.                                                                                                                                                                                                                                                                                                                   | This is used by control-plane to store the intermediate code while building the docker image.        |
+| Egress Access for TruefoundryAuth                   | Egress access to [https://auth.truefoundry.com](https://auth.truefoundry.com)                                                                                                                                                                                                                                                                                 | This is needed to verify the users logging into the Truefoundry platform for licensing purposes      |
+| Egress access For Docker Registry                   | 1. public.ecr.aws 2. quay.io 3. ghcr.io 4. docker.io/truefoundrycloud 5. docker.io/natsio 6. nvcr.io 7. registry.k8s.io                                                                                                                                                                                                                                       | This is to download docker images for Truefoundry, ArgoCD, NATS, ArgoRollouts, ArgoWorkflows, Istio. |
+| DNS with TLS/SSL                                    | One endpoint to point to the control plane service (something like platform.example.com where example.com is your domain. There should also be a certificate with the domain so that the domains can be accessed over TLS.**The control-plane url should be reachable from the compute-plane so that compute-plane cluster can connect to the control-plane** | The developers will need to access the Truefoundry UI at domain that is provided here.               |
+| User/ServiceAccount to provision the infrastructure | This is the set of permissions needed to provision the infrastructure for Truefoundry control-plane. Its detailed [here](https://docs.truefoundry.com/docs/aws-control-plane#permissions-required)                                                                                                                                                            |                                                                                                      |
+
+## Permissions Required
+
+We will be using OCLI (Onboarding CLI) to create the infrastructure. We will be using a locally setup AWS profile. Please make sure the user has the following permissions
+
+<CodeGroup>
+  ```bash bash
+  export REGION="" # us-east-1
+  export SHORT_REGION="" #usea1
+  export ACCOUNT_ID="" #123524493244
+  export NAME="" 
+  ```
+</CodeGroup>
+
+<CodeGroup>
+  ```bash bash
+  {
+      "Version": "2012-10-17",
+      "Statement": [
+          {
+              "Sid": "VisualEditor0",
+              "Effect": "Allow",
+              "Action": [
+                  "iam:CreateInstanceProfile",
+                  "iam:DeleteInstanceProfile",
+                  "rds:AddTagsToResource",
+                  "iam:GetInstanceProfile",
+                  "iam:RemoveRoleFromInstanceProfile",
+                  "rds:DeleteTenantDatabase",
+                  "iam:AddRoleToInstanceProfile",
+                  "rds:CreateDBInstance",
+                  "rds:DescribeDBInstances",
+                  "rds:RemoveTagsFromResource",
+                  "rds:CreateTenantDatabase",
+                  "iam:TagInstanceProfile",
+                  "rds:DeleteDBInstance"
+              ],
+              "Resource": [
+                  "arn:aws:iam::$ACCOUNT_ID:instance-profile/*",
+                  "arn:aws:rds:$REGION:$ACCOUNT_ID:db:tfy-$SHORT_REGION-$NAME-*"
+              ]
+          },
+          {
+              "Sid": "VisualEditor1",
+              "Effect": "Allow",
+              "Action": [
+                  "rds:AddTagsToResource",
+                  "rds:DeleteDBSubnetGroup",
+                  "rds:DescribeDBSubnetGroups",
+                  "iam:DeleteOpenIDConnectProvider",
+                  "iam:GetOpenIDConnectProvider",
+                  "rds:CreateDBSubnetGroup",
+                  "rds:ListTagsForResource",
+                  "rds:RemoveTagsFromResource",
+                  "iam:TagOpenIDConnectProvider",
+                  "iam:CreateOpenIDConnectProvider",
+                  "rds:CreateDBInstance",
+                  "rds:DeleteDBInstance"
+              ],
+              "Resource": [
+                  "arn:aws:rds:$REGION:$ACCOUNT_ID:subgrp:tfy-$SHORT_REGION-$NAME-*",
+                  "arn:aws:iam::$ACCOUNT_ID:oidc-provider/*"
+              ]
+          },
+          {
+              "Sid": "VisualEditor9",
+              "Effect": "Allow",
+              "Action": [
+                  "rds:DescribeDBInstances"
+              ],
+              "Resource": [
+                  "arn:aws:rds:$REGION:$ACCOUNT_ID:db:*"
+              ]
+          },
+          {
+              "Sid": "VisualEditor2",
+              "Effect": "Allow",
+              "Action": [
+                  "iam:CreatePolicy",
+                  "iam:GetPolicyVersion",
+                  "iam:GetPolicy",
+                  "iam:ListPolicyVersions",
+                  "iam:DeletePolicy",
+                  "iam:TagPolicy"
+              ],
+              "Resource": [
+                  "arn:aws:iam::$ACCOUNT_ID:policy/tfy-*",
+                  "arn:aws:iam::$ACCOUNT_ID:policy/truefoundry-*",
+                  "arn:aws:iam::$ACCOUNT_ID:policy/AmazonEKS_Karpenter_Controller_Policy*",
+                  "arn:aws:iam::$ACCOUNT_ID:policy/AmazonEKS_CNI_Policy*",
+                  "arn:aws:iam::$ACCOUNT_ID:policy/AmazonEKS_AWS_Load_Balancer_Controller*",
+                  "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess"
+              ]
+          },
+          {
+              "Sid": "VisualEditor3",
+              "Effect": "Allow",
+              "Action": [
+                  "iam:ListPolicies",
+                  "elasticfilesystem:*",
+                  "iam:GetRole",
+                  "s3:ListAllMyBuckets",
+                  "kms:*",
+                  "ec2:*",
+                  "s3:ListBucket",
+                  "route53:AssociateVPCWithHostedZone",
+                  "sts:GetCallerIdentity",
+                  "eks:*"
+              ],
+              "Resource": "*"
+          },
+          {
+              "Sid": "VisualEditor4",
+              "Effect": "Allow",
+              "Action": "dynamodb:*",
+              "Resource": "arn:aws:dynamodb:$REGION:$ACCOUNT_ID:table/$NAME-$REGION-tfy-ocli-table"
+          },
+          {
+              "Sid": "VisualEditor5",
+              "Effect": "Allow",
+              "Action": "iam:*",
+              "Resource": [
+                  "arn:aws:iam::$ACCOUNT_ID:role/tfy-*",
+                  "arn:aws:iam::$ACCOUNT_ID:role/initial-*"
+              ]
+          },
+          {
+              "Sid": "VisualEditor6",
+              "Effect": "Allow",
+              "Action": "s3:*",
+              "Resource": [
+                  "arn:aws:s3:::tfy-$SHORT_REGION-$NAME-*/*",
+                  "arn:aws:s3:::$NAME-$REGION-tfy-ocli-bucket/*",
+                  "arn:aws:s3:::tfy-$SHORT_REGION-$NAME*",
+                  "arn:aws:s3:::$NAME-$REGION-tfy-ocli-bucket",
+                  "arn:aws:s3:::tfy-$SHORT_REGION-$NAME-truefoundry*",
+                  "arn:aws:s3:::tfy-$SHORT_REGION-$NAME-truefoundry*/*"
+              ]
+          },
+          {
+              "Sid": "VisualEditor7",
+              "Effect": "Allow",
+              "Action": "events:*",
+              "Resource": "arn:aws:events:$REGION:$ACCOUNT_ID:rule/tfy-$SHORT_REGION-$NAME*"
+          },
+          {
+              "Sid": "VisualEditor8",
+              "Effect": "Allow",
+              "Action": "sqs:*",
+              "Resource": "arn:aws:sqs:$REGION:$ACCOUNT_ID:tfy-$SHORT_REGION-$NAME-karpenter"
+          }
+      ]
+  }
+  ```
+</CodeGroup>
+
+## Run Infra Provisioning using OCLI
+
+### Prerequisites
+
+1. Install [git](https://git-scm.com/downloads) if not already present.
+2. Install [aws cli](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) == 2.x.x and create an [AWS profile](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html) locally with the specified access to the AWS account where you want to create the new cluster.
+
+### Installing OCLI
+
+1. Download the binary using the below command.
+   <CodeGroup>
+     ```bash bash
+     curl -H 'Cache-Control: max-age=0' -s "https://releases.ocli.truefoundry.tech/binaries/ocli_$(curl -H 'Cache-Control: max-age=0' -s https://releases.ocli.truefoundry.tech/stable.txt)_darwin_arm64" -o ocli
+     ```
+
+     ```bash bash
+     curl -H 'Cache-Control: max-age=0' -s "https://releases.ocli.truefoundry.tech/binaries/ocli_$(curl -H 'Cache-Control: max-age=0' -s https://releases.ocli.truefoundry.tech/stable.txt)_darwin_amd64" -o ocli
+     ```
+
+     ```bash bash
+     curl -H 'Cache-Control: max-age=0' -s "https://releases.ocli.truefoundry.tech/binaries/ocli_$(curl -H 'Cache-Control: max-age=0' -s https://releases.ocli.truefoundry.tech/stable.txt)_linux_arm64" -o ocli
+     ```
+
+     ```bash bash
+     curl -H 'Cache-Control: max-age=0' -s "https://releases.ocli.truefoundry.tech/binaries/ocli_$(curl -H 'Cache-Control: max-age=0' -s https://releases.ocli.truefoundry.tech/stable.txt)_linux_amd64" -o ocli
+     ```
+   </CodeGroup>
+2. Make the binary executable and move it to `$PATH`
+   <CodeGroup>
+     ```bash bash
+     sudo chmod +x ./ocli
+     sudo mv ocli /usr/local/bin
+     ```
+   </CodeGroup>
+3. Confirm by running the command
+   <CodeGroup>
+     ```bash bash
+     ocli --version
+     ```
+   </CodeGroup>
+
+### Configuring Input Config file
+
+1. To create a new cluster, you would require your AWS `Account ID`, `Region`, and an `AWS Profile`
+
+2. Run the following command to fill in the inputs interactively
+   <CodeGroup>
+     ```bash bash
+     ocli infra-init
+     ```
+   </CodeGroup>
+
+3. For networking, there are two possible configurations:
+
+   1. New VPC (Recommended) - This creates a new VPC for your new cluster.
+   2. Existing VPC - You can enter your existing VPC and subnet IDs.
+
+4. Once all the inputs are filled, a config file with the name `tfy-config.yaml` would be generated in your current directory
+
+5. Modify the file to enable control plane installation by setting `aws.tfy_control_plane.enabled: true`. Below is the sample for the same:
+
+<CodeGroup>
+  ```bash bash
+  aws:
+    account:
+      id: "xxxxxxxxxxxxxxxxx"
+    cluster:
+      name: "coolml"
+      public_access:
+        cidrs:
+          - 0.0.0.0/0
+        enabled: true
+      version: "1.30"
+    network:
+      existing: true
+      private_subnets_cidrs: []
+      private_subnets_ids:
+        - subnet-xxxxxxxxxxxxxxxxx
+        - subnet-xxxxxxxxxxxxxxxxx
+        - subnet-xxxxxxxxxxxxxxxxx
+      public_subnets_cidrs: []
+      public_subnets_ids:
+        - subnet-xxxxxxxxxxxxxxxxx
+        - subnet-xxxxxxxxxxxxxxxxx
+        - subnet-xxxxxxxxxxxxxxxxx
+      vpc_cidr: ""
+      vpc_id: "vpc-xxxxxxxxxxxxxxxxx"
+    platform_features:
+      cluster_integration:
+        enabled: true
+      ecr:
+        enabled: true
+      enabled: true
+      iam_role:
+        assume_role_arns:
+          - arn:aws:iam::416964291864:role/tfy-ctl-euwe1-production-truefoundry-deps
+        role_enable_override: false
+        role_override_name: ""
+      iam_user:
+        enabled: false
+        user_enable_override: false
+        user_override_name: ""
+      parameter_store:
+        enabled: true
+      s3:
+        bucket_enable_override: false
+        bucket_override_name: ""
+        enabled: true
+      secrets_manager:
+        enabled: false
+    profile:
+      name: administrator-xxxxxxxxxxxxxxxxx
+    region:
+      availability_zones:
+        - us-east-1a
+        - us-east-1b
+        - us-east-1c
+        - us-east-1d
+      name: us-east-1
+    tags:
+      project: coolml
+    tfy_control_plane:
+      enabled: true
+  azure: null
+  binaries:
+    terraform:
+      binary_path: null
+    terragrunt:
+      binary_path: null
+  gcp: null
+  provider: aws
+  ```
+
+  ```bash bash
+  aws:
+    account:
+      id: "xxxxxxxxxxxxxxxxx"
+    cluster:
+      name: "coolml"
+      public_access:
+        cidrs:
+          - 0.0.0.0/0
+        enabled: true
+      version: "1.30"
+    network:
+      existing: false
+      private_subnets_cidrs:
+        - 10.99.0.0/20
+        - 10.99.16.0/20
+        - 10.99.32.0/20
+        - 10.99.48.0/20
+      private_subnets_ids: []
+      public_subnets_cidrs:
+        - 10.99.176.0/20
+        - 10.99.192.0/20
+        - 10.99.208.0/20
+        - 10.99.224.0/20
+      public_subnets_ids: []
+      vpc_cidr: 10.99.0.0/16
+      vpc_id: ""
+    platform_features:
+      cluster_integration:
+        enabled: true
+      ecr:
+        enabled: true
+      enabled: true
+      iam_role:
+        assume_role_arns:
+          - arn:aws:iam::416964291864:role/tfy-ctl-euwe1-production-truefoundry-deps
+        role_enable_override: false
+        role_override_name: ""
+      iam_user:
+        enabled: false
+        user_enable_override: false
+        user_override_name: ""
+      parameter_store:
+        enabled: true
+      s3:
+        bucket_enable_override: false
+        bucket_override_name: ""
+        enabled: true
+      secrets_manager:
+        enabled: false
+    profile:
+      name: administrator-xxxxxxxxxxxxxxxxx
+    region:
+      availability_zones:
+        - us-east-1a
+        - us-east-1b
+        - us-east-1c
+        - us-east-1d
+      name: us-east-1
+    tags:
+      project: coolml
+    tfy_control_plane:
+      enabled: true
+  azure: null
+  binaries:
+    terraform:
+      binary_path: null
+    terragrunt:
+      binary_path: null
+  gcp: null
+  provider: aws
+  ```
+</CodeGroup>
+
+## Create the cluster
+
+Run the following command to create the EKS cluster and IAM roles needed to provide access to various infrastructure components as per the inputs configured above.
+
+<CodeGroup>
+  ```bash bash
+  ocli infra-create --file tfy-config.yaml
+  ```
+</CodeGroup>
+
+This command may take around 30-45 minutes to complete.
+
+In the last step the database credentials will be printed. Make sure to note them down.
+
+# Installating TrueFoundry
+
+## Pre-requisites
+
+1. Installing [helm](https://helm.sh/docs/intro/install/)
+2. Add the following chart repository
+   <CodeGroup>
+     ```bash bash
+     helm repo add argocd https://argoproj.github.io/argo-helm
+     helm repo add truefoundry https://truefoundry.github.io/infra-charts/
+     ```
+   </CodeGroup>
+3. Updating helm repo to download the latest local repository index
+   <CodeGroup>
+     ```bash bash
+     helm repo update argocd truefoundry
+     ```
+   </CodeGroup>
+
+## Installing TrueFoundry helm chart
+
+1. Install `argocd` helm chart
+
+   <CodeGroup>
+     ```bash bash
+     helm upgrade --install argocd argocd/argo-cd -n argocd \
+     --create-namespace \
+     --version 7.4.4 \
+     --set applicationSet.enabled=false \
+     --set notifications.enabled=false \
+     --set dex.enabled=false
+     ```
+   </CodeGroup>
+
+2. Create values.yaml for the truefoundry helm chart. You can refer to the [values](https://artifacthub.io/packages/helm/truefoundry/tfy-k8s-aws-eks-inframold) for more details. `<terragruntOutput>` from the below yaml file can be replaced with the terragrunt output of the `ocli infra-create` command. If you are not using `ocli` to create infrastructure you can chose the components to deploy and accordingly install the right components
+
+   <CodeGroup>
+     ```bash bash
+     ## @section Global Parameters
+     ## @param tenantName Parameters for tenantName
+     ## Tenant Name - This is same as the name of the organization used to sign up 
+     ## on Truefoundry
+     ##
+     tenantName: ""
+
+     ## @param controlPlaneURL Parameters for controlPlaneURL
+     ## URL of the control plane - This is the URL that can be used by workload to access the truefoundry components
+     ##
+     controlPlaneURL: ""
+
+     ## @param clusterName Name of the cluster
+     ## Name of the cluster that you have created on AWS/GCP/Azure
+     ##
+     clusterName: ""
+
+     ## @param tolerations [array] Tolerations for the all chart components
+     ##
+     tolerations:
+       - key: CriticalAddonsOnly
+         value: "true"
+         effect: NoSchedule
+         operator: Equal
+       - key: kubernetes.azure.com/scalesetpriority
+         value: "spot"
+         effect: NoSchedule
+         operator: Equal
+       - key: "cloud.google.com/gke-spot"
+         value: "true"
+         effect: NoSchedule
+         operator: Equal
+
+     ## @param affinity [object] Affinity for the all chart components
+     ##
+
+     affinity: {}
+
+     ## @section AWS parameters
+     ## AWS parameters
+     ##
+     aws:
+       ## @subsection awsLoadBalancerController parameters
+       ## @param aws.awsLoadBalancerController.enabled Flag to enable AWS Load Balancer Controller
+       awsLoadBalancerController:
+         enabled: true
+         ## @param aws.awsLoadBalancerController.roleArn Role ARN for AWS Load Balancer Controller
+         ##
+         roleArn: ""
+         ## @param aws.awsLoadBalancerController.vpcId VPC ID of AWS EKS cluster
+         ##
+         vpcId: ""
+         ## @param aws.awsLoadBalancerController.region region of AWS EKS cluster
+         ##
+         region: ""
+
+       ## @subsection karpenter parameters
+       ## @param aws.karpenter.enabled Flag to enable Karpenter
+       ##
+       karpenter:
+         enabled: true
+         ## @param aws.karpenter.clusterEndpoint Cluster endpoint for Karpenter
+         ##
+         clusterEndpoint: ""
+         ## @param aws.karpenter.roleArn Role ARN for Karpenter
+         ##
+         roleArn: ""
+         ## @param aws.karpenter.instanceProfile Instance profile for Karpenter
+         ##
+         instanceProfile: ""
+         ## @param aws.karpenter.defaultZones Default zones list for Karpenter
+         ##
+         defaultZones: []
+
+         ## @param aws.karpenter.interruptionQueue Interruption queue name for Karpenter
+         ##
+         interruptionQueue: ""
+
+       ## @subsection awsEbsCsiDriver parameters
+       ## @param aws.awsEbsCsiDriver.enabled Flag to enable AWS EBS CSI Driver
+       ##
+       awsEbsCsiDriver:
+         enabled: true
+         ## @param aws.awsEbsCsiDriver.roleArn Role ARN for AWS EBS CSI Driver
+         ##
+         roleArn: ""
+
+       ## @subsection awsEfsCsiDriver parameters
+       ## @param aws.awsEfsCsiDriver.enabled Flag to enable AWS EFS CSI Driver
+       ##
+       awsEfsCsiDriver:
+         enabled: true
+         ## @param aws.awsEfsCsiDriver.fileSystemId File system ID for AWS EFS CSI Driver
+         ##
+         fileSystemId: ""
+         ## @param aws.awsEfsCsiDriver.region Region for AWS EFS CSI Driver
+         ##
+         region: ""
+         ## @param aws.awsEfsCsiDriver.roleArn Role ARN for AWS EFS CSI Driver
+         ##
+         roleArn: ""
+       
+       ## @param aws.inferentia.enabled Flag to enable Inferentia 
+       inferentia:
+         enabled: false
+
+     ## @section truefoundry parameters
+     ## @param truefoundry.enabled Flag to enable TrueFoundry
+     ## This installs the Truefoundry control plane helm chart. You can make it true
+     ## if you want to install Truefoundry control plane.
+     ##
+     truefoundry:
+       enabled: true
+       ## @param truefoundry.devMode.enabled Flag to enable TrueFoundry Dev mode
+       ##
+       devMode:
+         enabled: false
+       ## @section truefoundryBootstrap parameters
+       ## @param truefoundry.truefoundryBootstrap.enabled Flag to enable bootstrap job to prep cluster for truefoundry installation
+       truefoundryBootstrap:
+         enabled: false
+       ## @section database. Can be left empty if using the dev mode parameters
+       database:
+         ## @param truefoundry.database.host Hostname of the database
+         host: ""
+         ## @param truefoundry.database.name Name of the database
+         name: ""
+         ## @param truefoundry.database.username Username of the database
+         username: ""
+         ## @param truefoundry.database.password Password of the database
+         password: ""
+       ## @param truefoundry.tfyApiKey API Key for TrueFoundry
+       tfyApiKey: ""
+       ## @param truefoundry.truefoundryImagePullConfigJSON Json config for authenticating to the TrueFoundry registry
+       truefoundryImagePullConfigJSON: ""
+
+     ## @section istio parameters
+     ## @param istio.enabled Flag to enable Istio
+     ##
+     istio:
+       enabled: true
+       ## @skip istio.gateway.annotations Annotations for Istio Gateway
+       gateway:
+         
+         annotations:
+           "service.beta.kubernetes.io/aws-load-balancer-name": "<terragruntOutput.cluster.cluster_name.raw>"
+           "service.beta.kubernetes.io/aws-load-balancer-type": "external"
+           "service.beta.kubernetes.io/aws-load-balancer-scheme": "internet-facing"
+           "service.beta.kubernetes.io/aws-load-balancer-ssl-ports": "https"
+           "service.beta.kubernetes.io/aws-load-balancer-alpn-policy": "HTTP2Preferred"
+           "service.beta.kubernetes.io/aws-load-balancer-backend-protocol": "tcp"
+           "service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags":
+             cluster-name=<terragruntOutput.cluster.cluster_name.raw>,  truefoundry.com/managed=true,
+             owner=Truefoundry, application=tfy-istio-ingress
+           "service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled": "true"
+         
+       ## @section istio discovery parameters
+       discovery:
+         ## @param istio.discovery.hub Hub for the istio image
+         hub: gcr.io/istio-release
+         ## @param istio.discovery.tag Tag for the istio image
+         tag: 1.21.1-distroless
+       ## @param istio.tfyGateway.httpsRedirect Flag to enable HTTPS redirect for Istio Gateway
+       tfyGateway:
+         
+         httpsRedirect: true
+
+     ## @section tfyAgent parameters
+     ## @param tfyAgent.enabled Flag to enable Tfy Agent
+     ##
+     tfyAgent:
+       enabled: false
+       ## @param tfyAgent.clusterToken cluster token
+       ## Token for cluster authentication
+       ##
+       clusterToken: ""
+     ```
+   </CodeGroup>
+
+3. Fill the following values
+
+   1. `tenantName` - name of the tenant. If you haven't created one, please do it [here](https://www.truefoundry.com/register)
+   2. `controlPlaneURL` - URL at which to host the platform (for e.g. [https://truefoundry.example.com](https://truefoundry.example.com))
+   3. `clusterName` - name of the cluster in AWS console
+
+4. For the remaining values
+
+   1. `truefoundry.tfyApiKey` - api key to given by TrueFoundry team
+   2. `truefoundry.truefoundryImagePullConfigJSON` - Image pull config JSON to be given by TrueFoundry team
+   3. `truefoundry.truefoundryFrontendApp.istio.hosts[0]` - control plane URL without protocol
+
+5. Run the following command to install the chart
+
+   <CodeGroup>
+     ```bash bash
+     helm upgrade --install tfy-k8s-aws-eks-inframold \
+     truefoundry/tfy-k8s-aws-eks-inframold \
+     -f values.yaml -n argocd
+     ```
+   </CodeGroup>
+
+6. Once the helm chart is installed, point the control plane URL to the load balancer's IP address. To get the IP address of the load balancer
+
+   <CodeGroup>
+     ```bash bash
+     kubectl get svc tfy-istio-ingress -n istio-system
+     ```
+   </CodeGroup>
+
+7. We will also need the [TLS certificates](https://docs.truefoundry.com/docs/setting-up-dns-and-tls-in-aws) to be passed to the load balancer (in our case istio) to terminate the TLS traffic.
+
+## Add the compute plane
+
+1. Add the same cluster as the compute-plane from the UI and get the cluster token
+2. Add the token in the values.yaml
+   <CodeGroup>
+     ```bash bash
+     ## @section tfyAgent parameters
+     tfyAgent:
+       enabled: true
+       clusterToken: ""
+     ```
+   </CodeGroup>
+3. The control plane URL should be reachable to from inside of the k8s cluster as the tfy-agent will use the control plane URL to initiate the connection to the control plane. Run the helm command to install the agent
+   <CodeGroup>
+     ```bash bash
+     helm upgrade --install tfy-k8s-aws-eks-inframold \
+     truefoundry/tfy-k8s-aws-eks-inframold \
+     -f values.yaml -n argocd
+     ```
+   </CodeGroup>
+
+## Adding domain to Load balancer
+
+1. We need to add one more domain to the load balancer so that a separate domain can be used to host the workloads only. This domain can be a wildcard (recommended) as well.
+
+2. To add the domain
+
+   1. Point the domain to the load balancer IP address
+   2. Pass the [TLS certificate](https://docs.truefoundry.com/docs/setting-up-dns-and-tls-in-aws) to istio so that it can terminate the TLS traffic.
+   3. Add the domain in the platform.
+
+***
+
+[Deploy Control Plane Only](/docs/deploy-control-and-compute-plane)
+
+[GCP](/docs/gcp-control-plane)
+
+* [Table of Contents](#)
+
+* * [Setting up Infrastructure](#setting-up-infrastructure)
+
+  * * [Requirements](#requirements)
+    * [Permissions Required](#permissions-required)
+    * [Run Infra Provisioning using OCLI](#run-infra-provisioning-using-ocli)
+    * [Create the cluster](#create-the-cluster)
+
+  * [Installating TrueFoundry](#installating-truefoundry)
+
+  * * [Pre-requisites](#pre-requisites)
+    * [Installing TrueFoundry helm chart](#installing-truefoundry-helm-chart)
+    * [Add the compute plane](#add-the-compute-plane)
+    * [Adding domain to Load balancer](#adding-domain-to-load-balancer)

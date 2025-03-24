@@ -1,0 +1,555 @@
+---
+title: "Guide to inference model on truefoundry"
+description: "In this guide we will show you how to infer various types of models on the truefoundry platform, we have provided the Python snippet of all the model tasks supported on truefoundry."
+---
+
+## Image Classification
+
+<CodeGroup>
+  ```bash bash
+  import requests
+  from urllib.parse import urljoin
+
+  def send_image(image_path, url):
+      # Open the image file in binary mode
+      with open(image_path, 'rb') as image_file:
+          # Send the POST request
+          headers = {
+              "accept": "application/json",
+              "Content-Type": "image/png"
+          }
+          response = requests.post(url, headers=headers, data=image_file)
+
+      # Check the response
+      if response.status_code == 200:
+          print("Success:", response.json())
+      else:
+          print("Failed:", response.status_code, response.text)
+
+  # Example usage
+  image_path = "<Enter path to the image on your local>"  # Replace with your image file name
+  endpoint = "<Enter service endpoint>"
+  predict_path = "/predictions/model"
+  url = urljoin(endpoint, predict_path)
+
+  send_image(image_path, url)
+  ```
+</CodeGroup>
+
+In this, the response will be the array of objects that will have the confidence percentage of the prediction and the prediction category.
+
+<CodeGroup>
+  ```bash bash
+  [
+    {
+      "score": 0.9990900754928589,
+      "label": "..."
+    },
+  ]
+  ```
+</CodeGroup>
+
+## Text Classification
+
+<CodeGroup>
+  ```bash bash
+  import requests
+  from urllib.parse import urljoin
+
+  #endpoint of the model server
+  endpoint = "<Enter service endpoint>"
+  predict_path = "/predictions/model"
+  url = urljoin(endpoint, predict_path)
+
+  # if input is plain text or just json then use this code
+  def classify():
+      #The text string which you want to get classification for.
+      payload = {"inputs": "I am very happy today"}
+      response = requests.post(url=url, json=payload)
+
+      return response.json()
+
+  print(classify())
+  ```
+</CodeGroup>
+
+The output will be an array of classes with their score.
+
+<CodeGroup>
+  ```bash bash
+  [
+    {
+      "label": "POSITIVE",
+      "score": 0.9998797178268433
+    }
+  ]
+  ```
+</CodeGroup>
+
+## Zero-Shot Classification
+
+<CodeGroup>
+  ```bash bash
+  import requests
+  from urllib.parse import urljoin
+
+  # endpoint of the model server
+  endpoint = "<Enter service endpoint>"
+  predict_path = "/predictions/model"
+  url = urljoin(endpoint, predict_path)
+
+  # if input is plain text or just json then use this code
+  def classify():
+      # The text string which you want to get classification for.
+      payload = {
+          "inputs": "I have a problem with my iphone that needs to be resolved asap!!",
+          # The candidate labels which you want to classify the text into.
+          "parameters": {
+              "candidate_labels": "urgent, not urgent, phone, tablet, computer",
+              # If there are more than two classes, set this to True.
+              "multi_class": True,
+          },
+      }
+      response = requests.post(url=url, json=payload)
+
+      return response.json()
+
+  print(classify())
+  ```
+</CodeGroup>
+
+The output will look something like this.
+
+<CodeGroup>
+  ```bash bash
+  {
+    "sequence": "I have a problem with my iphone that needs to be resolved asap!!",
+    "labels": [
+      "urgent",
+      "phone",
+  ...
+    ],
+    "scores": [
+      0.998576283454895,
+      0.9949977993965149,
+  ...
+    ]
+  }
+  ```
+</CodeGroup>
+
+## Token Classification
+
+<CodeGroup>
+  ```bash bash
+  import requests
+  from urllib.parse import urljoin
+
+  # endpoint of the model server
+  endpoint = "<Enter service endpoint>"
+  predict_path = "/predictions/model"
+  url = urljoin(endpoint, predict_path)
+
+  def classify():
+      # The text string which you want to get classification for.
+      payload = {
+        "inputs": "My name is Sarah and I live in London"
+      }
+      response = requests.post(url=url, json=payload)
+
+      return response.json()
+
+  print(classify())
+  ```
+</CodeGroup>
+
+The output will be subject to change based on the mode, for NER classification it would look like this.
+
+<CodeGroup>
+  ```bash bash
+  [
+    {
+      "entity": "B-PER",
+      "score": 0.9985477328300476,
+      "index": 4,
+      "word": "Sarah",
+      "start": 11,
+      "end": 16
+    },
+  ...
+  ]
+  ```
+</CodeGroup>
+
+## Fill Mask
+
+<CodeGroup>
+  ```bash bash
+  import requests
+  from urllib.parse import urljoin
+
+  # endpoint of the model server
+  endpoint = "<Enter service endpoint>"
+  predict_path = "/predictions/model"
+  url = urljoin(endpoint, predict_path)
+
+  def classify():
+      # The text string which you want to get classification for.
+      payload = {
+        "inputs": "The goal of life is [MASK]."
+      }
+      response = requests.post(url=url, json=payload)
+
+      return response.json()
+
+  print(classify())
+  ```
+</CodeGroup>
+
+The output will be the array of words with the percentage of how likely a work can fit and replace `[MASK]`
+
+<CodeGroup>
+  ```bash bash
+  [
+    {
+      "score": 0.1093330830335617,
+      "token": 2166,
+      "token_str": "life",
+      "sequence": "the goal of life is life."
+    },
+  ...
+  ]
+  ```
+</CodeGroup>
+
+## Text to Image
+
+<CodeGroup>
+  ```bash bash
+  import requests
+
+  url = "<Enter service endpoint>"
+
+  # if input is plain text or just json then use this code
+  def generate_image(prompt: str):
+      payload = prompt
+
+      response = requests.post(url=url, json=payload)
+      if response.status_code == 200:
+          with open("image.png", "wb") as f:
+              f.write(response.content)
+      else:
+          print("Error: ", response.text)
+      with open("image.png", "wb") as f:
+          f.write(response.content)
+
+  generate_image("A panda drinking water from a bottle.")
+  ```
+</CodeGroup>
+
+The above code will call the api and then it will save the image as image.png in root directory.
+
+## Image to text
+
+<CodeGroup>
+  ```bash bash
+  import requests
+  from urllib.parse import urljoin
+
+  def send_image(image_path, url):
+      # Open the image file in binary mode
+      with open(image_path, 'rb') as image_file:
+          # Send the POST request
+          headers = {
+              "accept": "application/json",
+              "Content-Type": "image/png"
+          }
+          response = requests.post(url, headers=headers, data=image_file)
+
+      # Check the response
+      if response.status_code == 200:
+          print(response.json())
+      else:
+          print("Failed:", response.status_code, response.text)
+
+  # Example usage
+  image_path = "<Enter path to the image on your local>"  # Replace with your image file name
+  endpoint = "<Enter service endpoint>"
+  predict_path = "/predictions/model"
+  url = urljoin(endpoint, predict_path)
+
+  send_image(image_path, url)
+  ```
+</CodeGroup>
+
+The response will be something like this
+
+<CodeGroup>
+  ```bash bash
+  [
+    {
+      "generated_text": "string"
+    }
+  ]
+  ```
+</CodeGroup>
+
+# Translation
+
+<CodeGroup>
+  ```bash bash
+  import requests
+  from urllib.parse import urljoin
+
+  # endpoint of the model server
+  endpoint = "<Enter service endpoint>"
+  predict_path = "/predictions/model"
+  url = urljoin(endpoint, predict_path)
+
+  # if input is plain text or just json then use this code
+  def classify():
+      # The text string which you want to get translated
+      payload = {
+        "inputs": "string."
+      }
+      response = requests.post(url=url, json=payload)
+
+      return response.json()
+
+  print(classify())
+  ```
+</CodeGroup>
+
+The ouput will containt the translated text
+
+<CodeGroup>
+  ```bash bash
+  [
+    {
+      "translation_text": "Was ist das?"
+    }
+  ]
+  ```
+</CodeGroup>
+
+## Object Detection
+
+<CodeGroup>
+  ```bash bash
+  import requests
+  from urllib.parse import urljoin
+
+  def send_image(image_path, url):
+      # Open the image file in binary mode
+      with open(image_path, 'rb') as image_file:
+          # Send the POST request
+          headers = {
+              "accept": "application/json",
+              "Content-Type": "image/png"
+          }
+          response = requests.post(url, headers=headers, data=image_file)
+
+      # Check the response
+      if response.status_code == 200:
+          print(response.json())
+      else:
+          print("Failed:", response.status_code, response.text)
+
+  # Example usage
+  image_path = "<Enter path to the image on your local>"  # Replace with your image file name
+  endpoint = "<Enter service endpoint>"
+  predict_path = "/predictions/model"
+  url = urljoin(endpoint, predict_path)
+
+  send_image(image_path, url)
+  ```
+</CodeGroup>
+
+The output will contain the labels along with the co-ordinates of box
+
+<CodeGroup>
+  ```bash bash
+  [
+    {
+      "score": 0.9769997596740723,
+      "label": "string",
+      "box": {
+        "xmin": 90,
+        "ymin": 200,
+        "xmax": 99,
+        "ymax": 212
+      }
+    }
+  ]
+  ```
+</CodeGroup>
+
+## Text Generation(Chat Completion)
+
+<CodeGroup>
+  ```bash bash
+  import requests
+  from urllib.parse import urljoin
+
+  headers = {
+      'accept': 'application/json',
+      'content-type': 'application/json',
+  }
+
+  json_data = {
+      'model': 'model-name',
+     'messages': [
+          {'role': 'user', 'content': 'You are a helpful assistant'},
+          {'role': 'assistant', 'content': 'Hello there!'},
+          {'role': 'user', 'content': 'What is 2 + 2?'},
+      ],
+      'temperature': 0.8,
+  }
+  endpoint = "<Enter service endpoint>"
+  generation_path = "v1/chat/completions"
+  url = urljoin(endpoint, predict_path)
+  response = requests.post(
+      url,
+      headers=headers,
+      json=json_data,
+  )
+  print(response.json())
+  ```
+</CodeGroup>
+
+This will return the generated text based on the the chat or messages
+
+<CodeGroup>
+  ```bash bash
+  {
+   ...
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "The answer to 2 + 2 is 4. Is there anything else I can help you with?",
+          "tool_calls": []
+        },
+        "logprobs": null,
+        "finish_reason": "stop",
+        "stop_reason": null
+      }
+    ],
+  ...
+  }
+  ```
+</CodeGroup>
+
+## Text Generation(Completion)
+
+<CodeGroup>
+  ```bash bash
+  import requests
+  from urllib.parse import urljoin
+
+  headers = {
+      'accept': 'application/json',
+      'content-type': 'application/json',
+  }
+
+  json_data = {
+      'model': 'model-name',
+      'prompt': [
+          'hi what does this do?',
+      ],
+      'temperature': 0.8,
+  }
+  endpoint = "<Enter service endpoint>"
+  generation_path = "v1/completions"
+  url = urljoin(endpoint, predict_path)
+  response = requests.post(
+      url,
+      headers=headers,
+      json=json_data,
+  )
+  ```
+</CodeGroup>
+
+The model will try to complete the prompt
+
+<CodeGroup>
+  ```bash bash
+  {
+  ...
+    "choices": [
+      {
+        "index": 0,
+        "text": " the Order of the Red Hand.\nThey had heard the call, the few scattered members of the Order of the Red Hand moved to respond. The world had become a darker place and the Order of the Red Hand saw it as their duty to bring order to the chaos.\nAs the members began to gather the air grew thick with anticipation. The Order of the Red Hand was a force of justice, a force that struck fear into the hearts of those who would do harm. They were the protector of the innocent and the stronghold against darkness.\nThe leader of the Order, a woman known only as the Hand rose to her feet. Her face was a map of scars and her eyes burned with determination. \" Brothers and sisters of the Order,\" she began. \"The time for action has come. The world is in chaos and the innocent are suffering. We have been called to duty and we will not falter.\"\nThe members of the Order nodded in agreement, their faces set with determination. They knew the task that lay before them, they knew the dangers that they would face, but they were undaunted. For they were the Order of the Red Hand and they would not rest until justice was served.\nTogether, the members of the Order began to move out, their footsteps echoing",
+        "logprobs": null,
+        "finish_reason": "length",
+        "stop_reason": null,
+        "prompt_logprobs": null
+      }
+    ],
+  ...
+  }
+  ```
+</CodeGroup>
+
+## Summarization
+
+<CodeGroup>
+  ```bash bash
+  import requests
+  from urllib.parse import urljoin
+
+  # endpoint of the model server
+  endpoint = "<Enter service endpoint>"
+  predict_path = "/predictions/model"
+  url = urljoin(endpoint, predict_path)
+
+  def summarize():
+      # The text string which you want to get Summarization for.
+      payload = {
+        "inputs": """
+        TrueFoundry is a Cloud-native PaaS for Machine learning teams to build, deploy and ship ML/LLM Applications on their own cloud/on-prem Infra in a faster, scalable, cost efficient way with the right governance controls, allowing them to achieve 90% faster time to value than other teams. 
+
+  			TrueFoundry abstracts out the engineering required and offers GenAI accelerators - LLM PlayGround, LLM Gateway, LLM Deploy, LLM Finetune, RAG Playground and Application Templates that can enable an organisation to speed up the layout of their overall GenAI/LLMOps framework. Enterprises can plug and play these accelerators with their internal systems as well as build on top of our accelerators to enable a LLMOps platform of their choice to the GenAI developers. TrueFoundry is modular and completely API driven, has native integration with popular tools in the market like LangChain, VectorDBs, GuardRails, etc. 
+        """
+      }
+      response = requests.post(url=url, json=payload)
+
+      return response.json()
+
+  print(summarize())
+  ```
+</CodeGroup>
+
+The output will be summarized text.
+
+<CodeGroup>
+  ```bash bash
+  [
+    {
+      "summary_text": "TrueFoundry is a Cloud-native PaaS for Machine learning teams to build, deploy and ship ML/LLM Applications on their own cloud/on-prem Infra in a faster, scalable, cost efficient way . Enterprises can plug and play these accelerators with their internal systems as well as build on top of our accelerators to enable a LLMOps platform of their choice to the GenAI developers ."
+    }
+  ]
+  ```
+</CodeGroup>
+
+***
+
+[Deployment Additional Configuration](/docs/deployment-additional-configuration)
+
+* [Table of Contents](#)
+
+* * * [Image Classification](#image-classification)
+    * [Text Classification](#text-classification)
+    * [Zero-Shot Classification](#zero-shot-classification)
+    * [Token Classification](#token-classification)
+    * [Fill Mask](#fill-mask)
+    * [Text to Image](#text-to-image)
+    * [Image to text](#image-to-text)
+
+  * [Translation](#translation)
+
+  * * [Object Detection](#object-detection)
+    * [Text Generation(Chat Completion)](#text-generationchat-completion)
+    * [Text Generation(Completion)](#text-generationcompletion)
+    * [Summarization](#summarization)

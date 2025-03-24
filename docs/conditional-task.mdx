@@ -1,0 +1,85 @@
+---
+title: "Creating a Conditional Task"
+description: "A special type of task that enables conditional execution paths within a workflow. Conditional tasks allow the workflow to choose different execution paths based on the outcome of a previous task or variable."
+---
+
+Conditional task are typically structured with a condition followed by one or more possible execution paths (if-else branches).
+
+## Example
+
+This is how the flow will be of the given example workflow
+
+![](/images/docs/ba3372c4f9d9a94415560dd5a33233d7d01ca329258e145d3d50f4fcb0af1fbf-image.png)
+
+## Code
+
+Create file names `workflow.py` and paste the following contents into the file:
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.workflow import task, workflow, PythonTaskConfig, TaskPythonBuild, conditional
+
+  task_config = PythonTaskConfig(image=TaskPythonBuild(
+          python_version="3.11",
+          pip_packages=["truefoundry[workflow]==0.4.8"],
+      )
+  )
+
+  @task(task_config=task_config)
+  def generate_number() -> int:
+      return 7
+
+  @task(task_config=task_config)
+  def process_low() -> str:
+      return "Low number processing"
+
+  @task(task_config=task_config)
+  def process_high() -> str:
+      return "High number processing"
+
+  @workflow
+  def conditional_workflow() -> str:
+      number = generate_number()
+
+      result = conditional("branch")\
+          .if_(number < 5).then(process_low())\
+          .else_().then(process_high())
+
+      return result
+  ```
+</CodeGroup>
+
+Now run the below command in the terminal to deploy your workflow, replace `<workfspace-fqn>` with the [workspace fqn](https://docs.truefoundry.com/docs/key-concepts#getting-workspace-fqn) which you can find on the UI.
+
+<CodeGroup>
+  ```bash bash
+  tfy deploy workflow \
+    --name conditional-example-wf \
+    --file workflow.py \
+    --workspace_fqn "Paste your workspace FQN here"
+  ```
+</CodeGroup>
+
+In this example:
+
+* generate\_number: A task that generates a number.
+* process\_low and process\_high: Tasks that process the number based on whether it is low or high.
+* conditional: A branch node that checks if the number is less than 5. If true, it executes process\_low, otherwise it executes process\_high.
+
+## Conditional task on ui
+
+![](/images/docs/3f2c43e-image.png)
+
+* When you see the graph of a workflow containing the conditional task then you can see that the green box here represents the conditional task and the green color indicates that the task execution was successful.
+
+***
+
+[Configuring Resources](/docs/configuring-resources)
+
+[Creating a Map Task](/docs/creating-a-map-task)
+
+* [Table of Contents](#)
+
+* * [Example](#example)
+  * [Code](#code)
+  * [Conditional task on ui](#conditional-task-on-ui)

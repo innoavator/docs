@@ -1,0 +1,41 @@
+---
+title: "Deploy Control Plane Only"
+description: "Truefoundry control-plane ships as a helm chart which can be installed on any Kubernetes cluster. It has the following dependencies:"
+---
+
+1. A Kubernetes Cluster on which it can be installed.
+2. A Postgres Database which can be created on Kubernetes using [helm chart](https://artifacthub.io/packages/helm/bitnami/postgresql) for testing purpose - but we recommend a managed database like RDS on production.
+3. One blob storage bucket like S3, GCS or ACS bucket.
+
+### Deploying in Dev Mode
+
+To test out things quickly to see if Truefoundry can be useful for your use cases, we provide a quick dev installation which has minimal infrastructure requirements. In the dev installation, you can test most of the features except few as mentioned below. The key differences between dev and production mode are:
+
+1. Postgres is provisioned on Kubernetes instead of using a managed database - hence lower reliability. We do not recommend this for production usage.
+2. Code upload from CLI feature will not work.
+3. DNS mapping is not compulsory. You can test deploying from public Github repositories or your own docker image repository, hugging face model by just port-forwarding the truefoundry frontend service.
+
+To install Truefoundry in dev mode, you can directly install the control plane using helm as outlined here [Installing Control Plane using Helm Chart](https://docs.truefoundry.com/docs/installing-control-plane-using-helm-chart)
+
+### Deploying in Production Mode
+
+To deploy in production mode, we will first create the appropriate infrastructure components before moving on to actual implementation. The guides for individual cloud providers wrt infrastructure related requirements and steps to create them are available here -
+
+[Provisioning Control Plane Infrastructure on AWS](doc:aws-control-plane)
+
+[Provisioning Control Plane Infrastructure on GCP](doc:gcp-control-plane)
+
+[Provisioning Control Plane Infrastructure on Azure](azure-control-plane)
+
+Once the infra components are setup, we can go ahead and install the control plane using the helm chart - [Installing Control Plane using Helm Chart](https://docs.truefoundry.com/docs/installing-control-plane-using-helm-chart)
+
+***
+
+[Overview](/docs/overview-3)
+
+[AWS](/docs/aws-control-plane)
+
+* [Table of Contents](#)
+
+* * [Deploying in Dev Mode](#deploying-in-dev-mode)
+  * [Deploying in Production Mode](#deploying-in-production-mode)

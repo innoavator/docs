@@ -1,0 +1,38 @@
+---
+title: "SSO Integration"
+description: "TrueFoundry allows your team to utilize an SSO with your Identity Provider (IdP) by leveraging OpenID Connect (OIDC) or Security Assertion Markup Language (SAML). TrueFoundry SSO integration provides a seamless way to sign in with your own IdPs and also eliminates the need for employees to enter credentials to prove their identities repeatedly."
+---
+
+Truefoundry can integrate with the following IdP providers:
+
+1. **GSuite**
+2. **AzureAD**
+3. **Okta**
+4. **Keycloak**
+
+If you don't see the name of your IdP provider above, there is a high chance your IdP is also supported as long as it support OpenID Connect (OIDC) or SAML protocol.
+
+To use SSO with TrueFoundry, you will need:
+
+* An Identity Provider (IdP) such Okta, OneLogin, Google Workplace, etc to facilitate SSO that supports either OpenID Connect (OIDC) or SAML protocol such as
+
+* A technical point-of-contact who can provide TrueFoundry with the following SSO configuration information:
+
+  * For OIDC configurations:
+
+    * A customer’s Client ID and Client Secret
+    * A customer’s OIDC domain URL where the /.well-known/openid-configuration endpoint is hosted
+    * Employee email domain
+
+  * For SAML configurations:
+
+    * Identity Provider Single Sign-On URL
+    * Identity Provider Issuer
+    * X.509 Certificate
+    * (Optional) IDP metadata XML file
+
+Depending on if you use OpenID Connect (OIDC) or Security Assertion Markup Language (SAML) you can connect your SSO by following the relevant instructions.
+
+***
+
+[Other Integrations](/docs/integration-provider-others)

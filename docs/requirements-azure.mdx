@@ -1,0 +1,60 @@
+---
+title: "Requirements"
+description: "Requirements for Truefoundry installation on Azure"
+---
+
+Following is the list of requirements to set up compute plane in your Azure subscription
+
+# Azure Infra Requirements
+
+## New VPC + New Cluster
+
+Following is the list of requirements to set up compute plane in your Azure account
+
+| Requirements                      | Description                                                                                                                                                                                                                                                              | Reason for requirement                                                                                                                                                                                                                                                                           |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Azure Subscription                | Azure subscription should have billing enabled                                                                                                                                                                                                                           |                                                                                                                                                                                                                                                                                                  |
+| Egress access For Docker Registry | 1. public.ecr.aws 2. quay.io 3. ghcr.io 4. docker.io/truefoundrycloud 5. docker.io/natsio 6. nvcr.io 7. registry.k8s.io                                                                                                                                                  | This is to download docker images for Truefoundry, ArgoCD, NATS, GPU operator, ArgoRollouts, ArgoWorkflows, Istio, Keda.                                                                                                                                                                         |
+| DNS with SSL/TLS                  | Set of endpoints (preferably wildcard) to point to the deployments being made. Something like *.internal.example.com,*.external.example.com.Certificate can be generated using cert-manager by creating a few DNS records. Or you can bring your own custom certificate. | When developers deploy their services, they will need to access the endpoints of their services to test it out or call from other services. Its better if we can make it a wildcard since then developers can deploy services like service1..internal.example.com, service2.internal.example.com |
+| Compute Quotas                    | Quotas need be present to bring up the CPU and GPU machines required for your use case.                                                                                                                                                                                  | [Viewing quotas in Azure portal](https://learn.microsoft.com/en-us/azure/quotas/view-quotas)                                                                                                                                                                                                     |
+| Microsoft.Storage                 | Giving access to create storage account and other resource                                                                                                                                                                                                               | Ensure that Microsoft.Storage resource provider is registered. Check this [link](https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/resource-providers-and-types)                                                                                                         |
+| Host encryption                   | Ensure that host encryption is enabled                                                                                                                                                                                                                                   | Enable host encryption for data at rest. Check this [link](https://learn.microsoft.com/en-us/azure/virtual-machines/disks-enable-host-based-encryption-portal?tabs=azure-cli)                                                                                                                    |
+
+## Existing Network
+
+| Requirements | Description                                                                                                                                                                                                     | Reason for requirement                                                                                                                                                                                                                     |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| VPC          | The existing VNet should have the following available:- Min CIDR /24 for the private subnet
+- Pod CIDR - `/16`
+- Service CIDR - `/20`
+- Networking mode (for existing cluster) - Azure CNI or Azure CNI overlay | This is needed to ensure around 250 instances and 4096 pods can be run in the Kubernetes cluster. If we expect the scale to be higher, the subnet range should be increased. Cloud Router and NAT are required for egress internet access. |
+
+## Existing Cluster
+
+| Requirements | Description | Reason for requirement |
+| ------------ | ----------- | ---------------------- |
+| Compute      | TBD         |                        |
+
+## Permissions required to create the infrastructure
+
+The IAM user should have the following permissions -
+
+* Contributor Role to the above Subscription
+* Role Based Access Administrator to the above subscription
+
+Refer: [Azure admin permission](https://learn.microsoft.com/en-us/azure/role-based-access-control/role-assignments-portal-subscription-admin)
+
+***
+
+[Architecture](/docs/infrastructure-requirements-azure)
+
+[Setting up DNS and TLS in AKS](/docs/setting-up-dns-and-tls-in-aks)
+
+* [Table of Contents](#)
+
+* * [Azure Infra Requirements](#azure-infra-requirements)
+
+  * * [New VPC + New Cluster](#new-vpc--new-cluster)
+    * [Existing Network](#existing-network)
+    * [Existing Cluster](#existing-cluster)
+    * [Permissions required to create the infrastructure](#permissions-required-to-create-the-infrastructure)

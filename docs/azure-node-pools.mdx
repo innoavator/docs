@@ -1,0 +1,207 @@
+---
+title: "Azure node pools"
+description: "In this document we will understand how to better utilise the node pools in AKS for better management of your resources. This document has steps to create CPU/GPU spot as well as on-demand nodepools in your AKS cluster. Below steps are done through  but can be done through the Azure portal as well."
+---
+
+# System Node pool
+
+If you have followed the steps of [Creating the AKS cluster](https://docs.truefoundry.com/docs/azure-aks#7-creating-aks-cluster) a system node pool must have been created which works on `on-demand` nodes to deploy all the necessary applications that are required to power the platform. These includes
+
+* Argocd
+* Argo rollouts
+* Istio
+* tfy-agent
+
+It is advisable to use atleast 2 nodes with 2vCPU and 8GB RAM to successfully install all the necessary applications.
+
+<Info>
+  BY default the primary node pool of AKS (system node pool) should always be on-demand. It is not possible to create a SPOT node pool initially.
+</Info>
+
+# User based node pools
+
+User based node pools are used to run the user applications. These pools can be of type `on-demand` or `spot` .
+
+## Spot node pool
+
+Spot node pools are used to host the user workloads which can tolerate interruptions. As spot instances are the machines which are used from left-overs they can bring significant cost savings in the cloud billing and because of this there are certain applications, dev workloads and un-important job runs which can be promoted to run over spot instances.
+
+### Creating a SPOT CPU node pool
+
+Spot CPU node pool should be used for the cases where the applications can tolerate significant interruptions. By default TrueFoundry can tolerate interruptions on these applications which are supporting the platform
+
+* Prometheus
+* Loki
+* cert-manager
+* argo-workflows
+
+A right instance size can be selected from [this page](https://azureprice.net/) which can help you select the right size/price ratio for your workloads. With the below command you can create a spot instance
+
+<CodeGroup>
+  ```bash bash
+  # export 
+  export RESOURCE_GROUP=""
+  export CLUSTER_NAME=""
+
+  # enter the instance size from the page linked above
+  export INSTANCE_SIZE=""
+  ```
+</CodeGroup>
+
+Command to create a spot CPU pool
+
+<CodeGroup>
+  ```bash bash
+  az aks nodepool add \
+      --resource-group $RESOURCE_GROUP \
+      --cluster-name $CLUSTER_NAME \
+      --name <NODEPOOL NAME> \
+      --priority Spot \
+      --eviction-policy Delete \
+      --spot-max-price -1 \
+      --enable-cluster-autoscaler \
+      --enable-encryption-at-host \
+      --node-vm-size $INSTANCE_SIZE \
+      --min-count 2 \
+      --node-count 2 \
+      --max-count 10 \
+      --no-wait
+  ```
+</CodeGroup>
+
+With this command a SPOT node pool with minimum 2 nodes will spin up which can autoscale to 10.
+
+Spot node pools by default create a taint `kubernetes.azure.com/scalesetpriority:spot` which means all the pods which you want to get deployed on these spot instances must tolerate this taint. The toleration must happen like this
+
+<CodeGroup>
+  ```bash bash
+  tolerations:
+  - key: kubernetes.azure.com/scalesetpriority
+  	value: spot
+  	effect: NoSchedule
+  ```
+</CodeGroup>
+
+However, this doesn't guarantee that the pods that you meant to deploy on these spot instances will always be deployed there. You have to select the spot node pool while deploying your services to force them to get deployed on spot pools only. Check [Adding node pools to the platform]() to know more.
+
+### Creating a spot GPU node pool
+
+Creating a spot GPU node pool is similar to the CPU spot node pool except for two things
+
+* Select the [right instance size](https://azureprice.net/) for the GPU workload and make sure you have the required [Quotas](https://learn.microsoft.com/en-us/azure/quotas/view-quotas) for GPU instance in your specific region
+* Taint of `nvidia.com/gpu=Present:NoSchedule`. It is important to add this taint to avoid non-GPU workloads to get deployed on GPU machines
+
+Execute the below command to create a node pool in your AKS cluster. Make sure to replace the variable correctly
+
+<CodeGroup>
+  ```bash bash
+  az aks nodepool add \
+  --cluster-name $CLUSTER_NAME \
+  --name <NODEPOOL NAME> \
+  --resource-group $RESOURCE_GROUP \
+  --enable-cluster-autoscaler \
+  --enable-encryption-at-host \
+  --priority Spot \
+  --spot-max-price -1 \
+  --eviction-policy Delete \
+  --node-vm-size $INSTANCE_SIZE \
+  --node-taints nvidia.com/gpu=Present:NoSchedule \
+  --max-count 2 \
+  --min-count 1 \
+  --node-count 1 \
+  --mode user \
+  --tags team=datascience owner=truefoundry
+  ```
+</CodeGroup>
+
+## On-demand or Regular node pools
+
+On-demand or Regular node pools are used for deploying your applications which require a dedicated machine to run. These workloads are important or nearly important to run at the required time. On-demand nodes are generally expensive to their counterparts (spot) but have SLA available on them. As a general practice, on-demand nodes don't suffer downtime and doesn't face interruptions. However, It is always to be noted that nodes are ephemeral in nature and upon excess threshold utilisation they can go down.
+
+### Creating an on-demand CPU node pool
+
+Run the below command in your cluster by selecting the right [instance size](https://azureprice.net/)
+
+<CodeGroup>
+  ```bash bash
+  az aks nodepool add \
+      --resource-group $RESOURCE_GROUP \
+      --cluster-name $CLUSTER_NAME \
+      --name <NODEPOOL NAME> \
+      --eviction-policy Delete \
+      --enable-cluster-autoscaler \
+      --enable-encryption-at-host \
+      --node-vm-size $INSTANCE_SIZE \
+      --min-count 2 \
+      --node-count 2 \
+      --node-osdisk-size 100 \
+      --max-count 10 \
+      --no-wait
+  ```
+</CodeGroup>
+
+You can set the count of nodes according to your needs and it is advisable to keep the autoscaling part enabled for your cluster.
+
+### Creating an on-demand GPU node pool
+
+Creating an on-demand GPU node pool is similar to the CPU on-demand node pool except for two things
+
+* Select the [right instance size](https://azureprice.net/) for the GPU workload and make sure you have the required [Quotas](https://learn.microsoft.com/en-us/azure/quotas/view-quotas) for GPU instance in your specific region
+* Taint of `nvidia.com/gpu=Present:NoSchedule`. It is important to add this taint to avoid non-GPU workloads to get deployed on GPU machines
+
+Execute the below command to create a node pool in your AKS cluster. Make sure to replace the variable correctly
+
+<CodeGroup>
+  ```bash bash
+  az aks nodepool add \
+  --cluster-name $CLUSTER_NAME \
+  --name <NODEPOOL NAME> \
+  --resource-group $RESOURCE_GROUP \
+  --enable-cluster-autoscaler \
+  --enable-encryption-at-host \
+  --node-vm-size $INSTANCE_SIZE \
+  --node-taints nvidia.com/gpu=Present:NoSchedule \
+  --max-count 2 \
+  --min-count 1 \
+  --node-count 1 \
+  --node-osdisk-size 100 \
+  --mode user \
+  --tags team=datascience owner=truefoundry
+  ```
+</CodeGroup>
+
+# Adding node pools in the platform
+
+By default TrueFoundry requires an Azure AD application which has `Reader` access on the AKS cluster to sync all the nodepools. If this Azure AD application is already added to the platform the new nodepools will sync automatically.
+
+# Understanding Cost implications of spot and on-demand (regular) node-pools
+
+A huge difference can be observed while analysing the cloud cost for both spot and on-demand where spot nodes seems to be a highly cheap option. Moreover, this brings lot of uncertainty for the node uptime leading to trade-off. Below is a sample collection of nodes running for a month to analyse costs for spot and on-demand machines.
+
+*All these are pricing based out of South central US region.*
+
+| Priority  | Instance type     | Compute         | GPU   | Cost( per month) |
+| --------- | ----------------- | --------------- | ----- | ---------------- |
+| Spot      | Standard\_D2s\_v5 | 2vCPU/8 GB RAM  | False | $ 10.19          |
+| On-demand | Standard\_D2s\_v5 | 2vCPU/8 GB RAM  | False | $ 83.95          |
+| Spot      | Standard\_NC6     | 6vCPU/56 GB RAM | True  | $ 78.84          |
+| On-demand | Standard\_NC6     | 6vCPU/56 GB RAM | True  | $ 788.40         |
+
+***
+
+[Customize build workflow](/docs/customize-build-workflow)
+
+[Customizing CI/CD Templates](/docs/customizing-cicd-templates)
+
+* [Table of Contents](#)
+
+* * [System Node pool](#system-node-pool)
+
+  * [User based node pools](#user-based-node-pools)
+
+  * * [Spot node pool](#spot-node-pool)
+    * [On-demand or Regular node pools](#on-demand-or-regular-node-pools)
+
+  * [Adding node pools in the platform](#adding-node-pools-in-the-platform)
+
+  * [Understanding Cost implications of spot and on-demand (regular) node-pools](#understanding-cost-implications-of-spot-and-on-demand-regular-node-pools)

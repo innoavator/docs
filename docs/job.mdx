@@ -1,0 +1,195 @@
+---
+title: "Job"
+---
+
+<Info>
+  While using TrueFoundry python SDK `type` is not a required field in any of the imported classes
+</Info>
+
+# Job
+
+### Description
+
+Describes the configuration for the job
+
+### Schema
+
+<CodeGroup>
+  ```bash bash
+  {
+    "type": "string",
+    "name": "string",
+    "image": {},
+    "trigger": {
+      "type": "manual"
+    },
+    "params": [
+      {
+        "name": "string",
+        "description": "string",
+        "default": "string",
+        "param_type": "string"
+      }
+    ],
+    "env": null,
+    "resources": {
+      "cpu_request": 0.2,
+      "cpu_limit": 0.5,
+      "memory_request": 200,
+      "memory_limit": 500,
+      "ephemeral_storage_request": 1000,
+      "ephemeral_storage_limit": 2000,
+      "gpu_count": 0,
+      "shared_memory_size": 64,
+      "node": {}
+    },
+    "retries": 0,
+    "timeout": 0,
+    "concurrency_limit": 0,
+    "service_account": "string",
+    "mounts": [
+      {}
+    ],
+    "labels": {
+      "property1": "string",
+      "property2": "string"
+    }
+  }
+  ```
+</CodeGroup>
+
+### Properties
+
+| Name               | Type                                  | Required | Description                                                                                                                                                |
+| ------------------ | ------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| type               | string                                | true     | +value=job                                                                                                                                                 |
+| name               | string                                | true     | Name of the job                                                                                                                                            |
+| image              | object                                | true     | Specify whether you want to deploy a Docker image or build and deploy from source code                                                                     |
+| trigger            | object                                | true     | Specify the trigger                                                                                                                                        |
+| params             | \[[Param]()]                          | false    | Configure params and pass it to create different job runs                                                                                                  |
+| env                | object¦null                           | false    | Configure environment variables to be injected in the service.[Docs](doc:env-variables)                                                                    |
+| resources          | [Resources](doc:deployment#resources) | false    | Describes the resource constraints for the application so that it can be deployed accordingly on the clusterTo learn more you can go [here](doc:resources) |
+| retries            | integer                               | true     | Specify the maximum number of attempts to retry a job before it is marked as failed.                                                                       |
+| timeout            | integer                               | false    | Job timeout in seconds.                                                                                                                                    |
+| concurrency\_limit | integer                               | false    | Number of runs that can run concurrently                                                                                                                   |
+| service\_account   | string                                | false    | Service account that this workload should use                                                                                                              |
+| mounts             | \[object]                             | false    | Configure data to be mounted to job pod(s)                                                                                                                 |
+| labels             | object                                | false    | Add labels to service metadata                                                                                                                             |
+
+### Examples
+
+***
+
+# Triggers
+
+The modules below help configure the Triggers for the Job
+
+## Manual
+
+### Description
+
+Describes that we are going to manually trigger our job.
+
+### Schema
+
+<CodeGroup>
+  ```bash bash
+  {
+    "type": "string"
+  }
+  ```
+</CodeGroup>
+
+### Properties
+
+| Name | Type   | Required | Description   |
+| ---- | ------ | -------- | ------------- |
+| type | string | true     | +value=manual |
+
+## Schedule
+
+### Description
+
+Describes that we are going to schedule our job to run at a schedule, making our job a cron job.
+
+### Schema
+
+<CodeGroup>
+  ```bash bash
+  {
+    "type": "string",
+    "schedule": "string",
+    "concurrency_policy": "Forbid",
+    "timezone": "string"
+  }
+  ```
+</CodeGroup>
+
+### Properties
+
+| Name                | Type   | Required | Description                                                                                                                                                                                                                                                                                                                                                                       |
+| ------------------- | ------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| type                | string | true     | +value=scheduled                                                                                                                                                                                                                                                                                                                                                                  |
+| schedule            | string | true     | Specify the schedule for this job to be run periodically in cron format.[Learn more](doc:deploy-a-cron-job)                                                                                                                                                                                                                                                                       |
+| concurrency\_policy | string | true     | Choose whether to allow this job to run while another instance of the job is running, or to replace the currently running instance. Allowwill enable multiple instances of this job to run. Forbid will keep the current instance of the job running and stop a new instance from being run.Replace will terminate any currently running instance of the job and start a new one. |
+| timezone            | string | false    | Timezone against which the cron schedule will be calculated, e.g. "Asia/Tokyo". Default is machine's local time.[https://docs.truefoundry.com/docs/list-of-supported-timezones](https://docs.truefoundry.com/docs/list-of-supported-timezones)                                                                                                                                    |
+
+#### Enumerate Values
+
+| Property            | Value   |
+| ------------------- | ------- |
+| concurrency\_policy | Forbid  |
+| concurrency\_policy | Allow   |
+| concurrency\_policy | Replace |
+
+# Param
+
+### Description
+
+Describes a parameter for configuration
+
+### Schema
+
+<CodeGroup>
+  ```bash bash
+  {
+    "name": "string",
+    "description": "string",
+    "default": "string",
+    "param_type": "string"
+  }
+  ```
+</CodeGroup>
+
+### Properties
+
+| Name        | Type   | Required | Description                  |
+| ----------- | ------ | -------- | ---------------------------- |
+| name        | string | true     | Name of the param            |
+| description | string | false    | Description of param         |
+| default     | string | false    | Default value or placeholder |
+| param\_type | string | false    | none                         |
+
+#### Enumerate Values
+
+| Property    | Value    |
+| ----------- | -------- |
+| param\_type | string   |
+| param\_type | ml\_repo |
+
+***
+
+[Service](/docs/service)
+
+[AsyncService](/docs/asyncservice)
+
+* [Table of Contents](#)
+
+* * [Job](#job)
+
+  * [Triggers](#triggers)
+
+  * * [Manual](#manual)
+    * [Schedule](#schedule)
+
+  * [Param](#param)

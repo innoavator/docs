@@ -1,0 +1,138 @@
+---
+title: "Parameterize a job"
+description: "When you develop a Python script, there are often instances where you want to alter the script's behaviour without having to rewrite the code. This is where arguments come in handy. Arguments allow you to pass values to a script when it is executed, and these values can then be used to control the script's behaviour."
+---
+
+For instance, let's consider a script that trains a Support Vector Machine (SVM) model. Arguments can be used to pass the values of the hyper-parameters to your script as command-line arguments. This enables you to easily modify the values of the hyper-parameters without having to modify your code.
+
+Here's an example of how to use argparse to pass hyper-parameters to a Python script that trains an SVM model:
+
+<CodeGroup>
+  ```bash bash
+  import argparse
+
+  parser = argparse.ArgumentParser()
+  parser.add_argument("--kernel", type=str, default="rbf", help="The kernel type")
+  parser.add_argument("--C", type=float, default=1.0, help="The regularization parameter")
+
+  args = parser.parse_args()
+
+  kernel = args.kernel
+  C = args.C
+
+  # Train the model
+  train_model(kernel, C)
+
+  # Evaluate the model
+  evaluate_model()
+  ```
+</CodeGroup>
+
+You can now run this script by passing the following command:
+
+<CodeGroup>
+  ```bash bash
+  python train.py --kernel linear --C 2.0
+  ```
+</CodeGroup>
+
+This will train the SVM model with a linear kernel and a regularisation parameter of 2.0. You can easily set the kernel type and C parameter without having to change the code repeatedly.
+
+## Passing arguments while running a Job
+
+If you've deployed a job that can accept arguments, you can pass those arguments in the command while running the Job.
+
+![](/images/docs/6cb2e51-Screenshot_2023-11-17_at_9.45.52_PM.png)
+
+Entering values for multiple script arguments in the Run Job form can be time-consuming and error-prone.
+
+To simplify this process, you can configure parameters directly when creating your Job. This provides a convenient interface for entering parameter values, and the parameterized command is automatically generated for you. Additionally, this method allows you to document the arguments, making it easy for anyone running the job to understand the purpose and usage of each parameter.
+
+![](/images/docs/5e8eb94-Screenshot_2023-11-17_at_9.56.40_PM.png)
+
+## Configuring a Job with Params
+
+To set up Params, follow these steps:
+
+* **Setup the params in job form**. Here, you'll provide details regarding the arguments you want to make params. You'll need to provide the name, description, and default value for each parameter.
+* **In the command you specify while configuring the Job, you need to specify a command template**. It will be like the following:
+
+<CodeGroup>
+  ```bash bash
+  python script_name --argument_1_name {{param_1_name}} --argument_2_name {{param_2_name}}
+  ```
+</CodeGroup>
+
+For example, `python train.py --C {{c_val}} --kernel {{kernel}}.`
+
+### Through User Interface
+
+### Using the Python SDK
+
+In your Job deployment code `deploy.py`, include the following:
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.deploy import Job, Build, PythonBuild, Resources, Param
+
+  # First we define how to build our code into a Docker image
+  image = Build(
+      build_spec=PythonBuild(
+  +        command="python train.py --C {{c_val}} --kernel {{kernel}}",
+          requirements_path="requirements.txt",
+      )
+  )
+  job = Job(
+      name="iris-train-args-job",
+      image=image,
+  +    params=[
+  +          Param(name="c_val", description="The regularization parameter's value", default=1),
+  +          Param(name="kernel", description="The kernel type", default="rbf"), 
+  +    ],
+  )
+  job.deploy(workspace_fqn=args.workspace_fqn)
+  ```
+</CodeGroup>
+
+## Running a Job with params
+
+Once you configure the job with params and deploy it, you will start seeing a form rendered on clicking run job.
+
+TrueFoundry automatically generates this form based on the parameters defined in the job's configuration. This dynamic form simplifies parameter handling, where you just need to change the values for the parameters and the command updates accordingly.
+
+### Through the User Interface
+
+### Programmatically
+
+You can also trigger the job with params programmatically using the Python SDK.
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.deploy import trigger_job
+
+  trigger_job(
+    application_fqn="tfy-ctl-euew1-devtest:tfy-demo:iris-train-job", 
+    params={"kernel":"linear", "c_val":"w"}
+  )
+  ```
+</CodeGroup>
+
+***
+
+[Configure Job Trigger](/docs/deploy-a-cron-job)
+
+[Environment Variables and Secrets](/docs/environment-variables-and-secrets-jobs)
+
+* [Table of Contents](#)
+
+* * [Passing arguments while running a Job](#passing-arguments-while-running-a-job)
+
+  * [Configuring a Job with Params](#configuring-a-job-with-params)
+
+  * * [Through User Interface](#through-user-interface)
+    * [Using the Python SDK](#using-the-python-sdk)
+
+  * [Running a Job with params](#running-a-job-with-params)
+
+  * * [Through the User Interface](#through-the-user-interface)
+    * [Programmatically](#programmatically)

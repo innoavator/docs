@@ -1,0 +1,63 @@
+---
+title: "Dev Mode installation"
+---
+
+# Dev Mode
+
+## Infrastructure Requirements
+
+| Requirements                      | Description                                                                                                                   | Reason for Requirement                                                                              |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Kubernetes Cluster                | Any Kubernetes cluster will work here - we can also choose the compute-plane cluster itself to install Truefoundry helm chart | The Truefoundry helm chart will be installed here                                                   |
+| Egress Access for TruefoundryAuth | Egress access to [https://auth.truefoundry.com](https://auth.truefoundry.com)                                                 | This is needed to verify the users logging into the Truefoundry platform for licensing purposes     |
+| Egress access For Docker Registry | 1. public.ecr.aws 2. quay.io 3. ghcr.io 4. docker.io/truefoundrycloud 5. docker.io/natsio 6. nvcr.io 7. registry.k8s.io       | This is to download docker images for Truefoundry, ArgoCD, NATS, ArgoRollouts, ArgoWorkflows, Istio |
+
+## Installation steps
+
+1. Install argoCD -
+   ```
+   kubectl create namespace argocd
+   kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/core-install.yaml
+   ```
+
+1. Add the truefoundry helm repo
+   ```
+   helm repo add truefoundry https://truefoundry.github.io/infra-charts/
+   helm repo update
+   ```
+
+2. We will create a `values.yaml` for the helm chart installation -
+
+   1. Download the values.yaml from helm chart repo -
+      ```
+      curl https://raw.githubusercontent.com/truefoundry/infra-charts/main/charts/tfy-k8s-generic-inframold/values-cp-dev.yaml > values.yaml
+      ```
+   2. Fill in the `tenant_name`, `cluster_name`, `truefoundry_image_pull_config_json`, `tfy_api_key`, `truefoundry_internal_jwt_jwks` and `INITIAL_ADMIN_OAUTH_USER_PASSWORD`in the downloaded file. You can get these from the Truefoundry team
+
+3. Apply the helm chart with the values.yaml
+   ```
+   helm install -n argocd inframold truefoundry/tfy-k8s-generic-inframold --version 0.0.18 -f values.yaml
+   ```
+
+## Test the installation
+
+1. Port forward the frontend application to access the Truefoundry dashboard -
+   ```
+   kubectl port-forward svc/truefoundry-truefoundry-frontend-app -n truefoundry 5000
+   ```
+2. Access the truefoundry dashboard from a browser by opening `http://localhost:5000`. You can login with the username and password provided by the Truefoundry team.
+3. Now you are ready to connect a cluster to the Truefoundry platform and get deploying. Go [here](https://docs.truefoundry.com/docs/connect-existing-kubernetes-cluster) for the directions. You can also onboard the same cluster as the control plane
+
+***
+
+[Installation with Helm](/docs/installing-control-plane-using-helm-chart)
+
+[Generic](/docs/generic-control-plane)
+
+* [Table of Contents](#)
+
+* * [Dev Mode](#dev-mode)
+
+  * * [Infrastructure Requirements](#infrastructure-requirements)
+    * [Installation steps](#installation-steps)
+    * [Test the installation](#test-the-installation)

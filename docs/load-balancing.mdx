@@ -1,0 +1,60 @@
+---
+title: "Load Balancing"
+description: "Loadbalance requests between multiple LLMs"
+---
+
+Load balancing allows users to distribute traffic across multiple models to optimize performance, prevent overload, and ensure high availability. This is especially useful when multiple model providers are available, and we want to distribute requests efficiently based on predefined rules.
+
+The load balancing configuration consists of an array of rules. Every request is evaluated against the set of rules, and only the first matching rule is applied—subsequent rules are ignored.
+
+Each rule consists of three main sections:
+
+1. **when**
+
+   1. subjects: An array of users or teams originating the request. For example, user:bob, team:team1.
+   2. models: An array of model IDs to filter requests. The model IDs correspond to those used in the request.
+   3. metadata: Additional key-value pairs for flexible matching.
+
+2. **load\_balance\_targets**:
+
+   1. target: The model ID to which traffic should be routed.
+   2. weight: A numerical value indicating the proportion of traffic that should be routed to the target model. The sum of all weights across different targets should ideally add up to 100, ensuring proper distribution.
+
+A sample loadbalancing configuration will look something like:
+
+<CodeGroup>
+  ```bash bash
+  name: loadbalancing-config
+  type: gateway-load-balancing-config
+  # The rules are evaluated in order and once a request matches one rule, 
+  # the subsequent rules are not checked
+  rules:
+    # Distribute traffic for gpt4 model from openai-main account for user:bob with 70% to azure-gpt4 and 30% to openai-main-gpt4
+    - id: "openai-gpt4-dev-env"
+      when: 
+        subjects: ["user:bob"]
+        models: ["openai-main/gpt4"]
+        metadata:
+          env: dev
+      load_balance_targets:
+        - target: "azure/gpt4"
+          weight: 70
+        - target: "openai-main/gpt4"
+          weight: 30
+    # Distribute traffic for llama model from bedrock for customer1 with 60% to azure-bedrock and 40% to aws-bedrock
+    - id: "llama-bedrock-customer1"
+      when: 
+        models: ["bedrock/llama3"]
+        metadata:
+          customer-id: customer1
+      load_balance_targets:
+        - target: "azure/bedrock-llama3"
+          weight: 60
+        - target: "aws/bedrock-llama3"
+          weight: 40
+  ```
+</CodeGroup>
+
+***
+
+[RateLimiting](/docs/ratelimiting)

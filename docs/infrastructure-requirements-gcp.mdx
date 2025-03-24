@@ -1,0 +1,35 @@
+---
+title: "Architecture"
+description: "This guide describes the architecture diagram and access policies in a compute plane in your GCP account"
+---
+
+## GCP Architecture Diagram
+
+![](/images/docs/9f78484-GCP_1.png)
+
+Please refer to the "Access Policies" section for details of each access policy.
+
+## Access Policies
+
+| **Access Policy**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | **Role**                       | **Reason**                                                                                                                                                                                                                                                                                                                                                                                           |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| RolePolicy -- Blob storage - [link](https://github.com/truefoundry/terraform-google-truefoundry-platform-features/blob/e4224520b2b6e8a7596afffa85ef16bc56875dcd/iam.tf#L52)
+- Secret manager - [link](https://github.com/truefoundry/terraform-google-truefoundry-platform-features/blob/e4224520b2b6e8a7596afffa85ef16bc56875dcd/iam.tf#L16)
+- Artifact Registry - [link](https://github.com/truefoundry/terraform-google-truefoundry-platform-features/blob/e4224520b2b6e8a7596afffa85ef16bc56875dcd/iam.tf#L117)
+- Cluster viewer - [link](https://github.com/truefoundry/terraform-google-truefoundry-platform-features/blob/e4224520b2b6e8a7596afffa85ef16bc56875dcd/iam.tf#L92)
+- Cluster Autoscaler - [link](https://github.com/truefoundry/terraform-google-truefoundry-platform-features/blob/e594daa425f2d406e90093101ac82518eae7364e/locals.tf#L18) | `<cluster_name>-platform-user` | Roles assumed by the TrueFoundry user are added for the following reason:- To create and manage blob storage buckets
+- To create and manage secrets within secret manager to be used within the platform
+- To pull and push images to artifact registry
+- To enable cloud integration for GCP. This is used to surface node level details in the platform
+- To allow viewing cluster autoscaler logs |
+
+***
+
+[Overview](/docs/overview-1)
+
+[Requirements](/docs/gcp-requirements)
+
+* [Table of Contents](#)
+
+* * [GCP Architecture Diagram](#gcp-architecture-diagram)
+  * [Access Policies](#access-policies)

@@ -1,0 +1,178 @@
+---
+title: "Deploy and Run Job using Python SDK"
+description: "In this guide, we'll deploy a Job to train a machine learning model. The model will learn to predict the species of an iris flower based on its sepal length, sepal width, petal length, and petal width. There are three species: Iris setosa, Iris versicolor, and Iris virginica."
+---
+
+![](/images/docs/373bdd9-iris-machinelearning.png)
+
+## Project Setup
+
+We've already prepared the training script that trains a model on the Iris dataset, and you can find the code in our [GitHub Repository](https://github.com/truefoundry/getting-started-examples/blob/main/train-model/).
+
+Clone the GitHub repository with the following command:
+
+<CodeGroup>
+  ```bash bash
+  git clone https://github.com/truefoundry/getting-started-examples.git
+  ```
+</CodeGroup>
+
+Navigate to the project directory:
+
+<CodeGroup>
+  ```bash bash
+  cd train-model
+  ```
+</CodeGroup>
+
+Please review the job code to become familiar with the code you'll deploy.
+
+#### Project Structure
+
+The project files are organised as follows:
+
+<CodeGroup>
+  ```bash bash
+  .
+  ├── train.py - Contains the training script code.
+  └── requirements.txt - Contains the list of all dependencies.
+  ```
+</CodeGroup>
+
+All these files are located in the same directory.
+
+## Prerequisites
+
+Before you proceed with the guide, make sure you have the following:
+
+* **Truefoundry CLI**: Set up and configure the TrueFoundry CLI tool on your local machine by following the [Setup for CLI](doc:setup) guide.
+* **Workspace**: To deploy your job, you'll need a workspace. If you don't have one, you can create it using this guide: [Creating a Workspace](doc:key-concepts#creating-a-workspace) or seek assistance from your cluster administrator.
+
+## Deploying the Job
+
+Create a `deploy.py` file in the same directory as your Job code (`app.py`). This file will contain the necessary configuration for your Job.
+
+Your directory structure will then appear as follows:
+
+**File Structure**
+
+<CodeGroup>
+  ```bash bash
+  .
+  ├── train.py
+  ├── deploy.py
+  └── requirements.txt
+  ```
+</CodeGroup>
+
+### **`deploy.py`**
+
+<CodeGroup>
+  ```bash bash
+  import argparse
+  import logging
+  from truefoundry.deploy import Build, Job, PythonBuild, Resources
+
+  # Set up logging to display informational messages
+  logging.basicConfig(level=logging.INFO)
+
+  # Create a TrueFoundry **Job** object to configure your service
+  job = Job(
+    # Specify the name of the job
+    name="your-job",
+    # Define how to build your code into a Docker image
+    image=Build(
+      # `PythonBuild` helps specify the details of your Python Code.
+      # These details will be used to templatize a DockerFile to build your Docker Image
+      build_spec=PythonBuild(
+        # Define the command to run the training script
+        command="python train.py",    
+        # Specify the path to requirements file
+        requirements_path="requirements.txt",
+      )
+    ),
+    # Define the resource constraints.
+    #
+    # Requests are the minimum amount of resources that a container needs to run.
+    # Limits are the maximum amount of resources that a container can use.
+    #
+    # If a container tries to use more resources than its limits, it will be throttled or killed.
+    resources=Resources(
+      # CPU is specified as a number. 1 CPU unit is equivalent to 1 physical CPU core, or 1 virtual core.
+      cpu_request=0.2,
+      cpu_limit=0.5,
+
+      # Memory is defined as an integer and the unit is Megabytes.
+      memory_request=200,
+      memory_limit=500,
+
+      # Ephemeral storage is defined as an integer and the unit is Megabytes.
+      ephemeral_storage_request=1000,
+      ephemeral_storage_limit=2000,
+    ),
+    # Define environment variables that your Job will have access to
+    env={
+      "ENVIRONMENT": "dev"  
+    }
+  )
+
+  # Deploy the job to the specified workspace, copy workspace FQN using the following guide
+  # https://docs.truefoundry.com/docs/key-concepts#creating-a-workspace
+  job.deploy(workspace_fqn="your-workspace-fqn")
+  ```
+</CodeGroup>
+
+To understand the code, you can click the following recipe:
+
+To deploy using Python SDK use the following command from the same directory containing the `train.py` and `requirements.txt` files.
+
+<CodeGroup>
+  ```bash bash
+  python deploy.py
+  ```
+</CodeGroup>
+
+> Run the above command from the same directory containing the `train.py` and `requirements.txt` files.
+
+<Info>
+  To exclude specific files from being built and deployed, create a .tfyignore file in the directory containing your deployment script (`deploy.py`). The `.tfyignore` file follows the same rules as the `.gitignore` file.
+
+  If your repository already has a `.gitignore` file, you don't need to create a `.tfyignore` file. Service Foundry will automatically detect the files to ignore.
+
+  Place the `.tfyignore` file in the project's root directory, alongside deploy.py.
+</Info>
+
+After running the command mentioned above, wait for the deployment process to complete. Monitor the status until it shows **`DEPLOY_SUCCESS:`**, indicating a successful deployment.
+
+![](/images/docs/ebf71e4-Screenshot_2023-11-16_at_12.00.18_PM.png)
+
+Once deployed, you'll receive a dashboard access link in the output, typically mentioned as **`You can find the application on the dashboard:`**. Click that link to access the deployment dashboard.
+
+## View your deployed job
+
+On successful deployment your Job will be displayed as Suspended (yellow) indicating that your Job has been deployed but it will not run automatically.
+
+![](/images/docs/d793326-Screenshot_2023-11-13_at_7.54.15_AM.png)
+
+## Run your job
+
+To run your Job you will have to trigger it manually.
+
+Congratulations! You have successfully deployed and run your training Job.
+
+To learn how to interact with your job check out this guide: [Interacting with your Job](doc:interacting-with-your-job)
+
+***
+
+[Deploy and Run Job from a public GitHub repository](/docs/deploy-job-from-a-public-github-repository)
+
+[Interacting with your Job](/docs/interacting-with-your-job)
+
+* [Table of Contents](#)
+
+* * [Project Setup](#project-setup)
+  * [Prerequisites](#prerequisites)
+  * [Deploying the Job](#deploying-the-job)
+  * * [deploy.py](#deploypy)
+  * [View your deployed job](#view-your-deployed-job)
+  * [Run your job](#run-your-job)

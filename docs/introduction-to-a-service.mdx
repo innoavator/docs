@@ -1,0 +1,47 @@
+---
+title: "Overview"
+description: "A Truefoundry Service represents a continuously running application that typically provides a set of APIs for interaction. Services can be dynamically scaled based on incoming traffic or resource demands."
+---
+
+Services are perfect for scenarios where real-time responses are essential, such as:
+
+* Hosting Real-time Model Inference (e.g., Flask, FastAPI)
+* Fueling Dynamic Website Backends
+* Creating Model Demos (e.g., Streamlit, Gradio)
+
+## Important Considerations for Service Deployment
+
+When deploying a service, you'll typically expose APIs on specific ports. These considerations are essential when deploying a service:
+
+1. Dockerize the code to be deployed
+2. Specify the ports for service exposure - [Define Ports and Domains](doc:define-ports-and-domains).
+3. \[Optional] Map domains to the ports to enable communication with other applications - [Define Ports and Domains](doc:define-ports-and-domains).
+4. Define the resources requirements for your service - [Define Resources](doc:resources)
+5. \[Optional] Define environment variables and secrets to inject into the code - [Environment Variables and Secrets](doc:environment-variables-and-secrets-services).
+6. \[Optional] Set up an autoscaling policy for production workloads - [Autoscaling](doc:scaling-and-autoscaling).
+7. \[Best Practice] Define Liveness/Readiness Probes - [Liveness/Readiness Probe](doc:liveness-readiness-probe).
+8. \[Best Practice] Establish a rollout strategy - [Rollout Strategy](doc:rollout-strategy).
+9. \[Optional] Mount files or volumes to your service - [Mounting Volumes and Files](doc:mounting-volumes-service).
+10. [Configure Monitoring Dashboards](doc:monitor-your-service#set-up-monitoring-and-alerting-through-grafana)
+11. [Set up Alerting](doc:set-up-alerts)
+12. [Update, Rollback, and Promote your Service](doc:update-rollback-promote-your-service)
+13. [Set up CI/CD for your Service](doc:setting-up-cicd-for-your-service)
+14. [Access data from S3 or other clouds](doc:access-data-from-s3-or-other-clouds-services)
+
+## Deploy Your First Service
+
+To deploy your first service, choose one of the following guides based on the location of your service code:
+
+* [Deploy Service from a public Github repository](doc:deploy-service-from-a-public-github-repository).
+* [Deploy Service from your local machine](doc:deploy-service-using-python-sdk).
+
+***
+
+[Generating TrueFoundry API Keys](/docs/generating-truefoundry-api-keys)
+
+[Deploy your first Service](/docs/deploy-your-first-service)
+
+* [Table of Contents](#)
+
+* * [Important Considerations for Service Deployment](#important-considerations-for-service-deployment)
+  * [Deploy Your First Service](#deploy-your-first-service)

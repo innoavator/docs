@@ -1,0 +1,204 @@
+---
+title: "Integration Provider - AWS"
+description: "TrueFoundry supports integrating with multiple AWS services like S3, ECR, SSM, EKS etc."
+---
+
+To integrate any of the above services, you simply need to add your AWS account as a provider account and add integrations for the same as shown below:
+
+**Share access with users, teams or everyone in your TrueFoundry account**
+
+As shown in the previous slides, you can share access of each integration with users, teams or everyone in your TrueFoundry account. This would allow them to view and use the integration. Only tenant-admins can edit the integrations.
+
+**Generate Access Key or Assumed Role**
+
+You might have the IAM role for TrueFoundry already created with the name - `tfy-<short-region-name>-<name>-platform-role-<xxxyyyzzz>`, if not then create a new one as explained below. You can add the required permissions to that role. Please refer to the next sections for the permissions required for each integration. You can also create a user with the required permissions, generate an access key and secret key to add integration.
+
+**Create an IAM role with assume role**
+
+The role should have following trust policy added.
+
+<CodeGroup>
+  ```bash bash
+  {
+      "Version": "2012-10-17",
+      "Statement": [
+          {
+              "Effect": "Allow",
+              "Principal": {
+                  "AWS": "arn:aws:iam::416964291864:role/tfy-ctl-euwe1-production-truefoundry-deps"
+              },
+              "Action": "sts:AssumeRole",
+              "Condition": {}
+          }
+      ]
+  }
+  ```
+</CodeGroup>
+
+To create this IAM role, you must first save this trust policy in your local system as a JSON file. You can then use the following commands to create the role.
+
+<CodeGroup>
+  ```bash bash
+  aws iam create-role --role-name {{tfy-<short-region-name>-<name>-platform-role-<xxxyyyzzz>}} --assume-role-policy-document {{JSON_FILE_FULL_PATH}}
+  ```
+</CodeGroup>
+
+### Policies required for S3 Integration
+
+**\[Pre-requisite] Create a [S3 Bucket](https://docs.aws.amazon.com/AmazonS3/latest/userguide/creating-bucket.html) with following config**
+
+1. Make sure the bucket has lifecycle configuration to [abort multipart upload](https://docs.aws.amazon.com/AmazonS3/latest/userguide/mpu-abort-incomplete-mpu-lifecycle-config.html) set for 7 days.
+2. Make sure [CORS](https://docs.aws.amazon.com/AmazonS3/latest/userguide/enabling-cors-examples.html) is applied on the bucket with the below configuration:
+
+<CodeGroup>
+  ```bash bash
+  [
+      {
+          "AllowedHeaders": [
+              "*"
+          ],
+          "AllowedMethods": [
+              "GET",
+              "POST",
+              "PUT"
+          ],
+          "AllowedOrigins": [
+              "*"
+          ],
+          "ExposeHeaders": [
+              "ETag"
+          ],
+          "MaxAgeSeconds": 3000
+      }
+  ]
+  ```
+</CodeGroup>
+
+**Required Policies**
+
+<CodeGroup>
+  ```bash bash
+  {
+      "Sid": "S3",
+      "Effect": "Allow",
+      "Action": [
+          "s3:*"
+      ],
+      "Resource": [
+          "arn:aws:s3:::<YOUR_S3_BUCKET_NAME>",
+          "arn:aws:s3:::<YOUR_S3_BUCKET_NAME>/*"
+      ]
+  }
+  ```
+</CodeGroup>
+
+### Policies required for ECR Integration
+
+<CodeGroup>
+  ```bash bash
+  [
+    {
+      "Sid": "ECR",
+      "Effect": "Allow",
+      "Action": [
+        "ecr:GetRegistryPolicy",
+        "ecr:DescribeImageScanFindings",
+        "ecr:GetLifecyclePolicyPreview",
+        "ecr:CreateRepository",
+        "ecr:GetDownloadUrlForLayer",
+        "ecr:DescribeImageReplicationStatus",
+        "ecr:ListTagsForResource",
+        "ecr:BatchGetRepositoryScanningConfiguration",
+        "ecr:GetRegistryScanningConfiguration",
+        "ecr:PutImage",
+        "ecr:BatchGetImage",
+        "ecr:DescribeRepositories",
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:GetRepositoryPolicy",
+        "ecr:GetLifecyclePolicy",
+        "ecr:ListImages",
+        "ecr:InitiateLayerUpload",
+        "ecr:CompleteLayerUpload",
+        "ecr:DescribeImages",
+        "ecr:DeleteRepository",
+        "ecr:UploadLayerPart"
+      ],
+      "Resource": [
+        "arn:aws:ecr:AWS_REGION:ACCOUNT_ID:repository/tfy-*"
+      ]
+    },
+    {
+      "Sid": "ECR",
+      "Effect": "Allow",
+      "Action": [
+        "ecr:DescribeRegistry",
+        "ecr:GetAuthorizationToken",
+        "sts:GetServiceBearerToken"
+      ],
+      "Resource": [
+        "*"
+      ]
+    }
+  ]
+  ```
+</CodeGroup>
+
+### Policies required for SSM Integration
+
+<CodeGroup>
+  ```bash bash
+  {
+      "Sid": "SSM",
+      "Effect": "Allow",
+      "Action": [
+          "ssm:GetParameter",
+          "ssm:GetParameters",
+          "ssm:PutParameter",
+          "ssm:DeleteParameter",
+          "ssm:DeleteParameters",
+          "ssm:GetParameterHistory"
+      ],
+      "Resource": [
+          "arn:aws:ssm:AWS_REGION:ACCOUNT_ID:parameter/tfy-secret/*"
+      ]
+  }
+  ```
+</CodeGroup>
+
+### Policies required for Bedrock Integration
+
+The following policy grants permission to invoke any foundation model available on Bedrock in the `us-east-1` region. You can configure `Resource` list to control which models can be accessed through the LLM Gateway.
+
+<CodeGroup>
+  ```bash bash
+  {
+  	"Version": "2012-10-17",
+  	"Statement": [
+  		{
+  			"Effect": "Allow",
+  			"Sid": "InvokeAllModels",
+  			"Action": [
+  				"bedrock:InvokeModel",
+  				"bedrock:InvokeModelWithResponseStream"
+  			],
+  			"Resource": [
+  				"arn:aws:bedrock:us-east-1::foundation-model/*"
+  			]
+  		}
+  	]
+  }
+  ```
+</CodeGroup>
+
+***
+
+[Integrations](/docs/integrations)
+
+[Integration Provider - GCP](/docs/integration-provider-gcp)
+
+* [Table of Contents](#)
+
+* * [Policies required for S3 Integration](#policies-required-for-s3-integration)
+  * [Policies required for ECR Integration](#policies-required-for-ecr-integration)
+  * [Policies required for SSM Integration](#policies-required-for-ssm-integration)
+  * [Policies required for Bedrock Integration](#policies-required-for-bedrock-integration)

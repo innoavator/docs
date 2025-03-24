@@ -1,0 +1,527 @@
+---
+title: "Add Certificate for TLS"
+description: "This document cover how you can use the custom certificate and key files for terminating your TLS traffic."
+---
+
+## Add TLS using AWS certificate manager
+
+There are two ways to terminate the TLS traffic coming into the EKS cluster.
+
+* Terminating the TLS traffic at the Network Load balancer
+* Terminating the TLS traffic at Istio layer
+
+You can chose any one of the above options. However in the case of EKS it is best to terminate the traffic at the network load balancer with the help of [Certificate manager](https://docs.aws.amazon.com/acm/latest/userguide/acm-overview.html) in AWS.
+
+### Creating and attaching a certificate using AWS certificate manager
+
+* In the AWS console, head over to the AWS certificate manager and [create a public certificate](https://docs.aws.amazon.com/acm/latest/userguide/gs-acm-request-public.html).
+* ACM will give a CNAME record-value to be created in your DNS provider (route53). Wait for the certificate to in the active state and copy its ARN.
+* Once the certificate is in active state, head over to the TrueFoundry platform's *Deplyoyments* -> *Helm* (filter helm chart for your cluster) -> *tfy-istio-ingress*
+* Edit the *tfy-istio-ingress* and add the following line in the annotations.
+  <CodeGroup>
+    ```bash bash
+    gateway:
+      annotations:
+        service.beta.kubernetes.io/aws-load-balancer-ssl-cert: CERTIFICATE_ARN
+    ```
+  </CodeGroup>
+* Go ahead and edit the *tfy-istio-ingress* with the domain names (here - `*.example.com` is added)
+  <CodeGroup>
+    ```bash bash
+    tfyGateway:
+      name: 'tfy-wildcard'
+      spec:
+        selector:
+          istio: 'tfy-istio-ingress'
+        servers:
+          - hosts:
+            - "*.example.com"
+            port:
+              name: http-tfy-wildcard
+              number: 80
+              protocol: HTTP
+            tls:
+              httpsRedirect: true
+          - hosts: 
+            - "*.example.com"
+            port:
+              name: https-tfy-wildcard
+              number: 443
+              protocol: HTTP
+    ```
+  </CodeGroup>
+
+## Add TLS using cert-manager + GCP cloud DNS
+
+We support creation of TLS certificates with the help of [cert-manager](https://cert-manager.io/docs/). *cert-manager* in our case use LetsEncrypt which issues the certificate. Cert-manager can connect with various DNS provider so that LetsEncrypt can verify if you are the true owner of the domain or not. Below example is to create TLS certificate using GCP cloud DNS. Feel free to use other DNS provider by following the cert-manager documentation.
+
+<Info>
+  For onboarding an existing cluster, ensure that [workload identity](https://cloud.google.com/kubernetes-engine/docs/concepts/workload-identity) is enabled for the GKE cluster. For clusters created with the help of ocli, it is enabled by default.
+</Info>
+
+### 1. Create an IAM role and attach it to a GCP serviceaccount
+
+<CodeGroup>
+  ```bash bash
+  export PROJECT_ID=""
+  export DNS_ROLE_NAME=""
+  export GCP_SERVICEACCOUNT_NAME="<>"
+
+  gcloud config set project $PROJECT_ID
+  gcloud iam service-accounts create $GCP_SERVICEACCOUNT_NAME --display-name "$GCP_SERVICEACCOUNT_NAME"
+
+  # Assign the IAM serviceaccount permissions to access DNS records
+  gcloud iam roles create custom_dns_role \
+      --project=$PROJECT_ID \
+      --title=$DNS_ROLE_NAME \
+      --permissions=dns.resourceRecordSets.create,dns.resourceRecordSets.delete,dns.resourceRecordSets.get,dns.resourceRecordSets.list,dns.resourceRecordSets.update,dns.changes.create,dns.changes.get,dns.changes.list,dns.managedZones.list
+
+  gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --condition=None \
+  --member=serviceAccount:$GCP_SERVICEACCOUNT_NAME@$PROJECT_ID.iam.gserviceaccount.com \
+  --role="projects/$PROJECT_ID/roles/custom_dns_role"
+
+  gcloud iam service-accounts add-iam-policy-binding \
+      --role roles/iam.workloadIdentityUser \
+      --member "serviceAccount:$PROJECT_ID.svc.id.goog[cert-manager/cert-manager]" \
+      $GCP_SERVICEACCOUNT_NAME@$PROJECT_ID.iam.gserviceaccount.com
+  ```
+</CodeGroup>
+
+### 2. Created a hosted zone
+
+To make GCP you DNS provider, create a hosted zone. It is not a compulsory requirement and you can use a domain from an already existing hosted DNS zone in GCP.
+
+<CodeGroup>
+  ```bash bash
+  gcloud dns managed-zones create example-com \
+      --description="DNS zone for example.com" \
+      --dns-name=example.com \
+      --visibility=public --format=json | jq '.[].nameServers'
+  ```
+</CodeGroup>
+
+The above command will print the nameservers which have to setup in your main DNS provider (for e.g. GoDaddy or NameCheap) as an NS record.
+
+### 3. Install cert-manager
+
+1. Head over to the **Integrations** tab in the left panel and select the right cluster in which you want to install cert-manager. Click on the Three dots at the left-panel and select **Manage Applications**.
+   1. Install cert-manager, if not already installed by creating a workspace.
+2. If cert-manager is already installed, go to *Deployments* -> *Helm* -> Filter the charts with the cluster name and click on edit from the three dots at the right.
+3. In the values section, ensure the below lines exists. Make sure to replace the `$GCP_SERVICEACCOUNT_NAME` and `$PROJECT_ID` with the serviceaccount name and the project ID
+   <CodeGroup>
+     ```bash bash
+     extraArgs:
+       - --issuer-ambient-credentials
+     serviceAccount:
+       create: true
+       annotations:
+         iam.gke.io/gcp-service-account: $GCP_SERVICEACCOUNT_NAME@$PROJECT_ID.iam.gserviceaccount.com
+     ```
+   </CodeGroup>
+
+### 4. Creating an issuer and a certificate
+
+1. Download the kubeconfig file for your cluster
+   <CodeGroup>
+     ```bash bash
+     gcloud container clusters get-credentials CLUSTER_NAME  --zone ZONE  --project PROJECT
+     ```
+   </CodeGroup>
+2. Create the following issuer by replacing the `example` text below to your preferred name. Please replace the `PROJECT_ID` as well.
+   <CodeGroup>
+     ```bash bash
+     kubectl apply -f - <<EOF
+     apiVersion: cert-manager.io/v1
+     kind: Issuer
+     metadata:
+       name: example-com-issuer
+       namespace: istio-system
+     spec:
+       acme:
+         email: [email protected]
+         server: https://acme-v02.api.letsencrypt.org/directory
+         privateKeySecretRef:
+           name: example-com-privkey
+         solvers:
+         - dns01:
+             cloudDNS:
+               project: $PROJECT_ID
+     EOF
+     ```
+   </CodeGroup>
+3. Create the certificate by referencing the above issuer `example-com-issuer` in the certificate with the replaced issuer name. Also add the dnsNames accordingly
+   <CodeGroup>
+     ```bash bash
+     kubectl apply -f - <<EOF
+     apiVersion: cert-manager.io/v1
+     kind: Certificate
+     metadata:
+       name: example-com-cert
+       namespace: istio-system
+     spec:
+       secretName: example-com-tls
+       duration: 2160h # 90d
+       renewBefore: 360h # 15d
+       issuerRef:
+         # Issuer name from the previous step
+         name: example-com-issuer
+       dnsNames:
+       - "example.com"
+       - "*.example.com"
+     EOF
+     ```
+   </CodeGroup>
+4. Check the status of the certificate by running the following command. Wait for the certificates to go in the `Ready` state.
+   <CodeGroup>
+     ```bash bash
+     kubectl get certificates -n istio-system
+     ```
+   </CodeGroup>
+
+<Warning>
+  If the certificate is not in ready state for more then 10 minutes, it means that there is some issue in the access or the domain name. Please check the logs of cert-manager pods in the `cert-manager `namespace for more details.
+</Warning>
+
+### 5. Attaching the TLS secret to the Load balancer
+
+1. Once the certificate is created a secret will be present in the `istio-system` namespace with the name given in `.spec.secretName` while creating a certificate object.
+2. Head over to the *Deployments* -> *Helm* -> filter helm chart for your cluster -> *tfy-istio-ingress* and then add the secret in `.tfyGateway.spec.servers` for HTTPS you need to add the `tls.mode` and `tls.credentialName`. Please ensure `port.protocol` is `HTTPS` for port 443
+   <CodeGroup>
+     ```bash bash
+     tfyGateway:
+       name: tfy-wildcard
+       spec:
+         selector:
+           istio: tfy-istio-ingress
+         servers:
+           - hosts:
+               - "*..example.com"
+               - "example.com"
+             port:
+               name: http-tfy-wildcard
+               number: 80
+               protocol: HTTP
+             tls:
+               httpsRedirect: true
+           - hosts:
+               - "*.example.com"
+               - "example.com"
+             port:
+               name: https-tfy-wildcard
+               number: 443
+               protocol: HTTPS # make sure to keep it HTTPS
+             tls:
+               mode: SIMPLE
+               credentialName: example-com-tls
+     ```
+   </CodeGroup>
+
+### 6. Adding the domain in the cluster metadata
+
+1. Head over to the *Integrations* section in the platform and click on the *Edit* in the cluster.
+2. Enable *Show advanced fields* from the bottom and add enable the *Base Domain URL* section.
+3. Add the domain URL.
+
+## Add TLS using cert-manager + Azure DNS
+
+We support creation of TLS certificates with the help of [cert-manager](https://cert-manager.io/docs/). *cert-manager* in our case use LetsEncrypt which issues the certificate. Cert-manager can connect with various DNS provider so that LetsEncrypt can verify if you are the true owner of the domain or not. Below example is to create TLS certificate using Azure DNS. Feel free to use other DNS provider by following the cert-manager documentation to create the certificates
+
+### 1. Exporting variables and enabling workload identity
+
+<CodeGroup>
+  ```bash bash
+  export CLUSTER_NAME=""
+  export RESOURCE_GROUP=""
+  export AZURE_SUBSCRIPTION_ID=""
+  export SERVICE_ACCOUNT_NAME=cert-manager
+  export SERVICE_ACCOUNT_NAMESPACE=cert-manager
+  export MAIL_ID="[email protected]"
+  export OIDC_ISSUER_URL=$(az aks show \
+  --resource-group $RESOURCE_GROUP \
+  --name $CLUSTER_NAME \
+  --query "oidcIssuerProfile.issuerUrl" -o tsv)
+  export LOAD_BALANCERIP=$(kubectl get svc \
+  -n istio-system tfy-istio-ingress \
+  -ojsonpath='{.status.loadBalancer.ingress[0].ip}')
+
+  # identity name 
+  export IDENTITY_NAME="$CLUSTER_NAME"
+
+  # getting principal ID of the identity
+  PRINCIPAL_ID=$(az identity create \
+  --name "${IDENTITY_NAME}" \
+  --resource-group "${RESOURCE_GROUP}" \
+  --query principalId -otsv)
+
+  # getting Client ID of the identity
+  IDENTITY_CLIENT_ID=$(az identity show \
+  --name "${IDENTITY_NAME}" \
+  --resource-group "${RESOURCE_GROUP}" \
+  --query 'clientId' -otsv)
+
+  echo "PRINCIPAL_ID: ${PRINCIPAL_ID}"
+  echo "IDENTITY_CLIENT_ID: ${IDENTITY_CLIENT_ID}"
+
+  echo "OIDC_ISSUER_URL: ${OIDC_ISSUER_URL}"
+  echo "LOAD_BALANCERIP: ${LOAD_BALANCERIP}"
+  ```
+</CodeGroup>
+
+Workload identity federation needs to be enabled for the cluster. It is not required if the cluster is created using ocli.
+
+<CodeGroup>
+  ```bash bash
+  az aks update \
+      --name ${CLUSTER_NAME} \
+      --resource-group ${RESOURCE_GROUP} \
+      --enable-oidc-issuer \
+      --enable-workload-identity
+  ```
+</CodeGroup>
+
+### 2. Created a hosted zone and assign the identity DNS permissions
+
+To make Azure your DNS provider, create a hosted zone in Azure DNS. It is not a compulsory requirement and you can use a domain from an already existing hosted DNS zone in Azure.
+
+<CodeGroup>
+  ```bash bash
+  # export DNS_HOSTED_ZONE="ml.example.com"
+  export DNS_HOSTED_ZONE=""
+  export DNS_ZONE_RESOURCE_GROUP="${RESOURCE_GROUP}"
+
+  # create the DNS record
+  az network dns zone create \
+  --name ${DNS_HOSTED_ZONE} \
+  --resource-group ${DNS_ZONE_RESOURCE_GROUP} \
+  --query nameServers
+
+  # getting the DNS zone ID
+    DNS_ZONE_ID=$(az network dns zone show \
+    --name ${DNS_HOSTED_ZONE} \
+    --resource-group ${DNS_ZONE_RESOURCE_GROUP} \
+    --query id -otsv)
+  ```
+</CodeGroup>
+
+The above command will print the nameservers which have to setup in your main DNS provider (for e.g. GoDaddy or NameCheap) as an NS record.
+
+OR if you already have an existing hosted zone (If your DNS hosted zone exists in other resource group, export the variables from that resource group in the below section)
+
+<CodeGroup>
+  ```bash bash
+  # resource group where you DNS zone is hosted, 
+  # change this to your resource group if its not the same as your cluster
+  DNS_ZONE_RESOURCE_GROUP="${RESOURCE_GROUP}"
+
+  # creating the DNS_ZONE
+  DNS_ZONE_ID=$(az network dns zone show \
+  --name ${DNS_HOSTED_ZONE} \
+  --resource-group ${DNS_ZONE_RESOURCE_GROUP} \
+  --query id -otsv)
+  ```
+</CodeGroup>
+
+Give access to the principal identity
+
+<CodeGroup>
+  ```bash bash
+  # assigning permissions of the DNS zone to the identity 
+  az role assignment create \
+  --assignee $PRINCIPAL_ID \
+  --role "DNS Zone Contributor" \
+  --scope $DNS_ZONE_ID
+
+  # assign the federated credentials from the identity to the cert-manager
+  az identity federated-credential create \
+        --name "cert-manager" \
+        --identity-name "${IDENTITY_NAME}" \
+        --issuer "${OIDC_ISSUER_URL}" \
+        --resource-group "${RESOURCE_GROUP}" \
+        --subject "system:serviceaccount:${SERVICE_ACCOUNT_NAMESPACE}:${SERVICE_ACCOUNT_NAME}"
+  ```
+</CodeGroup>
+
+### 3. Install cert-manager
+
+1. Head over to the **Integrations** tab in the left panel and select the right cluster in which you want to install cert-manager. Click on the Three dots at the left-panel and select **Manage Applications**.
+   1. Install cert-manager, if not already installed by creating a workspace.
+2. If cert-manager is already installed, go to *Deployments* -> *Helm* -> Filter the charts with the cluster name and click on edit from the three dots at the right.
+3. In the values section, ensure the below lines exists
+   <CodeGroup>
+     ```bash bash
+     installCRDs: true
+     extraArgs:
+       - --issuer-ambient-credentials
+     podLabels:
+       azure.workload.identity/use: "true"
+     serviceAccount:
+       labels:
+         azure.workload.identity/use: "true"
+     ```
+   </CodeGroup>
+
+### 4. Creating an issuer and a certificate
+
+1. Download the `kubeconfig` file for your cluster
+   <CodeGroup>
+     ```bash bash
+     az aks get-credentials --name CLUSTER_NAME --resource-group RESOURCE_GROUP
+     ```
+   </CodeGroup>
+2. Create an issuer and make sure to change the name and the `privateKeySecretRef` name
+   <CodeGroup>
+     ```bash bash
+     kubectl apply -f - <<EOF
+     apiVersion: cert-manager.io/v1
+     kind: Issuer
+     metadata:
+       name: example-issuer
+       namespace: istio-system
+     spec:
+       acme:
+         email: $MAIL_ID
+         server: https://acme-v02.api.letsencrypt.org/directory
+         privateKeySecretRef:
+           name: example-privkey
+         solvers:
+         - dns01:
+             azureDNS:
+               hostedZoneName: $DNS_HOSTED_ZONE
+               resourceGroupName: $DNS_ZONE_RESOURCE_GROUP
+               subscriptionID: $AZURE_SUBSCRIPTION_ID
+               environment: AzurePublicCloud
+               managedIdentity:
+                 clientID: $IDENTITY_CLIENT_ID
+     EOF
+     ```
+   </CodeGroup>
+3. Create the certificate by referencing the above issuer `example-com-issuer` in the certificate with the replaced issuer name. Also add the dnsNames accordingly
+   <CodeGroup>
+     ```bash bash
+     kubectl apply -f - <<EOF
+     apiVersion: cert-manager.io/v1
+     kind: Certificate
+     metadata:
+       name: example-cert
+       namespace: istio-system
+     spec:
+       secretName: example-tls
+       duration: 2160h # 90d
+       renewBefore: 360h # 15d
+       issuerRef:
+         # Issuer name from the previous step
+         name: example-issuer
+       dnsNames:
+       - "example.truefoundry.cloud"
+       - "*.example.truefoundry.cloud"
+     EOF
+     ```
+   </CodeGroup>
+4. Check the status of the certificate by running the following command. Wait for the certificates to go in the `Ready` state.
+
+<CodeGroup>
+  ```bash bash
+  kubectl get certificates -n istio-system
+  ```
+</CodeGroup>
+
+<Warning>
+  If the certificate is not in ready state for more then 10 minutes, it means that there is some issue in the access or the domain name. Please check the logs of cert-manager pods in the `cert-manager `namespace for more details.
+</Warning>
+
+### 5. Attaching the TLS secret to the Load balancer
+
+1. Once the certificate is created a secret will be present in the `istio-system` namespace with the name given in `.spec.secretName` while creating a certificate object.
+2. Head over to the *Deployments* -> *Helm* -> filter helm chart for your cluster -> *tfy-istio-ingress* and then add the secret in `.tfyGateway.spec.servers` for HTTPS you need to add the `tls.mode` and `tls.credentialName`. Please ensure `port.protocol` is `HTTPS` for port 443
+   <CodeGroup>
+     ```bash bash
+     tfyGateway:
+       name: tfy-wildcard
+       spec:
+         selector:
+           istio: tfy-istio-ingress
+         servers:
+           - hosts:
+               - "*..example.com"
+               - "example.com"
+             port:
+               name: http-tfy-wildcard
+               number: 80
+               protocol: HTTP
+             tls:
+               httpsRedirect: true
+           - hosts:
+               - "*.example.com"
+               - "example.com"
+             port:
+               name: https-tfy-wildcard
+               number: 443
+               protocol: HTTPS # make sure to keep it HTTPS
+             tls:
+               mode: SIMPLE
+               credentialName: example-com-tls
+     ```
+   </CodeGroup>
+
+### 6. Adding the domain in the cluster metadata
+
+1. Head over to the *Integrations* section in the platform and click on the *Edit* in the cluster.
+2. Enable *Show advanced fields* from the bottom and add enable the *Base Domain URL* section.
+3. Add the domain URL.
+
+## Add TLS using certificate key files
+
+1. Create a kubernetes secret in `istio-system` namespace using the below command.
+   <CodeGroup>
+     ```bash bash
+     kubectl create secret tls NAME --cert=path/to/cert/file --key=path/to/key/file -n istio-system
+     ```
+   </CodeGroup>
+2. Once the secret is created edit the `tfy-istio-ingress` helm application in the platform. Edit the section with port 443 to pass the secret name. Convert the protocol to HTTPS
+   <CodeGroup>
+     ```bash bash
+           - hosts:
+               - "*.example.com"
+               - "example.com"
+             port:
+               name: https-tfy-wildcard
+               number: 443
+               protocol: HTTPS # make sure to keep it HTTPS
+             tls:
+               mode: SIMPLE
+               credentialName: SECRET_NAME
+     ```
+   </CodeGroup>
+
+***
+
+[LoadBalancer](/docs/loadbalancers)
+
+[Metrics](/docs/metrics)
+
+* [Table of Contents](#)
+
+* * [Add TLS using AWS certificate manager](#add-tls-using-aws-certificate-manager)
+
+  * * [Creating and attaching a certificate using AWS certificate manager](#creating-and-attaching-a-certificate-using-aws-certificate-manager)
+
+  * [Add TLS using cert-manager + GCP cloud DNS](#add-tls-using-cert-manager--gcp-cloud-dns)
+
+  * * [1. Create an IAM role and attach it to a GCP serviceaccount](#1-create-an-iam-role-and-attach-it-to-a-gcp-serviceaccount)
+    * [2. Created a hosted zone](#2-created-a-hosted-zone)
+    * [3. Install cert-manager](#3-install-cert-manager)
+    * [4. Creating an issuer and a certificate](#4-creating-an-issuer-and-a-certificate)
+    * [5. Attaching the TLS secret to the Load balancer](#5-attaching-the-tls-secret-to-the-load-balancer)
+    * [6. Adding the domain in the cluster metadata](#6-adding-the-domain-in-the-cluster-metadata)
+
+  * [Add TLS using cert-manager + Azure DNS](#add-tls-using--cert-manager--azure-dns)
+
+  * * [1. Exporting variables and enabling workload identity](#1-exporting-variables-and-enabling-workload-identity)
+    * [2. Created a hosted zone and assign the identity DNS permissions](#2-created-a-hosted-zone-and-assign-the-identity-dns-permissions)
+    * [3. Install cert-manager](#3-install-cert-manager-1)
+    * [4. Creating an issuer and a certificate](#4-creating-an-issuer-and-a-certificate-1)
+    * [5. Attaching the TLS secret to the Load balancer](#5-attaching-the-tls-secret-to-the-load-balancer-1)
+    * [6. Adding the domain in the cluster metadata](#6-adding-the-domain-in-the-cluster-metadata-1)
+
+  * [Add TLS using certificate key files](#add-tls-using-certificate-key-files)

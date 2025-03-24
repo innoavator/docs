@@ -1,0 +1,64 @@
+---
+title: "Setting up DNS and TLS in AWS"
+description: "To host any service/model endpoints a domain has to be used to expose them to the external world or to an internal network. Below document will help you to set the same in your AWS EKS cluster. Any number of domains can be setup for your cluster."
+---
+
+## Setting up DNS
+
+There are two kind of domains that you can setup for TrueFoundry workloads
+
+1. Wild card domains - *\*.example.com*, *\*.tfy.example.com*, *\*.ml.example.com*
+2. Non wild card domains - *tfy.example.com*, *dev.example.com*, *prod.example.com*
+
+### Wild card domains (recommended)
+
+In wild card domains a subdomain wildcard is dedicatedly used to resolve endpoints in the EKS cluster. Some of the samples are given below where `example.com` is your domain. The services will be exposed like
+
+* service1.tfy.example.com
+* service2.tfy.example.com
+
+### Non wild card domains
+
+In non-wild card domains a dedicated domain is used to resolve endpoints. Some of the samples for service endpoints will look like
+
+* tfy.example.com/service1
+* tfy.example.com/service2
+
+### Load balancer IP address
+
+Once a domain name is decided a DNS record is to be mapped with the load balancer in the EKS cluster. To get the load balancer's IP address run the following command in your EKS cluster
+
+<CodeGroup>
+  ```bash bash
+  kubectl get svc tfy-istio-ingress -n istio-system  -ojsonpath='{.status.loadBalancer.ingress[0].hostname}'
+  ```
+</CodeGroup>
+
+Create a DNS record in your route 53 or your DNS provider with the following details
+
+| Record Type | Record Name        | Record value              |
+| ----------- | ------------------ | ------------------------- |
+| CNAME       | \*.tfy.example.com | LOADBALANCER\_IP\_ADDRESS |
+
+## Setting up TLS
+
+There are two ways primarily through we can add TLS to the load balancer in AWS
+
+1. Using [AWS certificate manager](add-certificate-for-tls#creating-and-attaching-a-certificate-using-aws-certificate-manager) (recommended) - Through this certs get renewed automatically
+2. Using [Certificate and key files](https://docs.truefoundry.com/docs/add-certificate-for-tls#add-tls-using-certificate-key-files) - Through this pre-created certs are added to istio
+
+***
+
+[Requirements](/docs/requirements)
+
+[GCP](/docs/gcp)
+
+* [Table of Contents](#)
+
+* * [Setting up DNS](#setting-up-dns)
+
+  * * [Wild card domains (recommended)](#wild-card-domains-recommended)
+    * [Non wild card domains](#non-wild-card-domains)
+    * [Load balancer IP address](#load-balancer-ip-address)
+
+  * [Setting up TLS](#setting-up-tls)

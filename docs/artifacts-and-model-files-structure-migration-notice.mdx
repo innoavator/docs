@@ -1,0 +1,287 @@
+---
+title: "Artifact and Model Version Files Structure Migration Notice"
+---
+
+<Info>
+  Outlined migration actions are required if you are using one of the following in your code.
+
+  * [ModelVersion.download(...)](doc:models#kbdfunctionkbd-download)
+  * [ArtifactVersion.download(...)](doc:artifact#kbdfunctionkbd-download)
+
+  Models and Artifacts automatically downloaded using the [Service - Artifacts Download](doc:download-and-cache-models) feature will keep working without any extra actions.
+</Info>
+
+# Existing Structure
+
+Up until `truefoundry<0.5.0`, when you logged an artifact or model all the contents would be logged internally under a `files/` folder for an artifact version and `files/model/` for a model version
+
+E.g.
+
+## Artifact
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.ml import get_client
+
+  client = get_client()
+  client.log_artifact(
+      ml_repo="...",
+      name="...",
+      artifact_paths=[
+          ("my-artifact-file-1.txt", None),
+          ("my-artifact-file-2.txt", None),
+          ("my-folder/", None),
+      ]
+  )
+  ```
+</CodeGroup>
+
+**Uploaded Structure:**
+
+<CodeGroup>
+  ```bash bash
+  .
+  ├── .truefoundry/
+  │   └── metadata.json
+  └── files/
+      ├── my-artifact-file-1.txt
+      ├── my-artifact-file-2.txt
+      ├── my-folder/
+      │   └── ... 
+      └── ...
+  ```
+</CodeGroup>
+
+## Model
+
+```
+from truefoundry.ml import get_client
+
+client = get_client()
+client.log_artifact(
+    ml_repo="...",
+    name="...",
+    model_file_or_folder="./sample-model/",
+)
+```
+
+**Uploaded Structure:**
+
+<CodeGroup>
+  ```bash bash
+  .
+  ├── .truefoundry/
+  │   └── metadata.json
+  └── files/
+      └── model/
+          ├── model.safetensorts
+          ├── config.json
+          └── ...
+  ```
+</CodeGroup>
+
+This was to do some additional book keeping on our end.
+
+# New Structure
+
+**Starting`truefoundry>=0.5.0` (and new UI), we have removed the `files/` hierarchy** and now all the files will be stored directly under the root of the artifact. That means for the same code above, after logging using the new sdk or UI you will see the following structure:
+
+## Artifact
+
+<CodeGroup>
+  ```bash bash
+  .
+  ├── my-artifact-file-1.txt
+  ├── my-artifact-file-2.txt
+  └── ...
+  ```
+</CodeGroup>
+
+## Model:
+
+<CodeGroup>
+  ```bash bash
+  .
+  ├── model.safetensorts
+  ├── config.json
+  └── ...
+  ```
+</CodeGroup>
+
+<Warning>
+  The older structure is now considered deprecated. We will perform an automated migration and **starting January 2025 we will require all`log_artifact`, `log_model`, `ArtifactVersion.download` and `ModelVersion.download` invocations to use`truefoundry>=0.5.0`**
+
+  Please see the following section for required actions.
+</Warning>
+
+# Required Actions
+
+## 1. Do not hardcode `files/` or `files/model/` structure in your code.
+
+<Check>
+  However, we recommend you upgrade as soon as possible
+</Check>
+
+If you are relying on appending `files/` or `files/model/` manually to download path
+
+### Artifact Version Download
+
+❌ Don't do this
+
+<CodeGroup>
+  ```bash bash
+  import os
+  from truefoundry.ml import get_client
+
+  client = get_client()
+  artifact_version = client.get_artifact_version_by_fqn("...")
+  download_path = "some/path/to/download/"
+
+  artifact_version.download(path=download_path)
+  download_path = os.path.join(download_path, "files")
+  # equivalent to download_path = download_path + "files/"
+
+  # Do something with download_path
+  # e.g. load_files(download_path)
+  ```
+</CodeGroup>
+
+✅ Instead use the return value of `download()`. It points to the actual contents
+
+<CodeGroup>
+  ```bash bash
+  import os
+  from truefoundry.ml import get_client
+
+  client = get_client()
+  artifact_version = client.get_artifact_version_by_fqn("...")
+  download_path = "some/path/to/download/"
+
+  download_path = artifact_version.download(path=download_path)
+
+  # Do something with download_path
+  # e.g. load_files(download_path)
+  ```
+</CodeGroup>
+
+### In Summary
+
+<CodeGroup>
+  ```bash bash
+  import os
+  from truefoundry.ml import get_client
+
+  client = get_client()
+  artifact_version = client.get_artifact_version_by_fqn("...")
+  download_path = "some/path/to/download/"
+
+  - artifact_version.download(path=download_path)
+  - download_path = os.path.join(download_path, "files")
+  - # equivalent to download_path = download_path + "files/"
+  + download_path = artifact_version.download(path=download_path)
+
+  # Do something with download_path
+  # e.g. load_files(download_path)
+  ```
+</CodeGroup>
+
+### Model Version Download
+
+❌ Don't do this
+
+<CodeGroup>
+  ```bash bash
+  import os
+  from truefoundry.ml import get_client
+
+  client = get_client()
+  model_version = client.get_model_version_by_fqn("...")
+  download_path = "some/path/to/download/"
+
+  model_version.download(path=download_path)
+  download_path = os.path.join(download_path, "files", "model")
+  # equivalent to download_path = download_path + "files/model/"
+
+  # Do something with download_path
+  # e.g. load_model(download_path)
+  ```
+</CodeGroup>
+
+✅ Instead use the returned `download_info` from `download()`. It has a `model_dir` attribute that points to the actual contents
+
+<CodeGroup>
+  ```bash bash
+  import os
+  from truefoundry.ml import get_client
+
+  client = get_client()
+  model_version = client.get_model_version_by_fqn("...")
+  download_path = "some/path/to/download/"
+
+  download_info = model_version.download(path=download_path)
+  download_path = download_info.model_dir
+
+  # Do something with download_path
+  # e.g. load_model(download_path)
+  ```
+</CodeGroup>
+
+### In Summary
+
+<CodeGroup>
+  ```bash bash
+  import os
+  from truefoundry.ml import get_client
+
+  client = get_client()
+  model_version = client.get_model_version_by_fqn("...")
+  download_path = "some/path/to/download/"
+
+  - model_version.download(path=download_path)
+  - download_path = os.path.join(download_path, "files", "model")
+  - # equivalent to download_path = download_path + "files/model/"
+  + download_info = model_version.download(path=download_path)
+  + download_path = download_info.model_dir
+
+  # Do something with download_path
+  # e.g. load_model(download_path)
+  ```
+</CodeGroup>
+
+## 2. Upgrade to `truefoundry>=0.5.0`
+
+Once you have ensured you are not hardcoding `files/` or `files/model/` hierarchy in your code. You can safely upgrade `truefoundry` as it can handle both older and newer structures. No additional code change will be needed.
+
+# Compatibility Matrix
+
+| API                        | `truefoundry<0.5.0`                                   | `truefoundry>=0.5.0`                                 | `UI`                          |
+| -------------------------- | ----------------------------------------------------- | ---------------------------------------------------- | ----------------------------- |
+| `log_artifact`             | Uploads in older nested `files/`structure             | Uploads in new flat structure                        | Uploads in new flat structure |
+| `ArtifactVersion.download` | Can only handle older nested `files/`structure        | **Backwards Compatible**, Can handle both structures | `-`                           |
+| `log_model`                | Uploads in older nested `files/model/`structure       | Uploads in new flat structure                        | Uploads in new flat structure |
+| `ModelVersion.download`    | Can only handle older nested `files/model/` structure | **Backwards Compatible**, Can handle both structures | `-`                           |
+
+***
+
+[Add Artifacts via UI](/docs/add-artifacts-via-ui)
+
+[Accessing and Adding version alias for Artifact and Model Versions](/docs/accessing-and-adding-tag-for-artifact-and-model-versions)
+
+* [Table of Contents](#)
+
+* * [Existing Structure](#existing-structure)
+
+  * * [Artifact](#artifact)
+    * [Model](#model)
+
+  * [New Structure](#new-structure)
+
+  * * [Artifact](#artifact-1)
+    * [Model:](#model-1)
+
+  * [Required Actions](#required-actions)
+
+  * * [1. Do not hardcode files/ or files/model/ structure in your code.](#1-do-not-hardcode-files-or-filesmodel-structure-in-your-code)
+    * [2. Upgrade to truefoundry>=0.5.0](#2-upgrade-to-truefoundry050)
+
+  * [Compatibility Matrix](#compatibility-matrix)

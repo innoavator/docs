@@ -1,0 +1,90 @@
+---
+title: "Log and Get Data"
+description: "A  is a collection of files and folders that are on remote storage (cloud buckets like S3, GCS, Azure Blob). DataDirectories are useful for storing data that is associated with a particular ML Repository."
+---
+
+These differ from Artifacts as these aren't versioned and aren't associated with any Runs. This makes them ideal for storing data that is not going to change or is constant among runs. For example, you can store your custom data with which you want to finetune an LLM here, without having to go through the process of creating a Run and storing the data in an Artifact.
+
+## Creating a Data Directory
+
+Before we can start logging our data in a Data Directory, we need to create it:
+
+To create a Data Directory you need:
+
+* ml\_repo: Name of the ML Repo in which you want to create data\_directory
+* name: Name of the DataDirectory to be created.
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.ml import get_client
+
+  client = get_client()  
+  data_directory = client.create_data_directory(name="<data_directory-name>", ml_repo="<repo-name>")  
+  print(data_directory.fqn)
+  ```
+</CodeGroup>
+
+## Logging data in a Data Directory
+
+To log data in Data Directory you need to get the data\_directory instance, and then log the data in it using the `.add_files` method.
+
+For this, you will require
+
+* fqn: Fully qualified name of the data directory.
+* file\_paths: A list of pairs of (`\<source path>`, `\<destination path`) to add files and folders to the DataDirectory contents. The first member of the pair should be a file or directory path and the second member should be the path inside the artifact contents to upload to.
+
+<CodeGroup>
+  ```bash bash
+  import os
+  from truefoundry.ml import get_client, DataDirectoryPath
+
+  with open("artifact.txt", "w") as f:
+       f.write("hello-world")
+
+  client = get_client()
+  data_directory = client.get_data_directory_by_fqn(fqn="<data_directory-fqn>")
+
+  data_directory.add_files(
+       file_paths=[DataDirectoryPath('artifact.txt', 'a/b/')]
+  )
+  ```
+</CodeGroup>
+
+this would result in
+
+```
+ .  
+ └── a/  
+     └── b/  
+         └── artifact.txt  
+```
+
+## Downloading data from the Data Directory
+
+To download data in Data Directory you need to get the data\_directory instance, and then download the data in it using the `.download` method.
+
+For this you will need the:
+
+* download\_path: Relative source path to the desired files.
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.ml import get_client
+
+  client = get_client()
+  data_directory = client.get_data_directory_by_fqn(fqn="<your-artifact-fqn>")
+  data_directory.download(download_path="<your-desired-download-path>")
+  ```
+</CodeGroup>
+
+***
+
+[Log and Get Models](/docs/log-models)
+
+[Add Tags](/docs/add-tags)
+
+* [Table of Contents](#)
+
+* * [Creating a Data Directory](#creating-a-data-directory)
+  * [Logging data in a Data Directory](#logging-data-in-a-data-directory)
+  * [Downloading data from the Data Directory](#downloading-data-from-the-data-directory)

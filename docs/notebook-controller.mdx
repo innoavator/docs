@@ -1,0 +1,70 @@
+---
+title: "Notebook Controller"
+description: "This component is required if you want to enable the deployment of Notebooks / VS Code Server (from browser)."
+---
+
+You can install Notebook Controller for your Cluster by going to `Integrations -> Clusters -> Installed Applications`
+
+### Configuring Base Domain Url
+
+This is a required field for the deployment of Notebook Controller. You need to specify a Base Domain (should be already configured in the cluster on truefoundry) and add it in the values:
+
+<CodeGroup>
+  ```bash bash
+  notebookBaseDomainUrl: https://nb.ml.demo.xyz.cloud
+  ```
+</CodeGroup>
+
+### Storage Class for Notebook
+
+Every Notebook/SSH Server is backed by a Volume. So your cluster must have a storage class setup. You can define the storage class in values.yaml as shown below:
+
+<CodeGroup>
+  ```bash bash
+  notebookBaseDomainUrl: https://nb.ml.demo.xyz.cloud
+  defaultStorageClass: your-storage-class
+  ```
+</CodeGroup>
+
+**Note:** This is an optional field, If not specified, here is the default we use for each cloud:
+
+* AWS\_EKS: gp2
+* GCP GKE: standard-rwo
+* Azure AKS: default
+* Generic K8S Cluster: default
+* Civo: civo-volume
+
+### Enabling OAuth in Notebooks
+
+By default there is no authentication/authorization in Notebooks. Anyone who has access to the link to the notebook can access it. To enable OAuth in notebooks, you can add the following field in the values.yaml file
+
+<CodeGroup>
+  ```bash bash
+  notebookBaseDomainUrl: https://nb.ml.demo.xyz.cloud
+  oauth:
+    type: truefoundry
+    enabled: true
+  ```
+</CodeGroup>
+
+By default, if OAuth is enabled in notebooks, Authorization is also enabled, which restricts access to users who have at least workspace viewer permissions for the workspace where the notebook is present in. If you want to override this behavior, you can disable the truefoundry authorization by adding the following field in values.yaml file
+
+<CodeGroup>
+  ```bash bash
+  oauth:
+    truefoundryExternalAuthorization:
+      enabled: false
+  ```
+</CodeGroup>
+
+***
+
+[Cost Monitoring](/docs/cost-monitoring)
+
+[TFY Agent](/docs/tfy-agent)
+
+* [Table of Contents](#)
+
+* * [Configuring Base Domain Url](#configuring-base-domain-url)
+  * [Storage Class for Notebook](#storage-class-for-notebook)
+  * [Enabling OAuth in Notebooks](#enabling-oauth-in-notebooks)

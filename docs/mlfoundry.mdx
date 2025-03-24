@@ -1,0 +1,1029 @@
+---
+title: "Overview"
+---
+
+# `module` `TrueFoundry.ml`
+
+## **Global Variables**
+
+* **TRACKING\_HOST\_GLOBAL**
+
+***
+
+## `function` `get_client`
+
+Initializes and returns the truefoundry client.
+
+**Args:**
+
+* **`disable_analytics`** (bool, optional): To turn off usage analytics collection, pass `True`. By default, this is set to `False`.
+
+**Returns:**
+
+* **`MLFoundry`**: Instance of `MLFoundry` class which represents a `run`.
+
+**Examples:**
+
+* Get client
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+  ```
+</CodeGroup>
+
+***
+
+## `class` `MlFoundry`
+
+MlFoundry.
+
+### `function` `create_data_directory`
+
+Create DataDirectory to Upload the files
+
+**Args:**
+
+* **`ml_repo`** (str): Name of the ML Repo in which you want to create data\_directory
+* **`name`** (str): Name of the DataDirectory to be created.
+* **`description`** (str): Description of the Datset
+* **`metadata`** (Dict `<str>`: Any): Metadata about the data\_directory in Dictionary form.
+
+**Returns:**
+
+* **`DataDirectory `**: An instance of class DataDirectory
+
+**Examples:**
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+  data_directory = client.create_data_directory(name="<data_directory-name>", ml_repo="<repo-name>")
+  print(data_directory.fqn)
+  ```
+</CodeGroup>
+
+***
+
+### `function` `create_ml_repo`
+
+Creates an ML Repository.
+
+**Args:**
+
+* **`name`** (str, optional): The name of the Repository you want to create. if not given, it creates a name by itself.
+* **`storage_integration_fqn`** (str): The storage integration FQN to use for the experiment for saving artifacts.
+
+**Examples:**
+
+* Create Repository
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+
+  ml_repo = client.create_ml_repo(name="my-repo", storage_integration_fqn="truefoundry:example:name:blob-storage:blob")
+  ```
+</CodeGroup>
+
+***
+
+### `function` `create_run`
+
+Initialize a `run`.
+
+In a machine learning experiment `run` represents a single experiment conducted under a project.
+
+**Args:**
+
+* **`ml_repo`** (str): The name of the project under which the run will be created. ml\_repo should only contain alphanumerics (a-z,A-Z,0-9) or hyphen (-). The user must have `ADMIN` or `WRITE` access to this project.
+* **`run_name`** (Optional\[str], optional): The name of the run. If not passed, a randomly generated name is assigned to the run. Under a project, all runs should have a unique name. If the passed `run_name` is already used under a project, the `run_name` will be de-duplicated by adding a suffix. run name should only contain alphanumerics (a-z,A-Z,0-9) or hyphen (-).
+* **`tags`** (Optional\[Dict\[str, Any]], optional): Optional tags to attach with this run. Tags are key-value pairs.
+
+**kwargs:**
+
+**Returns:**
+
+* **`MlFoundryRun`**: An instance of `MlFoundryRun` class which represents a `run`.
+
+**Examples:**
+
+* Create a run under current user.
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+
+  tags = {"model_type": "svm"}
+  run = client.create_run(
+       ml_repo="my-classification-project", run_name="svm-with-rbf-kernel", tags=tags
+  )
+
+  run.end()
+  ```
+</CodeGroup>
+
+* Creating a run using context manager.
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+  with client.create_run(
+       ml_repo="my-classification-project", run_name="svm-with-rbf-kernel"
+  ) as run:
+       # ...
+       # Model training code
+       ...
+  # `run` will be automatically marked as `FINISHED` or `FAILED`.
+  ```
+</CodeGroup>
+
+* Create a run in a project owned by a different user.
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+
+  tags = {"model_type": "svm"}
+  run = client.create_run(
+       ml_repo="my-classification-project",
+       run_name="svm-with-rbf-kernel",
+       tags=tags,
+  )
+  run.end()
+  ```
+</CodeGroup>
+
+***
+
+### `function` `get_all_runs`
+
+Returns all the run name and id present under a project.
+
+The user must have `READ` access to the project.
+
+**Args:**
+
+* **`ml_repo`** (str): Name of the project.
+
+**Returns:**
+
+* **`pd.DataFrame`**: dataframe with two columns- run\_id and run\_name
+
+**Examples:**
+
+* get all the runs from a ml\_repo
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+
+  run = client.get_all_runs(ml_repo='my-repo')
+  ```
+</CodeGroup>
+
+***
+
+### `function` `get_artifact_version`
+
+Get the model version to download contents or load it in memory
+
+**Args:**
+
+* **`ml_repo`** (str): ML Repo to which artifact is logged
+* **`artifact_name`** (str): Artifact Name
+* **`artifact_type`** (str): The type of artifact to fetch (acceptable values: "artifact", "model", "plot", "image")
+* **`version`** (str | int): Artifact Version to fetch (default is the latest version)
+
+**Returns:**
+
+* **`ArtifactVersion `**: An ArtifactVersion instance of the artifact
+
+**Examples:**
+
+<CodeGroup>
+  ```bash bash
+  import tempfile
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+  model_version = client.get_artifact_version(ml_repo="ml-repo-name", name="artifact-name", version=1)
+
+  # load the model into memory
+  clf = model_version.load()
+
+  # download the model to disk
+  temp = tempfile.TemporaryDirectory()
+  download_info = model_version.download(path=temp.name)
+  print(download_info)
+  ```
+</CodeGroup>
+
+***
+
+### `function` `get_artifact_version_by_fqn`
+
+Get the artifact version to download contents
+
+**Args:**
+
+* **`fqn`** (str): Fully qualified name of the artifact version.
+
+**Returns:**
+
+* **`ArtifactVersion `**: An ArtifactVersion instance of the artifact
+
+**Examples:**
+
+<CodeGroup>
+  ```bash bash
+  import tempfile
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+  artifact_version = client.get_artifact_version_by_fqn(
+       fqn="artifact:truefoundry/my-classification-project/sklearn-artifact:1"
+  )
+
+  # download the artifact to disk
+  temp = tempfile.TemporaryDirectory()
+  download_info = artifact_version.download(path=temp.name)
+  print(download_info)
+  ```
+</CodeGroup>
+
+***
+
+### `function` `get_data_directory`
+
+Get an existing `data_directory` by `name`.
+
+**Args:**
+
+* **`ml_repo`** (str): name of an the project of which the data-directory is part of.
+* **`name`** (str): the name of the data-directory
+
+**Returns:**
+
+* **`DataDirectory`**: An instance of class DataDirectory
+
+**Examples:**
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+  client = tfm.get_client()
+  data_directory = client.get_data_directory(ml_repo='my-repo', name="<data-directory-name>")
+  with open("artifact.txt", "w") as f:
+       f.write("hello-world")
+  data_directory.add_files(
+       artifact_paths=[tfm.DataDirectoryPath('artifact.txt', 'a/b/')]
+  )
+  # print the path of files and folder in the data_directory
+  for file in data_directory.list_files():
+       print(file.path)
+  ```
+</CodeGroup>
+
+***
+
+### `function` `get_data_directory_by_fqn`
+
+Get the DataDirectory by DataDirectory FQN
+
+**Args:**
+
+* **`fqn`** (str): Fully qualified name of the artifact version.
+
+**Returns:**
+
+* **`DataDirectory `**: An instance of class DataDirectory
+
+**Examples:**
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+  data_directory = client.get_data_directory_by_fqn(fqn="<data-dir-fqn>")
+  with open("artifact.txt", "w") as f:
+       f.write("hello-world")
+
+  data_directory.add_files(
+       artifact_paths=[tfm.DataDirectoryPath('artifact.txt', 'a/b/')]
+  )
+  # print the path of files and folder in the data_directory
+  for file in data_directory.list_files():
+       print(file.path)
+  ```
+</CodeGroup>
+
+***
+
+### `function` `get_data_directory_by_id`
+
+Get the DataDirectory From the DataDirectory ID
+
+**Args:**
+
+* **`id`** (uuid.UUID): Id of the data\_directory.
+
+**Returns:**
+
+* **`DataDirectory `**: An instance of class DataDirectory
+
+**Examples:**
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+  data_directory = client.get_data_directory_by_id(id="<data_directory-id>")
+  with open("artifact.txt", "w") as f:
+       f.write("hello-world")
+
+  data_directory.add_files(
+       artifact_paths=[tfm.DataDirectoryPath('artifact.txt', 'a/b/')]
+  )
+  # print the path of files and folder in the data_directory
+  for file in data_directory.list_files():
+       print(file.path)
+  ```
+</CodeGroup>
+
+***
+
+### `function` `get_model_version`
+
+Get the model version to download contents or load it in memory
+
+**Args:**
+
+* **`ml_repo`** (str): ML Repo to which model is logged
+* **`name`** (str): Model Name
+* **`version`** (str | int): Model Version to fetch (default is the latest version)
+
+**Returns:**
+
+* **`ModelVersion`**: The ModelVersion instance of the model.
+
+**Examples:**
+
+* Sklearn
+
+<CodeGroup>
+  ```bash bash
+  # See `truefoundry.ml.mlfoundry_api.MlFoundry.log_model` examples to understand model logging
+  import tempfile
+  import joblib
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+  model_version = client.get_model_version(
+      ml_repo="my-classification-project",
+      name="my-sklearn-model",
+      version=1
+  )
+
+  # Download the model to disk
+  temp = tempfile.TemporaryDirectory()
+  download_info = model_version.download(path=temp.name)
+  print(download_info.model_dir, download_info.model_filename)
+
+  # Deserialize and Load
+  model = joblib.load(
+      os.path.join(download_info.model_dir, download_info.model_filename)
+  )
+  ```
+</CodeGroup>
+
+* Huggingface Transformers
+
+<CodeGroup>
+  ```bash bash
+  # See `truefoundry.ml.mlfoundry_api.MlFoundry.log_model` examples to understand model logging
+  import torch
+  from transformers import pipeline
+
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+  model_version = client.get_model_version(
+      ml_repo="my-llm-project",
+      name="my-transformers-model",
+      version=1
+  )
+
+  # Download the model to disk
+  temp = tempfile.TemporaryDirectory()
+  download_info = model_version.download(path=temp.name)
+  print(download_info.model_dir)
+
+  # Deserialize and Load
+  pln = pipeline("text-generation", model=download_info.model_dir, torch_dtype=torch.float16)
+  ```
+</CodeGroup>
+
+***
+
+### `function` `get_model_version_by_fqn`
+
+Get the model version to download contents or load it in memory
+
+**Args:**
+
+* **`fqn`** (str): Fully qualified name of the model version.
+
+**Returns:**
+
+* **`ModelVersion`**: The ModelVersion instance of the model.
+
+**Examples:**
+
+* Sklearn
+
+<CodeGroup>
+  ```bash bash
+  # See `truefoundry.ml.mlfoundry_api.MlFoundry.log_model` examples to understand model logging
+  import tempfile
+  import joblib
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+  model_version = client.get_model_version_by_fqn(
+       fqn="model:truefoundry/my-classification-project/my-sklearn-model:1"
+  )
+
+  # Download the model to disk
+  temp = tempfile.TemporaryDirectory()
+  download_info = model_version.download(path=temp.name)
+  print(download_info.model_dir, download_info.model_filename)
+
+  # Deserialize and Load
+  model = joblib.load(
+       os.path.join(download_info.model_dir, download_info.model_filename)
+  )
+  ```
+</CodeGroup>
+
+* Huggingface Transformers
+
+<CodeGroup>
+  ```bash bash
+  # See `mlfoundry.mlfoundry_api.MlFoundry.log_model` examples to understand model logging
+  import torch
+  from transformers import pipeline
+
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+  model_version = client.get_model_version_by_fqn(
+       fqn="model:truefoundry/my-llm-project/my-transformers-model:1"
+  )
+  # Download the model to disk
+  temp = tempfile.TemporaryDirectory()
+  download_info = model_version.download(path=temp.name)
+  print(download_info.model_dir)
+
+  # Deserialize and Load
+  pln = pipeline("text-generation", model=download_info.model_dir, torch_dtype=torch.float16)
+  ```
+</CodeGroup>
+
+***
+
+### `function` `get_run_by_fqn`
+
+Get an existing `run` by `fqn`.
+
+`fqn` stands for Fully Qualified Name. A run `fqn` has the following pattern: tenant\_name/ml\_repo/run\_name
+
+If a run `svm` under the project `cat-classifier` in `truefoundry` tenant, the `fqn` will be `truefoundry/cat-classifier/svm`.
+
+**Args:**
+
+* **`run_fqn`** (str): `fqn` of an existing run.
+
+**Returns:**
+
+* **`MlFoundryRun`**: An instance of `MlFoundryRun` class which represents a `run`.
+
+**Examples:**
+
+* get run by run fqn
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+
+  run = client.get_run_by_fqn(run_fqn='truefoundry/my-repo/svm')
+  ```
+</CodeGroup>
+
+***
+
+### `function` `get_run_by_id`
+
+Get an existing `run` by the `run_id`.
+
+**Args:**
+
+* **`run_id`** (str): run\_id or fqn of an existing `run`.
+
+**Returns:**
+
+* **`MlFoundryRun`**: An instance of `MlFoundryRun` class which represents a `run`.
+
+**Examples:**
+
+* Get run by the run id
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+
+  run = client.get_run_by_id(run_id='a8f6dafd70aa4baf9437a33c52d7ee90')
+  ```
+</CodeGroup>
+
+***
+
+### `function` `get_run_by_name`
+
+Get an existing `run` by `run_name`.
+
+**Args:**
+
+* **`ml_repo`** (str): name of the ml\_repo of which the run is part of.
+* **`run_name`** (str): the name of the run required
+
+**Returns:**
+
+* **`MlFoundryRun`**: An instance of `MlFoundryRun` class which represents a `run`.
+
+**Examples:**
+
+* get run by name
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+
+  run = client.get_run_by_name(run_name='svm', ml_repo='my-repo')
+  ```
+</CodeGroup>
+
+***
+
+### `function` `get_tracking_uri`
+
+Get the current tracking URI.
+
+**Returns:** The tracking URI.
+
+**Examples:**
+
+<CodeGroup>
+  ```bash bash
+  import tempfile
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+  tracking_uri = client.get_tracking_uri()
+  print("Current tracking uri: {}".format(tracking_uri))
+  ```
+</CodeGroup>
+
+***
+
+### `function` `list_artifact_versions`
+
+Get all the version of na artifact to download contents or load them in memory
+
+**Args:**
+
+* **`ml_repo`** (str): Repository in which the model is stored.
+* **`name`** (str): Name of the artifact whose version is required
+* **`artifact_type`** (ArtifactType): Type of artifact you want for example model, image, etc.
+
+**Returns:**
+
+* **`Iterator[ArtifactVersion]`**: An iterator that yields non deleted artifact-versions of an artifact under a given ml\_repo sorted reverse by the version number
+
+**Examples:**
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+  artifact_versions = client.list_artifact_versions(ml_repo="my-repo", name="artifact-name")
+
+  for artifact_version in artifact_versions:
+       print(artifact_version)
+  ```
+</CodeGroup>
+
+***
+
+### `function` `list_artifact_versions_by_fqn`
+
+List versions for a given artifact
+
+**Args:**
+
+* **`artifact_fqn`**: FQN of the Artifact to list versions for.
+* **`An artifact_fqn looks like `\{artifact\_type}\`**: \{org}/\{user}/\{project}/\{artifact\_name}\`
+* **`or `\{artifact\_type}\`**: \{user}/\{project}/\{artifact\_name}\`
+
+where artifact\_type can be on of ("model", "image", "plot")
+
+**Returns:**
+
+* **`Iterator[ArtifactVersion]`**: An iterator that yields non deleted artifact versions under the given artifact\_fqn sorted reverse by the version number
+
+**Yields:**
+
+* **`ArtifactVersion`**: An instance of `mlfoundry.ArtifactVersion`
+
+**Examples:**
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+
+  tfm.login(tracking_uri=https://your.truefoundry.site.com")
+  client = tfm.get_client()
+  artifact_fqn = "artifact:org/my-project/my-artifact"
+  for av in client.list_artifact_versions(artifact_fqn=artifact_fqn):
+       print(av.name, av.version, av.description)
+  ```
+</CodeGroup>
+
+***
+
+### `function` `list_data_directories`
+
+Get the list of DataDirectory in a ml\_repo
+
+**Args:**
+
+* **`ml_repo`** (str): Name of the ML Repository
+* **`max_results`** (int): Maximum number of Data Directory to list
+* **`offset`** (int): Skip these number of instance of DataDirectory and then give the result from these number onwards
+
+**Returns:**
+
+* **`DataDirectory `**: An instance of class DataDirectory
+
+**Examples:**
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+  data_directories = client.list_data_directories(ml_repo="<ml-repo-nam>")
+
+  for data_directory in data_directories:
+       print(data_directory.name)
+  ```
+</CodeGroup>
+
+***
+
+### `function` `list_ml_repos`
+
+Returns a list of names of ML Repos accessible by the current user.
+
+**Returns:**
+
+* **`List[str]`**: A list of names of ML Repos
+
+***
+
+### `function` `list_model_versions`
+
+Get all the version of a model to download contents or load them in memory
+
+**Args:**
+
+* **`ml_repo`** (str): Repository in which the model is stored.
+* **`name`** (str): Name of the model whose version is required
+
+**Returns:**
+
+* **`Iterator[ModelVersion]`**: An iterator that yields non deleted model versions of a model under a given ml\_repo sorted reverse by the version number
+
+**Examples:**
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+  model_versions = client.list_model_version(ml_repo="my-repo", name="svm")
+
+  for model_version in model_versions:
+       print(model_version)
+  ```
+</CodeGroup>
+
+***
+
+### `function` `list_model_versions_by_fqn`
+
+List versions for a given model
+
+**Args:**
+
+* **`model_fqn`**: FQN of the Model to list versions for.
+* **`A model_fqn looks like `model\`**: \{org}/\{user}/\{project}/\{artifact\_name}\`
+* **`or `model\`**: \{user}/\{project}/\{artifact\_name}\`
+
+**Returns:**
+
+* **`Iterator[ModelVersion]`**: An iterator that yields non deleted model versions under the given model\_fqn sorted reverse by the version number
+
+**Yields:**
+
+* **`ModelVersion`**: An instance of `mlfoundry.ModelVersion`
+
+**Examples:**
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+
+  mlfoundry.login(tracking_uri="https://your.truefoundry.site.com")
+  client = tfm.get_client()
+  model_fqn = "model:org/my-project/my-model"
+  for mv in client.list_model_versions(model_fqn=model_fqn):
+       print(mv.name, mv.version, mv.description)
+  ```
+</CodeGroup>
+
+***
+
+### `function` `log_artifact`
+
+Logs an artifact for the current `ml_repo`.
+
+An `artifact` is a list of local files and directories. This function packs the mentioned files and directories in `artifact_paths` and uploads them to remote storage linked to the ml\_repo
+
+**Args:**
+
+* **`ml_repo`** (str): Name of the ML Repo to which an artifact is to be logged.
+* **`name`** (str): Name of the Artifact. If an artifact with this name already exists under the current ml\_repo, the logged artifact will be added as a new version under that `name`. If no artifact exist with the given `name`, the given artifact will be logged as version 1.
+* **`artifact_paths`** (List\[truefoundry.ml.ArtifactPath], optional): A list of pairs of (source path, destination path) to add files and folders to the artifact version contents. The first member of the pair should be a file or directory path and the second member should be the path inside the artifact contents to upload to.
+
+```
+         E.g. >>> client.log_artifact(
+              ...     ml_repo="sample-repo",
+              ...     name="xyz",
+              ...     artifact_paths=[
+                         tfm.ArtifactPath("foo.txt", "foo/bar/foo.txt"),
+                         tfm.ArtifactPath("tokenizer/", "foo/tokenizer/"),
+                         tfm.ArtifactPath('bar.text'),
+                         ('bar.txt', ),
+                         ('foo.txt', 'a/foo.txt')
+                      ]
+              ... )
+         would result in
+         .
+         └── foo/
+             ├── bar/
+             │   └── foo.txt
+             └── tokenizer/
+                 └── # contents of tokenizer/ directory will be uploaded here
+```
+
+* **`description`** (Optional\[str], optional): arbitrary text upto 1024 characters to store as description. This field can be updated at any time after logging. Defaults to `None`
+* **`metadata`** (Optional\[Dict\[str, Any]], optional): arbitrary json serializable dictionary to store metadata. For example, you can use this to store metrics, params, notes. This field can be updated at any time after logging. Defaults to `None`
+
+**Returns:**
+
+* **`truefoundry.ml.ArtifactVersion`**: an instance of `ArtifactVersion` that can be used to download the files, or update attributes like description, metadata.
+
+**Examples:**
+
+<CodeGroup>
+  ```bash bash
+  import os
+  import truefoundry.ml as tfm
+
+  with open("artifact.txt", "w") as f:
+       f.write("hello-world")
+
+  client = tfm.get_client()
+  ml_repo = "sample-repo"
+
+  client.create_ml_repo(ml_repo=ml_repo)
+  client.log_artifact(
+       ml_repo=ml_repo,
+       name="hello-world-file",
+       artifact_paths=[tfm.ArtifactPath('artifact.txt', 'a/b/')]
+  )
+  ```
+</CodeGroup>
+
+***
+
+### `function` `log_model`
+
+Serialize and log a versioned model under the current ml\_repo. Each logged model generates a new version associated with the given `name` and linked to the current run. Multiple versions of the model can be logged as separate versions under the same `name`.
+
+**Args:**
+
+* **`ml_repo`** (str): Name of the ML Repo to which an artifact is to be logged.
+* **`name`** (str): Name of the model. If a model with this name already exists under the current ML Repo, the logged model will be added as a new version under that `name`. If no models exist with the given `name`, the given model will be logged as version 1.
+* **`model_file_or_folder`** (str): Path to either a single file or a folder containing model files. This folder is usually created using serialization methods of libraries or frameworks e.g. `joblib.dump`, `model.save_pretrained(...)`, `torch.save(...)`, `model.save(...)`
+* **`framework`** (Union\[enums.ModelFramework, str]): Model Framework. Ex:- pytorch, sklearn, tensorflow etc. The full list of supported frameworks can be found in `mlfoundry.enums.ModelFramework`. Can also be `None` when `model` is `None`.
+* **`description`** (Optional\[str], optional): arbitrary text upto 1024 characters to store as description. This field can be updated at any time after logging. Defaults to `None`
+* **`metadata`** (Optional\[Dict\[str, Any]], optional): arbitrary json serializable dictionary to store metadata. For example, you can use this to store metrics, params, notes. This field can be updated at any time after logging. Defaults to `None`
+
+**Returns:**
+
+* **`truefoundry.ml.ModelVersion`**: an instance of `ModelVersion` that can be used to download the files, load the model, or update attributes like description, metadata, schema.
+
+**Examples:**
+
+* Sklearn
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+  from truefoundry.ml import ModelFramework
+
+  import joblib
+  import numpy as np
+  from sklearn.pipeline import make_pipeline
+  from sklearn.preprocessing import StandardScaler
+  from sklearn.svm import SVC
+
+  X = np.array([[-1, -1], [-2, -1], [1, 1], [2, 1]])
+  y = np.array([1, 1, 2, 2])
+  clf = make_pipeline(StandardScaler(), SVC(gamma='auto'))
+  clf.fit(X, y)
+  joblib.dump(clf, "sklearn-pipeline.joblib")
+
+  client = tfm.get_client()
+  client.create_ml_repo(  # This is only required once
+       ml_repo="my-classification-project",
+       # This controls which bucket is used.
+       # You can get this from Integrations > Blob Storage. `None` picks the default
+       storage_integration_fqn=None
+  )
+  model_version = client.log_model(
+       ml_repo="my-classification-project",
+       name="my-sklearn-model",
+       model_file_or_folder="sklearn-pipeline.joblib",
+       framework=ModelFramework.SKLEARN,
+       metadata={"accuracy": 0.99, "f1": 0.80},
+       step=1,  # step number, useful when using iterative algorithms like SGD
+  )
+  print(model_version.fqn)
+  ```
+</CodeGroup>
+
+* Huggingface Transformers
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+  from truefoundry.ml import ModelFramework
+
+  import torch
+  from transformers import AutoTokenizer, AutoConfig, pipeline, AutoModelForCausalLM
+  pln = pipeline(
+       "text-generation",
+       model_file_or_folder="EleutherAI/pythia-70m",
+       tokenizer="EleutherAI/pythia-70m",
+       torch_dtype=torch.float16
+  )
+  pln.model.save_pretrained("my-transformers-model")
+  pln.tokenizer.save_pretrained("my-transformers-model")
+
+  client = tfm.get_client()
+  client.create_ml_repo(  # This is only required once
+       ml_repo="my-llm-project",
+       # This controls which bucket is used.
+       # You can get this from Integrations > Blob Storage. `None` picks the default
+       storage_integration_fqn=None
+  )
+  model_version = client.log_model(
+       ml_repo="my-llm-project",
+       name="my-transformers-model",
+       model_file_or_folder="my-transformers-model/",
+       framework=ModelFramework.TRANSFORMERS
+  )
+  print(model_version.fqn)
+  ```
+</CodeGroup>
+
+***
+
+### `function` `search_runs`
+
+The user must have `READ` access to the project. Returns an iterator that returns a MLFoundryRun on each next call. All the runs under a project which matches the filter string and the run\_view\_type are returned.
+
+**Args:**
+
+* **`ml_repo`** (str): Name of the project. filter\_string (str, optional): Filter query string, defaults to searching all runs. Identifier required in the LHS of a search expression.
+
+* **`Signifies an entity to compare against. An identifier has two parts separated by a period`**: the type of the entity and the name of the entity. The type of the entity is metrics, params, attributes, or tags. The entity name can contain alphanumeric characters and special characters.
+
+* **`You can search using two run attributes `**: status and artifact\_uri. Both attributes have string values. When a metric, parameter, or tag name contains a special character like hyphen, space, period, and so on, enclose the entity name in double quotes or backticks, params."model-type" or params.`model-type`
+
+* **`run_view_type`** (str, optional): one of the following values "ACTIVE\_ONLY", "DELETED\_ONLY", or "ALL" runs. order\_by (List\[str], optional): List of columns to order by (e.g., "metrics.rmse"). Currently supported values are metric.key, parameter.key, tag.key, attribute.key. The `order_by` column can contain an optional `DESC` or `ASC` value. The default is `ASC`. The default ordering is to sort by `start_time DESC`.
+
+* **`job_run_name`** (str): Name of the job which are associated with the runs to get that runs
+
+* **`max_results`** (int): max\_results on the total numbers of run yielded through filter
+
+**Returns:**
+
+* **`Iterator[MlFoundryRun]`**: MLFoundryRuns matching the search query.
+
+**Examples:**
+
+<CodeGroup>
+  ```bash bash
+  import truefoundry.ml as tfm
+
+  client = tfm.get_client()
+  with client.create_run(ml_repo="my-project", run_name="run-1") as run1:
+       run1.log_metrics(metric_dict={"accuracy": 0.74, "loss": 0.6})
+       run1.log_params({"model": "LogisticRegression", "lambda": "0.001"})
+
+  with client.create_run(ml_repo="my-project", run_name="run-2") as run2:
+       run2.log_metrics(metric_dict={"accuracy": 0.8, "loss": 0.4})
+       run2.log_params({"model": "SVM"})
+
+  # Search for the subset of runs with logged accuracy metric greater than 0.75
+  filter_string = "metrics.accuracy > 0.75"
+  runs = client.search_runs(ml_repo="my-project", filter_string=filter_string)
+
+  # Search for the subset of runs with logged accuracy metric greater than 0.7
+  filter_string = "metrics.accuracy > 0.7"
+  runs = client.search_runs(ml_repo="my-project", filter_string=filter_string)
+
+  # Search for the subset of runs with logged accuracy metric greater than 0.7 and model="LogisticRegression"
+  filter_string = "metrics.accuracy > 0.7 and params.model = 'LogisticRegression'"
+  runs = client.search_runs(ml_repo="my-project", filter_string=filter_string)
+
+  # Search for the subset of runs with logged accuracy metric greater than 0.7 and
+  # order by accuracy in Descending order
+  filter_string = "metrics.accuracy > 0.7"
+  order_by = ["metric.accuracy DESC"]
+  runs = client.search_runs(
+       ml_repo="my-project", filter_string=filter_string, order_by=order_by
+  )
+
+  filter_string = "metrics.accuracy > 0.7"
+  runs = client.search_runs(
+       ml_repo="transformers", order_by=order_by ,job_run_name='job_run_name', filter_string=filter_string
+  )
+
+  order_by = ["metric.accuracy DESC"]
+  runs = client.search_runs(
+       ml_repo="my-project", filter_string=filter_string, order_by=order_by, max_results=10
+  )
+  ```
+</CodeGroup>
+
+***
+
+[Accessing and Adding version alias for Artifact and Model Versions](/docs/accessing-and-adding-tag-for-artifact-and-model-versions)
+
+[Runs](/docs/runs)
+
+* [Table of Contents](#)
+
+* * [module TrueFoundry.ml](#module-truefoundryml)
+
+  * * [Global Variables](#global-variables)
+    * [function get\_client](#function-get_client)
+    * [class MlFoundry](#class-mlfoundry)

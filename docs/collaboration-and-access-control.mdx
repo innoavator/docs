@@ -1,0 +1,82 @@
+---
+title: "Overview"
+description: "Truefoundry provides a suite of collaboration features with role-based access control to manage projects among users and teams. Using Truefoundry, you can achieve the following:"
+---
+
+1. [Invite your team members](doc:collaboration#inviting-users-to-the-platform) to join Truefoundry
+2. Add team members to different entities like Cluster, Workspace, MLRepo, DockerRegistry, and SecretGroup (You can understand more about the permission management system at Truefoundry [here](doc:role-based-access-control)
+3. [Create teams](doc:collaboration#teams) to provide access to similar resources to a group of people.
+
+## Users
+
+### Inviting Users to the Platform
+
+You can invite users to join the TrueFoundry platform following the instructions below. An email notification will be sent to the specified email address, prompting the user to create their TrueFoundry account and join your team.
+
+### Roles for a user
+
+![](/images/docs/d5bc467-Screenshot_2023-11-08_at_10.25.07_AM.png)
+
+Within the TrueFoundry platform, there are two primary user roles:
+
+* **Admins**: These individuals hold the highest level of access and are responsible for managing the overall TrueFoundry environment. They have full control over resources, including users, clusters, and workspaces. Usually there should be only a few admins in an organization.
+* **Members**: These are the general users of the platform. They have access to resources that have been explicitly granted to them, typically aligned with their specific projects or tasks.
+
+### Updating roles
+
+The role associated with a user can only be modified by **Admins**. To update a user's role, follow these steps:
+
+### Deactivating a User
+
+**Adminstators** can deactivate a user's account. This will prevent the user from logging in to the platform.
+
+### Resetting Password
+
+**Administrators** can initiate a password reset process for a user. This will send an email to the user with a link to reset their password.
+
+## Teams
+
+It might get cumbersome to add each individual user to each resource repeatedly. To solve this problem, we have the concept of teams using which you can add a team to a resource and then add or remove members from the team.
+
+### Create Team
+
+To create a team in TrueFoundry, follow these steps:
+
+### Grant Access of a Resource to Team
+
+Once a team has been created, you can grant it access to resources. To do so, follow these steps:
+
+## Virtual Accounts
+
+Create and assign permissions to a Virtual account as shown below:
+
+## Configure Access Control
+
+In TrueFoundry, are organized around the following key entities that help manage the entire organization's resources effectively.
+
+![](/images/docs/b83a0b8-Untitled-2023-10-03-0731-25.png)
+
+***
+
+[Manage Secrets](/docs/manage-secrets)
+
+[Modes of Deployment](/docs/truefoundry-architecture)
+
+* [Table of Contents](#)
+
+* * [Users](#users)
+
+  * * [Inviting Users to the Platform](#inviting-users-to-the-platform)
+    * [Roles for a user](#roles-for-a-user)
+    * [Updating roles](#updating-roles)
+    * [Deactivating a User](#deactivating-a-user)
+    * [Resetting Password](#resetting-password)
+
+  * [Teams](#teams)
+
+  * * [Create Team](#create-team)
+    * [Grant Access of a Resource to Team](#grant-access-of-a-resource-to-team)
+
+  * [Virtual Accounts](#virtual-accounts)
+
+  * [Configure Access Control](#configure-access-control)

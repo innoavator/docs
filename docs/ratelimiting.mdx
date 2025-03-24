@@ -1,0 +1,70 @@
+---
+title: "Overview"
+description: "Rate Limit requests for specified providers or models"
+---
+
+RateLimiting configuration allows you to rate limit requests to a specified tokens/requests per minute/hour/day for certain sets of requests. The rate limiting configuration contains an array of rules. **Every request is evaluated against the set of rules, and only the first matching rule is applied—subsequent rules are ignored.** So keep generic ones at bottom, specialised configs at top.
+
+For each rule, we have three sections:
+
+1. **when**
+
+   1. subjects: An array of user, teams or virutal accounts from which requests is originated - for e.g. user:[\[email protected\]](/cdn-cgi/l/email-protection#0b6964694b6e666a626725686466), team:team1, virtualaccount:virtualaccountname
+   2. models: An array of model ids which will be used to filter the requests. The model ids are the same as what we pass in the model field in the request.
+   3. metadata.
+
+2. **limit\_to**: Integer value which along with unit specifies the limit (for e.g. 100000 tokens per minute)
+
+3. **unit**: Possible values are requests\_per\_minute, requests\_per\_hour, requests\_per\_day, tokens\_per\_minute, tokens\_per\_hour, tokens\_per\_day
+
+An example of a rate limiting config is as follows:
+
+<CodeGroup>
+  ```bash bash
+  name: ratelimiting-config
+  type: gateway-rate-limiting-config
+  # The rules are evaluated in order, and all matching rules are considered.
+  # If any one of them causes a rate limit, the corresponding ID will be returned.
+  rules:
+    # Limit all requests to gpt4 model from openai-main account for user:[email protected] to
+    # 1000 requests per day
+    - id: "openai-gpt4-dev-env"
+      when: 
+        subjects: ["user:[email protected]"]
+        models: ["openai-main/gpt4"]
+      limit_to: 1000
+      unit: requests_per_day
+    # Limit all requests to gpt4 model for team:backend to 20000 tokens per minute
+    - id: "openai-gpt4-dev-env"
+      when: 
+        subjects: ["team:backend"]
+        models: ["openai-main/gpt4"]
+      limit_to: 20000
+      unit: tokens_per_minute
+    # Limit all requests to gpt4 model for virtualaccount:virtualaccount1 to 20000 tokens per minute
+    - id: "openai-gpt4-dev-env"
+      when: 
+        subjects: ["virtualaccount:virtualaccount1"]
+        models: ["openai-main/gpt4"]
+      limit_to: 20000
+      unit: tokens_per_minute
+    # Limit all models to have a limit of 1000000 tokens per day 
+    - id: "{model}-daily-limit"
+   		when: {}
+      limit_to: 1000000
+      unit: tokens_per_day
+    # Limit all users to have a limit of 1000000 tokens per day 
+    - id: "{user}-daily-limit"
+    	when:{}
+      limit_to: 1000000
+    # Limit all users to have a limit of 1000000 tokens per day for each model 
+    - id: "{user}-{model}-daily-limit"
+    	when: {}
+      limit_to: 1000000
+      unit: tokens_per_day
+  ```
+</CodeGroup>
+
+***
+
+[Interacting with LLM Gateway](/docs/unified-api-and-code-generation)

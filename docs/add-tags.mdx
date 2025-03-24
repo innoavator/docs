@@ -1,0 +1,53 @@
+---
+title: "Add Tags"
+description: "Tags are labels for a run. A tag is represented by a string tag name and value."
+---
+
+### Adding tags programmatically
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.ml import get_client
+
+  client = get_client()
+  run = client.create_run(ml_repo="iris-demo", run_name="svm-model")
+
+  run.set_tags({"env": "development", "task": "classification"})
+  run.end()
+  ```
+</CodeGroup>
+
+### How can I programmatically fetch the tags for a run?
+
+You can use the [`get_tags`](https://docs.truefoundry.com/docs/runs#kbdfunctionkbd-get_tags) method. It returns a dictionary.
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.ml import get_client
+
+  client = get_client()
+  run = client.get_run("run-id-of-the-run")
+
+  print(run.get_tags())
+  ```
+</CodeGroup>
+
+### Adding tags with UI
+
+You can view the tags from the dashboard and also create new tags.
+
+<Frame caption="Adding tags">
+  <img src="/images/docs/4251517-Adding_Tags.png" />
+</Frame>
+
+***
+
+[Log and Get Data](/docs/log-and-get-data)
+
+[Log Images](/docs/log-image)
+
+* [Table of Contents](#)
+
+* * [Adding tags programmatically](#adding-tags-programmatically)
+  * [How can I programmatically fetch the tags for a run?](#how-can-i-programmatically-fetch-the-tags-for-a-run)
+  * [Adding tags with UI](#adding-tags-with-ui)

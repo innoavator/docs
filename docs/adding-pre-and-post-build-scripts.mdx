@@ -1,0 +1,92 @@
+---
+title: "Adding pre and post build scripts"
+description: "For a control plane installation, it is possible to add custom scripts which can run before and after your build/push process. This is being used to give more flexibility in terms of modifying the total behaviour of the build process and determining the result of the build pipeline."
+---
+
+## Adding script in the build pipeline
+
+1. A script can be added before the build and post the build-and-push process.
+
+2. To do this edit your `truefoundry` helm chart and configure the section of the `tfyBuild.truefoundryWorkflows.preBuild` and `tfyBuild.truefoundryWorkflows.postBuild`
+
+3. Following is an example
+
+   <CodeGroup>
+     ```bash bash
+     tfyBuild:
+       truefoundryWorkflows:
+         preBuild:
+           image:
+             tag: latest
+             repository: ubuntu
+           script: |
+             #!/bin/bash
+
+             echo "Running pre-build script..."
+             # your steps can come here
+             echo "Finishing pre-build script."
+           command:
+             - /bin/bash
+           enabled: true
+         postBuild:
+           image:
+             tag: latest
+             repository: ubuntu
+           script: |
+             #!/bin/bash
+
+             echo "Running post-build script..."
+             # your steps can come here
+             echo "Finishing post-build script."
+           command:
+             - /bin/bash
+           enabled: true
+     ```
+   </CodeGroup>
+
+<Info>
+  Each build pipeline is allowed to run for max 14400 seconds post which the build will be declared as failed. User needs to ensure that the pre-build and post-build steps don't exceed the given time. Each step in itself is allowed to run for max 5400 seconds.
+</Info>
+
+4. Each step can refer to few inputs -
+
+   1. Build Source - `{{inputs.parameters.buildSource}}`
+   2. Build config - `{{inputs.parameters.buildConfig}}`
+   3. Docker registry URL - `{{inputs.parameters.dockerRegistryURL}}`
+   4. Docker registry username - `{{inputs.parameters.dockerRegistryUsername}}`
+   5. Docker registry password - `{{inputs.parameters.dockerRegistryPassword}}`
+   6. Docker image repository - `{{inputs.parameters.dockerRepo}}`
+   7. Docker image tag - `{{inputs.parameters.dockerTag}}`
+
+5. An example of using this -
+
+   <CodeGroup>
+     ```bash bash
+     postBuild:
+       image:
+         tag: latest
+         repository: ubuntu
+       script: >
+         #!/bin/bash
+
+         REGISTRY="{{inputs.parameters.dockerRegistryURL}}"  REPOSITORY="{{inputs.parameters.dockerRepo}}" TAG="{{inputs.parameters.dockerTag}}" IMAGE=$REGISTRY/$REPOSITORY:$TAG
+
+         echo "Registry URL is "$REGISTRY
+       command:
+         - /bin/bash
+       enabled: true
+     ```
+   </CodeGroup>
+
+<Info>
+  Currently docker CLI is not supported in the pre-build script as it can't connect to any daemon.
+</Info>
+
+***
+
+[Enabling Git Integrations](/docs/enabling-git-integrations)
+
+[LLM Gateway](/docs/tfy-llm-gateway-installation)
+
+* [Table of Contents](#)
+* * [Adding script in the build pipeline](#adding-script-in-the-build-pipeline)

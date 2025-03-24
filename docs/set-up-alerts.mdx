@@ -1,0 +1,27 @@
+---
+title: "Set up Alerts"
+description: "Truefoundry integrates with different monitoring and alerting solutions to enable setting alerts on the deployed services or jobs. This article describes the process of setting up alerts using Prometheus/Grafana, but you can set alerts using any other monitoring and alerting provider."
+---
+
+To setup alerts on Grafana, you will first need to export your service's metrics dashboard to Grafana. Follow this [guide](doc:monitor-your-service#set-up-monitoring-through-grafana) for instructions.
+
+### Setup Alerting for specific Metrics
+
+Before you can start setting up alerts for your metrics, you need to establish a destination for sending those alerts. In this case, we'll set up a Slack contact point so that when alerts are triggered, you receive notifications in your Slack channel.
+
+To ensure your service runs smoothly and avoid disruptions, setting up alerts is crucial. This involves defining specific metrics and thresholds that trigger notifications when certain conditions are met.
+
+A key alert you could create is a **Success Rate Alert** that notifies you if the success rate falls below 100%, indicating potential problems with your Service.
+
+#### Success Rate Alert
+
+***
+
+[View logs, metrics and events](/docs/monitor-your-service)
+
+[Log & Monitor Custom Metrics](/docs/log-monitor-custom-metrics)
+
+* [Table of Contents](#)
+
+* * [Setup Alerting for specific Metrics](#setup-alerting-for-specific-metrics)
+  * * [Success Rate Alert](#success-rate-alert)

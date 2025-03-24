@@ -1,0 +1,49 @@
+---
+title: "Adding Models to LLM Gateway"
+description: "Understanding the concept of a Provider and a Model -"
+---
+
+## What is a Provider?
+
+A provider is a company or organisation that offers access to various language models. These providers offer different models, each with unique capabilities, performance characteristics, and pricing structures. Examples of popular providers include OpenAI and Anthropic.
+
+## What is a Model?
+
+A model is a specific instance of an AI language model offered by a provider. Each model has distinct features and is trained on different datasets, leading to variations in performance and suitability for different tasks. For instance, OpenAI's GPT-3 and GPT-4 are different models, each with its own set of capabilities.
+
+## Steps to Add Providers and Models
+
+This section captures how to add models along with setting up required access controls.
+
+## Access Control
+
+In the above YAML example, everyone gets access to all the models. You can configure access control at the model level.
+
+### Adding access control through the UI
+
+While adding a model as per the steps in the [previous docs](https://docs.truefoundry.com/docs/adding-models-to-llm-gateway), you can configure the users and teams within the organisation who can access this model.
+
+![](/images/docs/31118d29217dd482fe594a68ec2f700ee8359d9aa0c25661fa2ff54eaea94d05-Screenshot_2024-09-28_at_2.11.40_PM.png)
+
+## Add Self-hosted Models
+
+You can also deploy an open-source or private model on TrueFoundry and add it to Gateway directly. This can also be extended to fine-tuned models and even embedding models.
+
+Refer to our docs on [Deploying LLMs From Model Catalog ](https://docs.truefoundry.com/docs/deploying-an-llm-model-from-the-model-catalogue)for how to deploy LLMs from our model catalogue in a few clicks.
+
+Follow these steps once you have your model deployed:
+
+***
+
+[Intro to LLM Gateway](/docs/intro-to-llm-gateway)
+
+[AWS Bedrock](/docs/aws-bedrock)
+
+* [Table of Contents](#)
+
+* * [What is a Provider?](#what-is-a-provider)
+  * [What is a Model?](#what-is-a-model)
+  * [Steps to Add Providers and Models](#steps-to-add-providers-and-models)
+  * [Access Control](#access-control)
+  * * [Adding access control through the UI](#adding-access-control-through-the-ui)
+  * [Add Self-hosted Models](#add-self-hosted-models)

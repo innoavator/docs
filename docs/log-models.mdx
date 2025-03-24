@@ -1,0 +1,211 @@
+---
+title: "Log and Get Models"
+description: "Log Models and Download Models"
+---
+
+Model comprises of model file/folder and some metadata. Each Model can have multiple versions. In essence they are just [Artifacts](doc:log-artifacts) with special type `model`
+
+## Log Model Version
+
+You can automatically save and version model files/folder using the[ `log_model` ](https://docs.truefoundry.com/docs/runs#kbdfunctionkbd-log_model)method.
+
+The basic usage looks like follows
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.ml import get_client
+    
+  client = get_client()
+  model_version = client.log_model(
+      ml_repo="name-of-the-ml-repo",
+      name="name-for-the-model",
+      model_file_or_folder="path/to/model/file/or/folder/on/disk",
+      framework=<None or Framework object (see below)>
+  )
+  ```
+</CodeGroup>
+
+<Info>
+  Any file or folder can be saved as model by passing it in `model_file_or_folder` and `framework` can be set to `None`.
+</Info>
+
+This is an example of storing an `sklearn` model. To log a model we start a run and then give our model a `name` and pass in the model saved on disk and the `framework` instance.
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.ml import get_client, SklearnFramework, infer_signature
+
+  import joblib
+  import numpy as np
+  from sklearn.pipeline import make_pipeline
+  from sklearn.preprocessing import StandardScaler
+  from sklearn.svm import SVC
+
+  X = np.array([[-1, -1], [-2, -1], [1, 1], [2, 1]])
+  y = np.array([1, 1, 2, 2])
+  clf = make_pipeline(StandardScaler(), SVC(gamma='auto'))
+  clf.fit(X, y)
+  joblib.dump(clf, "sklearn-pipeline.joblib")
+
+  client = get_client()
+  client.create_ml_repo(  # This is only required once
+       name="my-classification-project",
+       # This controls which bucket is used.
+       # You can get this from Integrations > Blob Storage.
+       storage_integration_fqn='<storage_integration_fqn>'
+  )
+  model_version = client.log_model(
+       ml_repo="my-classification-project",
+       name="my-sklearn-model",
+       description="A simple sklearn pipeline",
+       model_file_or_folder="sklearn-pipeline.joblib",
+       framework=SklearnFramework(),
+       metadata={"accuracy": 0.99, "f1": 0.80},
+  )
+  print(model_version.fqn)
+  ```
+
+  ```bash bash
+  from truefoundry.ml import get_client, TransformersFramework
+
+  import torch
+  from transformers import AutoTokenizer, AutoConfig, pipeline, AutoModelForCausalLM
+  pln = pipeline(
+       "text-generation",
+       model_file_or_folder="EleutherAI/pythia-70m",
+       tokenizer="EleutherAI/pythia-70m",
+       torch_dtype=torch.float16
+  )
+  pln.model.save_pretrained("my-transformers-model")
+  pln.tokenizer.save_pretrained("my-transformers-model")
+
+  client = get_client()
+  model_version = client.log_model(
+       ml_repo="my-llm-project"
+       name="my-transformers-model",
+       model_file_or_folder="my-transformers-model/",
+       framework=TransformersFramework(pipeline_tag="text-generation"),
+  )
+  print(model_version.fqn)
+  ```
+</CodeGroup>
+
+This will create a new model `my-sklearn-model` under the ml\_repo and the first version `v1` for `my-sklearn-model`.
+
+> Once created the model version files are immutable, only fields like description, framework, metadata can be updated using CLI or UI.
+
+Once created, a model version has a `fqn` (fully qualified name) which can be used to retrieve the model later - E.g. `model:truefoundry/my-classification-project/my-sklearn-model:1`
+
+Any subsequent calls to[ `log_model`](https://docs.truefoundry.com/docs/runs#kbdfunctionkbd-log_model) with the same `name` would create a new version of this model - `v2`, `v3` and so on.
+
+The logged model can be found in the dashboard in the `Models` tab under your ml\_repo.
+
+![](/images/docs/e43453146ee3833c9ea8bedd721ac9b037a4b1143730d540744aab3d62ff75fe-image.png)
+
+You can view the details of each model version from there on.
+
+![](/images/docs/2322ed688a2684a7d557648d2091433190a60c53104740d70b3321492b8a37d1-image_1.png)
+
+## Get Model Version and Download
+
+You can first get the model using the `fqn` and then download the logged model using the `fqn` and then use the[ `download()`](https://docs.truefoundry.com/docs/models#kbdfunctionkbd-download) function. From here on you can access the files at `download_info.download_dir`
+
+<CodeGroup>
+  ```bash bash
+  import os
+  import tempfile
+  import joblib
+  from truefoundry.ml import get_client
+
+  client = get_client()
+  model_version = client.get_model_version_by_fqn(
+       fqn="model:truefoundry/my-classification-project/my-sklearn-model:1"
+  )
+
+  # Download the model to disk
+  temp = tempfile.TemporaryDirectory()
+  download_info = model_version.download(path=temp.name)
+  print(download_info.model_dir)
+
+  # Deserialize and Load
+  model = joblib.load(
+       os.path.join(download_info.model_dir, "sklearn-pipeline.joblib")
+  )
+  ```
+
+  ```bash bash
+  import torch
+  from transformers import pipeline
+
+  from truefoundry.ml import get_client
+
+  client = get_client()
+  model_version = client.get_model_version_by_fqn(
+       fqn="model:truefoundry/my-llm-project/my-transformers-model:1"
+  )
+  # Download the model to disk
+  temp = tempfile.TemporaryDirectory()
+  download_info = model_version.download(path=temp.name)
+  print(download_info.model_dir)
+
+  # Deserialize and Load
+  pln = pipeline("text-generation", model=download_info.model_dir, torch_dtype=torch.float16)s
+  ```
+</CodeGroup>
+
+## FAQs
+
+#### What are the frameworks supported by the `log_model` method?
+
+Following framework classes are available in `truefoundry.ml`
+
+* `FastAIFramework`
+* `GluonFramework`
+* `H2OFramework`
+* `KerasFramework`
+* `LightGBMFramework`
+* `ONNXFramework`
+* `PaddleFramework`
+* `PyTorchFramework`
+* `SklearnFramework`
+* `SpaCyFramework`
+* `StatsModelsFramework`
+* `TensorFlowFramework`
+* `TransformersFramework`
+* `XGBoostFramework`
+
+## Update Model Version
+
+You may want to update fields like description, framework, metadata on an existing model version. You can do so with the `.update()` call on the Model Version instance. E.g.
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.ml import get_client, SklearnFramework
+
+  client = get_client()
+  model_version = client.get_model_version_by_fqn(
+      "model:truefoundry/my-classification-project/my-sklearn-model:1"
+  )
+  model_version.description = "This is my updated description"
+  model_version.metadata = {"accuracy": 0.98, "f1": 0.85}
+  model_version.framework = SklearnFramework(
+      model_filepath="sklearn-pipeline.joblib",
+      serialization_format="joblib"
+  )
+  # Updates the model fields for existing model version.
+  model_version.update()
+  ```
+</CodeGroup>
+
+***
+
+[Log and Get Artifacts](/docs/log-artifacts)
+
+[Log and Get Data](/docs/log-and-get-data)
+
+* [Table of Contents](#)
+
+* * [Log Model Version](#log-model-version)
+  * [Get Model Version and Download](#get-model-version-and-download)
+  * [FAQs](#faqs)
+  * [Update Model Version](#update-model-version)

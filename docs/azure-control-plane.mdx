@@ -1,0 +1,571 @@
+---
+title: "Azure"
+description: "Provisioning Control Plane Infrastructure on Azure"
+---
+
+<Warning />
+
+Setting up Truefoundry control plane on your own cloud involves creating the infrastructure to support the platform and then installing the platform itself.
+
+# Setting up Infrastructure
+
+## Requirements
+
+These are the infrastructure components required to set up a production grade Truefoundry control plane.
+
+<Info />
+
+| Requirements                                        | Description                                                                                                                                                                                                                                                                                                                                                                                                       | Reason for Requirement                                                                                     |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Kubernetes Cluster                                  | Any Kubernetes cluster will work here - we can also choose the compute-plane cluster itself to install Truefoundry helm chart.                                                                                                                                                                                                                                                                                    | The Truefoundry helm chart will be installed here.                                                         |
+| Azure Flexible Server for PostgreSQL                | Postgres >= 13                                                                                                                                                                                                                                                                                                                                                                                                    | The database is used by Truefoundry control plane to store all its metadata.                               |
+| Container in Azure Storage Account                  | Any container bucket reachable from control-plane.                                                                                                                                                                                                                                                                                                                                                                | This is used by control-plane to store the intermediate code while building the docker image.              |
+| AzureAD application                                 | AzureAD application for a service principal having read only access to the AKS cluster                                                                                                                                                                                                                                                                                                                            | This is used to read the node pools created in the AKS cluster for workloads to get deployed on them.      |
+| Egress Access for TruefoundryAuth                   | Egress access to [https://auth.truefoundry.com](https://auth.truefoundry.com)                                                                                                                                                                                                                                                                                                                                     | This is needed to validate the users logging into Truefoundry so that licensing can be maintained.         |
+| Egress access For Docker Registry                   | 1 public.ecr.aws 2. quay.io 3. ghcr.io 4. docker.io/truefoundrycloud 5. docker.io/natsio 6. nvcr.io 7. registry.k8s.io                                                                                                                                                                                                                                                                                            | This is to download docker images for Truefoundry, ArgoCD, NATS, ArgoRollouts, ArgoWorkflows, Istio.       |
+| DNS with TLS/SSL                                    | One endpoint to point to the control plane service (something like platform.example.com where example.com is your domain. There should also be a certificate with the domain so that the domains can be accessed over TLS.**The control-plane url should be reachable from the compute-plane so that compute-plane cluster can connect to the control-plane**Ensure that `require_secure_transport` is kept `OFF` | The developers will need to access the Truefoundry UI at domain that is provided here.                     |
+| User/ServiceAccount to provision the infrastructure | - azure subscription with billing enabled- Contributor Role to the above Subscription.
+- Role Based Access Administrator to the above subscription                                                                                                                                                                                                                                                                | These are the permissions required by the IAM user in Azure to create the entire control plane components. |
+
+## Run Infra Provisioning using OCLI
+
+### Prerequisites
+
+1. Install [git](https://git-scm.com/downloads) if not already present.
+
+2. Setup az CLI
+
+   1. Install azure cli >= 2.50
+
+   2. Log in and set a subscription. Please ensure that the user has Contributor and RBAC admin roles in the Subscription
+
+      ```
+      # login
+      az login
+
+      # setting the subscription
+      az account set --subscription $SUBSCRIPTION_ID
+      ```
+
+### Installing OCLI
+
+1. Download the binary using the below command.
+   <CodeGroup>
+     ```bash bash
+     curl -H 'Cache-Control: max-age=0' -s "https://releases.ocli.truefoundry.tech/binaries/ocli_$(curl -H 'Cache-Control: max-age=0' -s https://releases.ocli.truefoundry.tech/stable.txt)_darwin_arm64" -o ocli
+     ```
+
+     ```bash bash
+     curl -H 'Cache-Control: max-age=0' -s "https://releases.ocli.truefoundry.tech/binaries/ocli_$(curl -H 'Cache-Control: max-age=0' -s https://releases.ocli.truefoundry.tech/stable.txt)_darwin_amd64" -o ocli
+     ```
+
+     ```bash bash
+     curl -H 'Cache-Control: max-age=0' -s "https://releases.ocli.truefoundry.tech/binaries/ocli_$(curl -H 'Cache-Control: max-age=0' -s https://releases.ocli.truefoundry.tech/stable.txt)_linux_arm64" -o ocli
+     ```
+
+     ```bash bash
+     curl -H 'Cache-Control: max-age=0' -s "https://releases.ocli.truefoundry.tech/binaries/ocli_$(curl -H 'Cache-Control: max-age=0' -s https://releases.ocli.truefoundry.tech/stable.txt)_linux_amd64" -o ocli
+     ```
+   </CodeGroup>
+2. Make the binary executable and move it to `$PATH`
+   <CodeGroup>
+     ```bash bash
+     sudo chmod +x ./ocli
+     sudo mv ocli /usr/local/bin
+     ```
+   </CodeGroup>
+3. Confirm by running the command
+   <CodeGroup>
+     ```bash bash
+     ocli --version
+     ```
+   </CodeGroup>
+
+### Configuring input config file
+
+1. To create a new cluster, you would require your Azure `Subscription`, `Location`, `Resource Group`.
+
+2. Run the following command to fill in the inputs interactively
+   <CodeGroup>
+     ```bash bash
+     ocli infra-init
+     ```
+   </CodeGroup>
+
+3. For networking, there are the following possible configurations:
+
+   1. New resource group & network (Recommended) - This will create a new resource group and a new Virtual network.
+   2. Existing resource group with existing network - You can use an existing resource group and an existing Virtual network.
+   3. Existing resource group with new network - You can use an existing resource group while creating a new Virtual network
+
+4. Once all the inputs are filled, an input config file with the name`tfy-config.yaml` would be generated in your current directory
+
+5. Modify the file to enable control plane installation by setting `azure.tfy_control_plane.enabled: true`. Also modify the `azure.tfy_control_plane.subnet_cidr: ""` or `azure.tfy_control_plane.subnet_id: ""` for installing control plane components. Below is the sample for the same:
+
+<CodeGroup>
+  ```bash bash
+  aws: null
+  azure:
+    cluster:
+      name: CLUSTER_NAME
+      node_pools:
+        cpu_pools:
+          - enable_on_demand_pool: true
+            enable_spot_pool: true
+            instance_type: Standard_D2ds_v5
+            max_count: 2
+            name: cpu
+          - enable_on_demand_pool: true
+            enable_spot_pool: true
+            instance_type: Standard_D4ds_v5
+            max_count: 2
+            name: cpu2x
+        gpu_pools:
+          - enable_on_demand_pool: true
+            enable_spot_pool: true
+            instance_type: Standard_NV6ads_A10_v5
+            max_count: 2
+            name: a10
+          - enable_on_demand_pool: true
+            enable_spot_pool: true
+            instance_type: Standard_NC4as_T4_v3
+            max_count: 2
+            name: t4
+          - enable_on_demand_pool: true
+            enable_spot_pool: true
+            instance_type: Standard_NC24ads_A100_v4
+            max_count: 2
+            name: a100
+        initial:
+          instance_type: Standard_D2ds_v5
+          name: initial
+      version: "1.29"
+    location: eastus
+    network:
+      existing: true
+      subnet_cidr: ""
+      subnet_id: "/subscriptions/xxxxx-xxxxx-xxxxx-xxxxxxxxx/resourceGroups/RESOURCE_GROUP/providers/Microsoft.Network/virtualNetworks/VNET/subnets/SUBNET"
+      vnet_cidr: ""
+      vnet_id: "/subscriptions/xxxxx-xxxxx-xxxxx-xxxxxxxxx/resourceGroups/RESOURCE_GROUP/providers/Microsoft.Network/virtualNetworks/VNET"
+      vnet_name: ""
+    platform_features:
+      blob_storage:
+        container_enable_override: false
+        container_override_name: ""
+        enabled: true
+        storage_account_enable_override: false
+        storage_account_override_name: ""
+      cloud_integration:
+        azuread_application_enable_override: false
+        azuread_application_override_name: ""
+        enabled: true
+      container_registry:
+        container_registry_enable_override: false
+        container_registry_override_name: ""
+        enabled: true
+      enabled: true
+    resource_group:
+      existing: true
+      name: RESOURCE_GROUP
+    state:
+      container_name: tfy-tfstate-CLUSTER_NAME-cn-1714629250
+      resource_group: tfy-tfstate-CLUSTER_NAME-rg-1714629250
+      storage_account_name: tfytfstateCLUSTER_NAMEsa
+      storage_account_sku: Standard_GRS
+    subscription:
+      id: SUBSCRIPTION_ID
+      name: SUBSCRIPTION_NAME
+    tags: {}
+    tfy_control_plane:
+      database:
+        existing_network: true
+        instance_class: GP_Standard_D4ds_v5
+        subnet_cidr: ""
+        subnet_id: "/subscriptions/xxxxx-xxxxx-xxxxx-xxxxxxxxx/resourceGroups/RESOURCE_GROUP/providers/Microsoft.Network/virtualNetworks/VNET/subnets/DB_SUBNET"
+      enabled: true
+  binaries:
+    terraform:
+      binary_path: null
+    terragrunt:
+      binary_path: null
+  gcp: null
+  provider: azure
+  ```
+
+  ```bash bash
+  aws: null
+  azure:
+    cluster:
+      name: CLUSTER_NAME
+      node_pools:
+        cpu_pools:
+          - enable_on_demand_pool: true
+            enable_spot_pool: true
+            instance_type: Standard_D2ds_v5
+            max_count: 2
+            name: cpu
+          - enable_on_demand_pool: true
+            enable_spot_pool: true
+            instance_type: Standard_D4ds_v5
+            max_count: 2
+            name: cpu2x
+        gpu_pools:
+          - enable_on_demand_pool: true
+            enable_spot_pool: true
+            instance_type: Standard_NV6ads_A10_v5
+            max_count: 2
+            name: a10
+          - enable_on_demand_pool: true
+            enable_spot_pool: true
+            instance_type: Standard_NC4as_T4_v3
+            max_count: 2
+            name: t4
+          - enable_on_demand_pool: true
+            enable_spot_pool: true
+            instance_type: Standard_NC24ads_A100_v4
+            max_count: 2
+            name: a100
+        initial:
+          instance_type: Standard_D2ds_v5
+          name: initial
+      version: "1.29"
+    location: eastus
+    network:
+      existing: false
+      subnet_cidr: 10.10.0.0/16
+      subnet_id: ""
+      vnet_cidr: 10.0.0.0/8
+      vnet_id: ""
+      vnet_name: ""
+    platform_features:
+      blob_storage:
+        container_enable_override: false
+        container_override_name: ""
+        enabled: true
+        storage_account_enable_override: false
+        storage_account_override_name: ""
+      cloud_integration:
+        azuread_application_enable_override: false
+        azuread_application_override_name: ""
+        enabled: true
+      container_registry:
+        container_registry_enable_override: false
+        container_registry_override_name: ""
+        enabled: true
+      enabled: true
+    resource_group:
+      existing: true
+      name: RESOURCE_GROUP
+    state:
+      container_name: tfy-tfstate-CLUSTER_NAME-cn-1714629250
+      resource_group: tfy-tfstate-CLUSTER_NAME-rg-1714629250
+      storage_account_name: tfytfstateCLUSTER_NAMEsa
+    subscription:
+      id: SUBSCRIPTION_ID
+      name: SUBSCRIPTION_NAME
+    tags: {}
+    tfy_control_plane:
+      database:
+        existing_network: true
+        instance_class: GP_Standard_D4ds_v5
+        subnet_cidr: "10.11.0.0/24"
+        subnet_id: "/subscriptions/xxxxx-xxxxx-xxxxx-xxxxxxxxx/resourceGroups/RESOURCE_GROUP/providers/Microsoft.Network/virtualNetworks/VNET/subnets/DB_SUBNET"
+      enabled: true
+  binaries:
+    terraform:
+      binary_path: null
+    terragrunt:
+      binary_path: null
+  gcp: null
+  provider: azure
+  ```
+
+  ```bash bash
+  aws: null
+  azure:
+    cluster:
+      name: CLUSTER_NAME
+      node_pools:
+        cpu_pools:
+          - enable_on_demand_pool: true
+            enable_spot_pool: true
+            instance_type: Standard_D2ds_v5
+            max_count: 2
+            name: cpu
+          - enable_on_demand_pool: true
+            enable_spot_pool: true
+            instance_type: Standard_D4ds_v5
+            max_count: 2
+            name: cpu2x
+        gpu_pools:
+          - enable_on_demand_pool: true
+            enable_spot_pool: true
+            instance_type: Standard_NV6ads_A10_v5
+            max_count: 2
+            name: a10
+          - enable_on_demand_pool: true
+            enable_spot_pool: true
+            instance_type: Standard_NC4as_T4_v3
+            max_count: 2
+            name: t4
+          - enable_on_demand_pool: true
+            enable_spot_pool: true
+            instance_type: Standard_NC24ads_A100_v4
+            max_count: 2
+            name: a100
+        initial:
+          instance_type: Standard_D2ds_v5
+          name: initial
+      version: "1.29"
+    location: eastus
+    network:
+      existing: false
+      subnet_cidr: 10.10.0.0/16
+      subnet_id: ""
+      vnet_cidr: 10.0.0.0/8
+      vnet_id: ""
+      vnet_name: ""
+    platform_features:
+      blob_storage:
+        container_enable_override: false
+        container_override_name: ""
+        enabled: true
+        storage_account_enable_override: false
+        storage_account_override_name: ""
+      cloud_integration:
+        azuread_application_enable_override: false
+        azuread_application_override_name: ""
+        enabled: true
+      container_registry:
+        container_registry_enable_override: false
+        container_registry_override_name: ""
+        enabled: true
+      enabled: true
+    resource_group:
+      existing: false
+      name: RESOURCE_GROUP
+    state:
+      container_name: tfy-tfstate-CLUSTER_NAME-cn-1714629250
+      resource_group: tfy-tfstate-CLUSTER_NAME-rg-1714629250
+      storage_account_name: tfytfstateCLUSTER_NAMEsa
+    subscription:
+      id: SUBSCRIPTION_ID
+      name: SUBSCRIPTION_NAME
+    tags: {}
+    tfy_control_plane:
+      enabled: false
+  binaries:
+    terraform:
+      binary_path: null
+    terragrunt:
+      binary_path: null
+  gcp: null
+  provider: azure
+  ```
+</CodeGroup>
+
+## Create the cluster
+
+Run the following command to create the GKE cluster and IAM roles needed to provide access to various infrastructure components as per the inputs configured above.
+
+<CodeGroup>
+  ```bash bash
+  ocli infra-create --file tfy-config.yaml
+  ```
+</CodeGroup>
+
+This command may take around 30-45 minutes to complete.
+
+In the last step the database credentials will be printed. Make sure to note them down.
+
+## Installing TrueFoundry
+
+### Pre-requisites
+
+1. Installing [helm](https://helm.sh/docs/intro/install/)
+2. Add the following chart repository
+   <CodeGroup>
+     ```bash bash
+     helm repo add argocd https://argoproj.github.io/argo-helm
+     helm repo add truefoundry https://truefoundry.github.io/infra-charts/
+     ```
+   </CodeGroup>
+3. Updating helm repo to download the latest local repository index
+   <CodeGroup>
+     ```bash bash
+     helm repo update argocd truefoundry
+     ```
+   </CodeGroup>
+
+### Installing truefoundry helm chart
+
+1. Installing `argocd` helm chart
+
+   <CodeGroup>
+     ```bash bash
+     helm upgrade --install argocd argocd/argo-cd -n argocd \
+     --create-namespace \
+     --version 7.4.4 \
+     --set applicationSet.enabled=false \
+     --set notifications.enabled=false \
+     --set dex.enabled=false
+     ```
+   </CodeGroup>
+
+2. Create `values.yaml` for the truefoundry helm chart. You can refer to the [values](https://github.com/truefoundry/infra-charts/blob/main/charts/tfy-k8s-azure-aks-inframold/values.yaml) for more details
+
+   <CodeGroup>
+     ```bash bash
+     ## @param tenantName Parameters for tenantName
+     ## Tenant Name - This is same as the name of the organization used to sign up 
+     ## on Truefoundry
+     ##
+     tenantName: ""
+
+     ## @param controlPlaneURL Parameters for controlPlaneURL
+     ## URL of the control plane - This is the URL that can be used by workload to access the truefoundry components
+     ##
+     controlPlaneURL: ""
+
+     ## @param clusterName Name of the cluster
+     ## Name of the cluster that you have created on AWS/GCP/Azure
+     ##
+     clusterName: ""
+
+     ## @section notebookController parameters
+     ## Notebook Controller is required to power notebooks in Truefoundry
+     ##
+     notebookController:
+       enabled: false
+       defaultStorageClass: ""
+
+     ## @section tfyAgent parameters
+     tfyAgent:
+       enabled: false
+
+     ## @param truefoundry.enabled Flag to enable TrueFoundry
+     ## This installs the Truefoundry control plane helm chart. You can make it true
+     ## if you want to install Truefoundry control plane.
+     ##
+     truefoundry:
+       enabled: true
+       ## @param truefoundry.devMode.enabled Flag to enable TrueFoundry Dev mode. Postgres will run
+       ##
+       devMode:
+         enabled: false
+       truefoundryBootstrap:
+         enabled: true
+       truefoundryFrontendApp:
+         replicaCount: 2
+         istio:
+           virtualservice:
+             enabled: true
+             gateways: ["istio-system/tfy-wildcard"]
+             hosts:
+             - ""
+       tfyWorkflowAdmin:
+         enabled: false
+       database:
+         host: ""
+         name: ""
+         username: ""
+         password: ""
+       ## @param global.tfyApiKey API key for truefoundry
+       ##
+       tfyApiKey: ""
+       ## @param global.truefoundryImagePullConfigJSON JSON config for image pull secret
+       ##
+       truefoundryImagePullConfigJSON: ""
+     ```
+   </CodeGroup>
+
+3. Fill the following values
+
+   1. `tenantName` - name of the tenant. If you haven't created one. please do it [here](https://www.truefoundry.com/register)
+   2. `controlPlaneURL` - URL at which to host the platform (for e.g. `https://truefoundry.example.com`)
+   3. `clusterName` - name of the cluster
+
+4. For the remaining values
+
+   1. `truefoundry.tfyApiKey` - api key to given by TrueFoundry team
+   2. `truefoundry.truefoundryImagePullConfigJSON` - Image pull config JSON to be given by TrueFoundry team
+   3. `truefoundry.truefoundryFrontendApp.istio.hosts[0]` - control plane URL without protocol
+
+5. Run the following command to install the chart
+
+   <CodeGroup>
+     ```bash bash
+     helm upgrade --install tfy-k8s-azure-aks-inframold \
+     truefoundry/tfy-k8s-azure-aks-inframold \
+     -f values.yaml -n argocd
+     ```
+   </CodeGroup>
+
+6. Once the helm chart is installed, point the control plane URL to the load balancer's IP address. To get the IP address of the load balancer
+
+   <CodeGroup>
+     ```bash bash
+     kubectl get svc tfy-istio-ingress -n istio-system
+     ```
+   </CodeGroup>
+
+7. We will also need the [TLS certificates](setting-up-dns-and-tls-in-aks) to be passed to the load balancer (in our case istio) to terminate the TLS traffic.
+
+8. Login in the control plane URL with the same credentials used to register the tenant.
+
+### Add the compute plane
+
+1. Add the same cluster as the compute-plane from the UI and get the cluster token
+
+2. Add the token in the values.yaml
+   <CodeGroup>
+     ```bash bash
+     ## @section tfyAgent parameters
+     tfyAgent:
+       enabled: true
+       clusterToken: ""
+     ```
+   </CodeGroup>
+3. The control plane URL should be reachable to from inside of the k8s cluster as the `tfy-agent` will use the control plane URL to initiate the connection to the control plane.
+4. Helm
+   <CodeGroup>
+     ```bash bash
+     helm upgrade --install tfy-k8s-azure-aks-inframold \
+     truefoundry/tfy-k8s-azure-aks-inframold \
+     -f values.yaml -n argocd
+     ```
+   </CodeGroup>
+
+### Adding domain to Load balancer
+
+1. We need to add one more domain to the load balancer so that a separate domain can be used to host the workloads only. This domain can be a wildcard (recommended) as well.
+
+2. To add the domain
+
+   1. Point the domain to the load balancer IP address.
+   2. Pass the [TLS certificate](setting-up-dns-and-tls-in-aks) to istio so that it can terminate the TLS traffic.
+   3. Add the domain in the platform.
+
+### Adding integrations
+
+* If you have used ocli to bootstrap your infrastructure then it creates the following additional resources alongwith AKS cluster in your selected resource group. Check the below documents to understand how to create the integrations manually, if not done through OCLI and how to add them to the platform.
+
+  * Container registry - [How to add container registry to the platform](integration-provider-azure#azure-container-registryacr-integration)
+  * Storage account - [how to add storage account to the platform](integration-provider-azure#azure-blob-storageabs-integration)
+    * Container
+  * Service Principal having read only access to AKS cluster - [how to add azure application to TF platform](integration-provider-azure#azure-aks-integration)
+
+***
+
+[GCP](/docs/gcp-control-plane)
+
+[Installation with Helm](/docs/installing-control-plane-using-helm-chart)
+
+* [Table of Contents](#)
+
+* * [Setting up Infrastructure](#setting-up-infrastructure)
+
+  * * [Requirements](#requirements)
+    * [Run Infra Provisioning using OCLI](#run-infra-provisioning-using-ocli)
+    * [Create the cluster](#create-the-cluster)
+    * [Installing TrueFoundry](#installing-truefoundry)

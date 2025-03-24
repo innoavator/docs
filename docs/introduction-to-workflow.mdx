@@ -1,0 +1,41 @@
+---
+title: "Overview"
+description: "Powered by Flyte (An OpenSource Workflow Orchestrator)"
+---
+
+A TrueFoundry workflow is a structured sequence of tasks that enables efficient management and execution of complex computational processes, especially in data processing and machine learning. It offers a scalable, maintainable, and reusable approach to orchestrating and automating tasks.
+
+**Key features of TrueFoundry workflows:**
+
+* **Task Orchestration:** Seamlessly manage and execute tasks in a defined order using Directed Acyclic Graphs **(DAGs)**.
+* **End-to-End Automation:** Streamline the entire lifecycle of data and machine learning workflows, from data ingestion to model deployment.
+* **Scalability and Reusability:** Effortlessly scale workflows to handle large datasets or complex tasks.
+
+### Architecture
+
+Truefoundry Workflows are based on an OpenSource Workflow Orchestrator [Flyte](https://docs.flyte.org/en/latest/)
+
+* We ship Flyte's Control Plane Components with Truefoundry's Control Plane (No additional Setup Needed).
+* Each Kubernetes cluster where you need to run workflows needs the following setup to be done. (Installation of Flyte's Data Plane Components). Follow this [document](https://docs.truefoundry.com/docs/infra-set-up-for-workflows) for the same.
+
+### Key Consideration while building a workflow.
+
+* Install the truefoundry workflow and set up the CLI, refer to [this](https://docs.truefoundry.com/docs/setup) guide for setting up the CLI.
+* You need to define the workflow in a python file like [this](https://docs.truefoundry.com/docs/creating-your-first-workflow#workflowpy). Functions representing tasks and workflows need to decorated with `@workflow` and `@task`decorators.
+* Define task and task config to configure the usage of task in workflow, check the [different types of task ](https://docs.truefoundry.com/docs/task-config)config that are available for usage in workflow.
+* To know about how to interact with the workflow, refer to [Interacting with workflow](https://docs.truefoundry.com/docs/interacting-with-workflow).
+* To run a raw container as a task, refer to the [Using raw container task guide](https://docs.truefoundry.com/docs/container-task).
+* To run workflow at a fix interval of time, create a cron workflow, to learn more about cron workflow, refer [this](https://docs.truefoundry.com/docs/cron-workflow).
+* To speed up the execution of heavy task, you can use map task to create sub task and run simultaneously, refer to [this](https://docs.truefoundry.com/docs/creating-a-map-task) guide to see how you can define map task.
+* To have a conditional execution of task or to select task based on conditions, use [conditional task.]()
+
+***
+
+[Data Directory](/docs/dataset)
+
+[Creating your first workflow](/docs/creating-your-first-workflow)
+
+* [Table of Contents](#)
+
+* * [Architecture](#architecture)
+  * [Key Consideration while building a workflow.](#key-consideration-while-building-a-workflow)

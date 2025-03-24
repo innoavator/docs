@@ -1,0 +1,95 @@
+---
+title: "Requirements"
+description: "Requirements for Truefoundry installation on GCP"
+---
+
+Following is the list of requirements to set up compute plane in your GCP project
+
+# GCP Infra Requirements
+
+## New VPC + New Cluster
+
+These are the requirements for a fresh Truefoundry installation. If you are reusing an existing network or cluster, refer to the sections further below, in addition to this one
+
+| Requirements                                        | Description                                                                                                                                                                                                                                                                                                                                                                                             | Reason for requirement                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GCP APIs                                            | **Service Usage API** **Compute Engine API** **Kubernetes Engine API** **Storage Engine API** **Cloud Logging API** **Cloud Monitoring API** **Artifact Registry API** **Container File System API** **Cloud Autoscaling API** **IAM Service Account** **Credentials API** **Service Networking API** **Secrets Manager API**                                                                           | This is needed to enable Kubernetes cluster, GCS Bucket, Artifact Registry, Secrets Manager, logging and monitoring.                                                                                                                                                                                                                                                                                                                                                                   |
+| VPC                                                 | Any existing or new VPC with the following subnets should work:- **Minimum subnet CIDR should be /24**
+
+- Additional ranges:
+
+  * **Pods: min /20 CIDR**
+  * **Services: min /22 CIDR**
+
+- **Cloud Router, Cloud NAT**
+
+- **Port 80/443 ingress from internet or your VPN**
+
+- **Allow all ports ingress inside a subnet**
+
+- port 443, 8443, 9443 and 15017 for connection to GKE master control plane | This is needed to ensure around 250 instances and 4096 pods can be run in the Kubernetes cluster. If we expect the scale to be higher, the subnet range should be increased. Cloud Router and NAT are required for egress internet access.                                                                                                                                                                                                                                             |
+| Egress access For Docker Registry                   | 1. public.ecr.aws 2. quay.io 3. ghcr.io 4. docker.io/truefoundrycloud 5. docker.io/natsio 6. nvcr.io 7. registry.k8s.io                                                                                                                                                                                                                                                                                 | This is to download docker images for Truefoundry, ArgoCD, NATS, GPU operator, ArgoRollouts, ArgoWorkflows, Istio, Keda.                                                                                                                                                                                                                                                                                                                                                               |
+| DNS with SSL/TLS                                    | Set of endpoints (preferably wildcard) to point to the deployments being made. Something like *.internal.example.com,*.external.example.com. An ACM certificate with the chose domains as SAN is required in the same region                                                                                                                                                                            | When developers deploy their services, they will need to access the endpoints of their services to test it out or call from other services. This is why we need the second domain name. Its better if we can make it a wildcard since then developers can deploy services like `service1.internal.example.com`, `service2.internal.example.com`. We also support path based routing which would make the endpoints `internal.example.com/service1` and `internal.example.com/service2` |
+| Compute                                             | - Quotas must be enabled for required CPU and GPU instance types (on-demand and preemptible / spot)                                                                                                                                                                                                                                                                                                     | This is to make sure TrueFoundry can bring up the machines as needed.                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| User/ServiceAccount to provision the infrastructure | - Compute Admin- Compute Network Admin
+- Kubernetes Engine Admin
+- Security Admin
+- Service Account Admin
+- Service Account Token Creator
+- Service Account User
+- Storage Admin
+- Service usage Admin                                                                                                                                                                                                  | These are the permissions required by the IAM user in GCP to create the entire compute-plane infrastructure.                                                                                                                                                                                                                                                                                                                                                                           |
+
+## Existing Network
+
+| Requirements | Description                                                                                                                                                                                                                                                                                                                              | Reason for requirement                                                                                                                                                                                                                     |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| VPC          | * **Minimum subnet CIDR should be /24**
+
+* Additional ranges:
+
+  * **Pods: min /20 CIDR**
+  * **Services: min /22 CIDR**
+
+* **Cloud Router, Cloud NAT**
+
+* **Port 80/443 ingress from internet or your VPN**
+
+* **Allow all ports ingress inside a subnet**
+
+* port 443, 8443, 9443 and 15017 for connection to GKE master control plane | This is needed to ensure around 250 instances and 4096 pods can be run in the Kubernetes cluster. If we expect the scale to be higher, the subnet range should be increased. Cloud Router and NAT are required for egress internet access. |
+
+## Existing Cluster
+
+| Description | Requirements | Reason for requirement |
+| ----------- | ------------ | ---------------------- |
+| Compute     | TODO         |                        |
+
+## Permissions required to create the infrastructure
+
+The IAM user should have the following permissions
+
+* Compute Admin
+* Compute Network Admin
+* Kubernetes Engine Admin
+* Security Admin
+* Service Account Admin
+* Service Account Token Creator
+* Service Account User
+* Storage Admin
+* Service usage Admin
+
+***
+
+[Architecture](/docs/infrastructure-requirements-gcp)
+
+[Setting up DNS and TLS in GCP](/docs/setting-up-dns-and-tls-in-gcp)
+
+* [Table of Contents](#)
+
+* * [GCP Infra Requirements](#gcp-infra-requirements)
+
+  * * [New VPC + New Cluster](#new-vpc--new-cluster)
+    * [Existing Network](#existing-network)
+    * [Existing Cluster](#existing-cluster)
+    * [Permissions required to create the infrastructure](#permissions-required-to-create-the-infrastructure)

@@ -1,0 +1,95 @@
+---
+title: "Log and Get Parameters"
+description: "Parameters or HyperParameters that define your experiment and Machine Learning model. For example, ,"
+---
+
+### Logging the hyperparameters
+
+Hyperparameters are independent variables for a run used to control the learning process. We can capture the hyperparameters using the [`log_params` ](https://docs.truefoundry.com/docs/runs#kbdfunctionkbd-log_params)method. Once set, the hyperparameters are immutable. If you need to change the hyperparameter, it basically means that you are changing your model and it's best to create a new run for that. This way, the system exactly tracks the model along with the exact configuration to train it.
+
+Note that parameter values are stringified before storing.
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.ml import get_client
+
+  client = get_client()
+  run = client.create_run(ml_repo="iris-demo", run_name="svm-model")
+
+  run.log_params({"cache_size": 200.0, "kernel": "linear"})
+
+  run.end()
+  ```
+</CodeGroup>
+
+### Viewing logged parameter in dashboard
+
+These logged parameters can be seen in the MLFoundry dashboard.
+
+<Frame caption="View Logged Parameters">
+  <img src="/images/docs/be7bcf3-View_logged.png" />
+</Frame>
+
+### Accessing parameters for a run
+
+You can use the [`get_params`](https://docs.truefoundry.com/docs/runs#kbdfunctionkbd-get_params) method. It returns a dictionary
+
+<CodeGroup>
+  ```bash bash
+  from truefoundry.ml import get_client
+
+  client = get_client()
+  run = client.get_run("run-id-of-the-run")
+
+  print(run.get_params())
+  ```
+</CodeGroup>
+
+### Filtering runs bases on parameter value
+
+To filters runs, click on top right corner of the screen to apply the required filter.
+
+<Frame caption="Filter based on parameter value">
+  <img src="/images/docs/9c3da3d-param.png" />
+</Frame>
+
+### Capturing command-line arguments
+
+We can capture command-line arguments directly from the `argparse.Namespace` object.
+
+<CodeGroup>
+  ```bash bash
+  import argparse
+  from truefoundry.ml import get_client
+
+  parser = argparse.ArgumentParser()
+  parser.add_argument("--batch_size", type=int, required=True)
+  args = parser.parse_args()
+
+  client = get_client()
+  run = client.create_run(ml_repo="iris-demo")
+
+  run.log_params(args)
+
+  run.end()
+  ```
+</CodeGroup>
+
+### Can I change the param value once logged?
+
+No you cannot change the value of param once logged.
+
+***
+
+[Creating a run](/docs/create-run)
+
+[Log and Get Metrics](/docs/log-metrics)
+
+* [Table of Contents](#)
+
+* * [Logging the hyperparameters](#logging-the-hyperparameters)
+  * [Viewing logged parameter in dashboard](#viewing-logged-parameter-in-dashboard)
+  * [Accessing parameters for a run](#accessing-parameters-for-a-run)
+  * [Filtering runs bases on parameter value](#filtering-runs-bases-on-parameter-value)
+  * [Capturing command-line arguments](#capturing-command-line-arguments)
+  * [Can I change the param value once logged?](#can-i-change-the-param-value-once-logged)

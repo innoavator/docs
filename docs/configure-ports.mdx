@@ -1,0 +1,12 @@
+---
+title: "Overview"
+description: "If you are using Async Service via the library route, you need not have any ports exposed in your service."
+---
+
+However, if you are using HTTP service along with a sidecar, you need to provide a port on your HTTP service on which the sidecar will send the request. You need not expose this port externally since the sidecar calls the HTTP service calls it via the localhost url.
+
+![](/images/docs/584504e-Screenshot_2024-04-13_at_4.01.00_PM.png)
+
+***
+
+[Deploy your first Async Service](/docs/deploy-your-first-asyncservice)

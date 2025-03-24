@@ -1,0 +1,46 @@
+---
+title: "Overview"
+description: "TrueFoundry is a platform on Kubernetes that makes it really easy to build, track, and deploy models without having a detailed understanding of Kubernetes. TrueFoundry is deployed on a cluster on your own cloud, so the data never leaves your environment, and you don't incur any data egress costs."
+---
+
+## Key design principles
+
+1. **Cloud Native:** TrueFoundry runs on Kubernetes, so it can work on almost all cloud providers or even on-premises.
+2. **ML Inherits the same SRE principles as the rest of the infrastructure within your organization:** TrueFoundry seamlessly integrates with the rest of your software stack to provide the same SRE, security, and cost optimization features to the ML team.
+3. **No Vendor Lockin:** We are developers, and we understand that nobody wants to be vendor-locked in to a specific provider. We have put in a lot of effort to make sure that it is really easy to migrate off of TrueFoundry if you need to do so. The TrueFoundry APIs do not interfere with your main code, and we also expose to you all the Kubernetes manifests we generate, so if you ever want to migrate, you can take those manifests and apply them yourself.
+
+## Key features
+
+1. **Jupyter Notebooks:** Start Notebooks or VSCode Server on the cloud with auto shutdown.
+2. **Deploy a training or batch inference job:** Write your Python script, log your metrics, models, and artifacts, and trigger jobs either manually or on a schedule.
+3. **Deploy your models as APIs:** Deploy the model artifact directly to get APIs or wrap it in FastAPI, Flask, or another framework to host the APIs. The deployments support autoscaling and canary deployments out of the box.
+4. **Easy Debugging:** View logs, metrics, and cost optimization insights for all services.
+5. **Model Registry:** Track all the models and their versions in your organization along with their current deployment status and metadata.
+6. **Deploy and Fine-tune LLMs:** Deploy open source LLMs in one click and fine-tune them on your own data.
+7. **Deploy common ML software:** Deploy the most commonly used ML software like LabelStudio, Helm Charts, etc.
+8. **Manage multiple environments and promotion:** Manage multiple Kubernetes clusters from different environments and move workloads across them in a single click.
+
+## Integration with other infrastructure
+
+TrueFoundry integrates with the rest of your infrastructure in the following way:
+
+### TrueFoundry architecture
+
+TrueFoundry follows a split-plane architecture that enables on-premises deployment as well as makes sure that the reliability of your services does not depend on TrueFoundry.
+
+![](/images/docs/ca907e3-image.png)
+
+To read more about the architecture, you can refer to this blog: TrueFoundry: A ML Platform on Kubernetes: [https://blog.truefoundry.com/truefoundry-ml-platform-on-kubernetes/](https://blog.truefoundry.com/truefoundry-ml-platform-on-kubernetes/).
+
+You can connect your own cluster to the TrueFoundry hosted control plane. Our enterprise plan also allows you to host the control plane in your own account.
+
+***
+
+[Create and Setup your account](/docs/create-and-setup-your-account)
+
+* [Table of Contents](#)
+
+* * [Key design principles](#key-design-principles)
+  * [Key features](#key-features)
+  * [Integration with other infrastructure](#integration-with-other-infrastructure)
+  * * [TrueFoundry architecture](#truefoundry-architecture)

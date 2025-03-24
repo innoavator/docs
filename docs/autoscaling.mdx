@@ -1,0 +1,35 @@
+---
+title: "Autoscaling"
+description: "When traffic or resource usage isn't constant, we want the number of replicas to dynamically adjust based on the Queue Backlog. We need to define the minimum and maximum number of replicas in this case and the autoscaling strategy (based on the Queue Backlog) will decide what should be the number of replicas between the min and max replicas."
+---
+
+## Autoscaling Configuration
+
+Autoscaling configuration involves setting minimum and maximum replica counts as well as defining metrics that trigger autoscaling actions. Here are the available settings for autoscaling:
+
+* **Minimum Replicas**: The minimum number of replicas to keep available.
+* **Maximum Replicas**: The maximum number of replicas to keep available.
+* **Cooldown Period** (Advanced Settings): The period to wait after the last trigger is reported active before scaling the resource back to 0.
+* **Polling Interval** (Advanced Settings): This is the interval to check each trigger on
+
+## Configuring Autoscaling via UI
+
+To configure autoscaling parameters for your service via the UI, follow these steps:
+
+## Async Service Autoscaling Metrics
+
+For your async service, autoscaling metrics play a crucial role in dynamically adjusting resource allocation to meet changing demands while maintaining optimal performance.
+
+* **AWS SQS Average Backlog**: AWS SQS pending queue length averaged over all replicas which autoscaler will try to maintain. This option is only available when the Input Worker is based on AWS SQS. Learn more about [AWS SQS Backlog Metric](doc:aws-sqs#configuring-autoscaling-for-aws-sqs-queue)
+
+***
+
+[Configure Queue](/docs/configure-queue)
+
+[Configure Sidecar](/docs/configure-sidecar)
+
+* [Table of Contents](#)
+
+* * [Autoscaling Configuration](#autoscaling-configuration)
+  * [Configuring Autoscaling via UI](#configuring-autoscaling-via-ui)
+  * [Async Service Autoscaling Metrics](#async-service-autoscaling-metrics)

@@ -1,0 +1,61 @@
+---
+title: "Model Deployment"
+description: "For some model frameworks, Truefoundry can generate a model deployment package containing the following:"
+---
+
+* Inference code wrapped around a general-purpose web framework like FastAPI or more specialized model servers like Triton.
+* A requirements.txt. We also generate a Dockerfile for model servers like Triton, which are complex to set up on all operating systems.
+* A README file that contains instructions on testing locally and deploying on Truefoundry.
+
+### This approach gives you the flexibility to:
+
+* Deploy the package as it is to Truefoundry or anywhere else.
+* Change the inference code to add custom business logic and dependencies.
+* Test the code locally.
+* Maintain the generated code in your version control system (Github, Gitlab, etc.).
+
+### To create the deployment package:
+
+* Locate the model you want to deploy in the model registry and click the **Deploy** button.
+
+![](/images/docs/171f90092497ea751a526cc0c4a4c50c4eaaa2a81f018baab4db8ca8288fbd71-Screenshot_2024-12-09_at_10.37.21_PM.png)
+
+* Select a **workspace** for deployment, and copy the command.
+
+![](/images/docs/b1ec3441634b9a28c96d66766cd355cd6ad66366ee540944c655058f03d13ace-Screenshot_2024-12-09_at_10.40.22_PM.png)
+
+* Execute the command in your terminal to generate the model deployment package.
+
+<CodeGroup>
+  ```bash bash
+  ❯ tfy deploy-init model --name 'my-sklearn-model-1' --model-version-fqn 'model:truefoundry/my-classification-project/my-sklearn-model-1:1' --workspace-fqn 'tfy-usea1-devtest:deb-ws' --model-server 'fastapi'
+  ...
+  Generating application code for 'model:truefoundry/my-classification-project/my-sklearn-model-1:1'
+
+  Model Server code initialized successfully!
+
+  Code Location: /work/model-deployment/my-sklearn-model-1
+
+  Next Steps:
+  - Navigate to the model server directory:
+  cd /work/model-deployment/my-sklearn-model-1
+  - Refer to the README file in the directory for further instructions.
+
+  ❯ cd /work/model-deployment/my-sklearn-model-1
+  ❯ ls
+  README.md               deploy.py               infer.py                requirements.txt        server.py
+  ```
+</CodeGroup>
+
+* Follow the instructions present on the`README.md`.
+
+***
+
+[Create custom K8s objects](/docs/create-custom-k8s-objects)
+
+[Scikit Learn](/docs/scikit-learn)
+
+* [Table of Contents](#)
+
+* * [This approach gives you the flexibility to:](#this-approach-gives-you-the-flexibility-to)
+  * [To create the deployment package:](#to-create-the-deployment-package)
